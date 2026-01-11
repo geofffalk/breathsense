@@ -1,0 +1,437 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/settings.dart';
+import '../services/ble_service.dart';
+import '../widgets/threshold_slider.dart';
+
+/// Settings screen with Open Breathing and Guided Breathing settings
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  // Open Breathing settings
+  late OpenBreathingSettings _openSettings;
+
+  // Guided Breathing settings
+  late GuidedBreathingSettings _guidedSettings;
+  
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _openSettings = OpenBreathingSettings();
+    _guidedSettings = GuidedBreathingSettings();
+    
+    // Load settings from BLE service after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSettingsFromFirmware();
+    });
+  }
+  
+  void _loadSettingsFromFirmware() {
+    final bleService = context.read<BleService>();
+    
+    // If settings already received, use them
+    if (bleService.settingsReceived) {
+      setState(() {
+        _openSettings = bleService.openSettings.copyWith();
+        _guidedSettings = bleService.guidedSettings.copyWith();
+        _initialized = true;
+      });
+    } else if (bleService.isConnected) {
+      // Request settings from firmware
+      bleService.requestSettings();
+    }
+    
+    // Listen for settings updates
+    bleService.addListener(_onBleServiceUpdate);
+  }
+  
+  void _onBleServiceUpdate() {
+    final bleService = context.read<BleService>();
+    if (bleService.settingsReceived && !_initialized) {
+      setState(() {
+        _openSettings = bleService.openSettings.copyWith();
+        _guidedSettings = bleService.guidedSettings.copyWith();
+        _initialized = true;
+      });
+    }
+  }
+  
+  @override
+  void dispose() {
+    // Remove listener
+    try {
+      context.read<BleService>().removeListener(_onBleServiceUpdate);
+    } catch (_) {}
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bleService = context.watch<BleService>();
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        title: const Text(
+          'Settings',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Open Breathing Settings
+            _buildSectionHeader('Open Breathing Settings', Icons.air),
+            const SizedBox(height: 8),
+            _buildOpenBreathingSettings(bleService),
+
+            const SizedBox(height: 32),
+
+            // Guided Breathing Settings (always visible)
+            _buildSectionHeader('Guided Breathing Settings', Icons.timeline),
+            const SizedBox(height: 8),
+            _buildGuidedBreathingSettings(bleService),
+
+            const SizedBox(height: 32),
+
+            // Sensor Sensitivity
+            _buildSectionHeader('Sensor Sensitivity', Icons.tune),
+            const SizedBox(height: 8),
+            _buildSensitivitySettings(bleService),
+
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.cyan[700], size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOpenBreathingSettings(BleService bleService) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50], // Very light background
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Exhale Duration Thresholds',
+            style: TextStyle(color: Color(0xFF424242), fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Drag the dividers to set when each color appears based on exhale length.',
+            style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 16),
+
+          ThresholdRangeSlider(
+            veryShortMax: _openSettings.veryShortMax,
+            shortMax: _openSettings.shortMax,
+            mediumMax: _openSettings.mediumMax,
+            longMax: _openSettings.longMax,
+            min: 0.5,
+            max: 10.0,
+            onChanged: (veryShort, short, medium, long) {
+              setState(() {
+                _openSettings = _openSettings.copyWith(
+                  veryShortMax: veryShort,
+                  shortMax: short,
+                  mediumMax: medium,
+                  longMax: long,
+                );
+              });
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: bleService.isConnected
+                  ? () => bleService.updateOpenSettings(_openSettings)
+                  : null,
+              icon: const Icon(Icons.send),
+              label: const Text('Send to Headset'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyan,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuidedBreathingSettings(BleService bleService) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDurationSlider(
+            label: 'Inhale Length',
+            value: _guidedSettings.inhaleLength,
+            min: 0.0,
+            max: 15.0,
+            activeColor: Colors.green,
+            onChanged: (v) => setState(() {
+              _guidedSettings = _guidedSettings.copyWith(inhaleLength: v);
+            }),
+          ),
+
+          _buildDurationSlider(
+            label: 'Hold After Inhale',
+            value: _guidedSettings.holdAfterInhale,
+            min: 0.0,
+            max: 15.0,
+            activeColor: Colors.redAccent,
+            onChanged: (v) => setState(() {
+              _guidedSettings = _guidedSettings.copyWith(holdAfterInhale: v);
+            }),
+          ),
+
+          _buildDurationSlider(
+            label: 'Exhale Length',
+            value: _guidedSettings.exhaleLength,
+            min: 0.0,
+            max: 15.0,
+            activeColor: Colors.cyan,
+            onChanged: (v) => setState(() {
+              _guidedSettings = _guidedSettings.copyWith(exhaleLength: v);
+            }),
+          ),
+
+          _buildDurationSlider(
+            label: 'Hold After Exhale',
+            value: _guidedSettings.holdAfterExhale,
+            min: 0.0,
+            max: 15.0,
+            activeColor: Colors.redAccent,
+            onChanged: (v) => setState(() {
+              _guidedSettings = _guidedSettings.copyWith(holdAfterExhale: v);
+            }),
+          ),
+          
+          const SizedBox(height: 16),
+          Text(
+            'LED Animation Range',
+            style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text('BACK', style: TextStyle(color: Colors.grey[600], fontSize: 10, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: RangeSlider(
+                  values: RangeValues(_guidedSettings.ledStart.toDouble(), _guidedSettings.ledEnd.toDouble()),
+                  min: 0,
+                  max: 9,
+                  divisions: 9,
+                  labels: const RangeLabels(
+                    'Back LED',
+                    'Front LED',
+                  ),
+                  activeColor: Colors.cyan[700],
+                  inactiveColor: Colors.grey[200],
+                  onChanged: (RangeValues values) {
+                    setState(() {
+                      _guidedSettings = _guidedSettings.copyWith(
+                        ledStart: values.start.round(),
+                        ledEnd: values.end.round(),
+                      );
+                    });
+                  },
+                ),
+              ),
+              Text('FRONT', style: TextStyle(color: Colors.grey[600], fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: bleService.isConnected
+                  ? () => bleService.sendGuidedBreathingSettings(_guidedSettings)
+                  : null,
+              icon: const Icon(Icons.send),
+              label: const Text('Send to Headset'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyan,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationSlider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required Color activeColor,
+    required ValueChanged<double> onChanged,
+  }) {
+    // Round to nearest 0.5
+    final roundedValue = (value * 2).round() / 2;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
+              Text(
+                '${roundedValue.toStringAsFixed(1)}s',
+                style: TextStyle(color: activeColor),
+              ),
+            ],
+          ),
+          Slider(
+            value: roundedValue.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: ((max - min) * 2).round(), // 0.5s steps
+            activeColor: activeColor,
+            inactiveColor: Colors.grey[200],
+            onChanged: (v) {
+              final rounded = (v * 2).round() / 2;
+              onChanged(rounded);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSensitivitySettings(BleService bleService) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Sensitivity', style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
+              Text(
+                '${_openSettings.sensitivity}',
+                style: TextStyle(color: Colors.cyan[700], fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Low', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              Expanded(
+                child: Slider(
+                  value: _openSettings.sensitivity.toDouble(),
+                  min: 0,
+                  max: 9,
+                  divisions: 9,
+                  activeColor: Colors.cyan[700],
+                  inactiveColor: Colors.grey[200],
+                  onChanged: (v) => setState(() {
+                    _openSettings = _openSettings.copyWith(sensitivity: v.round());
+                  }),
+                ),
+              ),
+              const Text('High', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: bleService.isConnected
+                  ? () => bleService.sendSensitivity(_openSettings.sensitivity)
+                  : null,
+              icon: const Icon(Icons.send),
+              label: const Text('Send to Headset'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyan,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
