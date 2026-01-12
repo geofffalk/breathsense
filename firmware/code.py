@@ -222,6 +222,21 @@ def parse_message(msg):
             except Exception:
                 pass
 
+    elif cmd == "L" and len(parts) >= 2:
+        # LED control: L,{1|0}
+        try:
+            val = int(parts[1])
+            if val == 0:
+                settings["led_on"] = False
+                hide_all()
+                log("LEDs: OFF")
+            else:
+                settings["led_on"] = True
+                log("LEDs: ON")
+            save_settings(settings)
+        except Exception:
+            pass
+
     elif cmd == "Q":
         # Query settings: Q
         send_settings()
@@ -293,12 +308,14 @@ try:
                 # Send breath data to app
                 send_breath_data()
 
-                # Update LEDs based on mode
-                if current_mode == MODE_OPEN:
-                    open_led.tick()
-                elif current_mode == MODE_GUIDED:
-                    guided_led.tick()
-                # STANDBY: LEDs stay off
+                # Update LEDs based on mode and LED toggle
+                if settings.get("led_on", True):
+                    if current_mode == MODE_OPEN:
+                        open_led.tick()
+                    elif current_mode == MODE_GUIDED:
+                        guided_led.tick()
+                else:
+                    hide_all()
 
             else:
                 if was_connected:
@@ -317,8 +334,11 @@ try:
                     except Exception:
                         pass
 
-                # Standalone: always run open breathing
-                open_led.tick()
+                # Standalone: always run open breathing if LEDs on
+                if settings.get("led_on", True):
+                    open_led.tick()
+                else:
+                    hide_all()
 
             garbage_collect()
             time.sleep(0.01)  # ~100Hz loop

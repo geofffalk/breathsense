@@ -83,7 +83,6 @@ class GuidedBreathingSettings {
 
 /// Breathing mode enum
 enum BreathingMode {
-  off, // Standby - LEDs off, just monitoring
   open, // Open Breathing mode
   guided, // Guided Breathing mode
 }
@@ -92,8 +91,6 @@ extension BreathingModeExtension on BreathingMode {
   /// Convert to BLE message format
   String toMessage() {
     switch (this) {
-      case BreathingMode.off:
-        return 'M,O\n';
       case BreathingMode.open:
         return 'M,F\n';
       case BreathingMode.guided:
@@ -103,8 +100,6 @@ extension BreathingModeExtension on BreathingMode {
 
   String get displayName {
     switch (this) {
-      case BreathingMode.off:
-        return 'Off';
       case BreathingMode.open:
         return 'Open Breathing';
       case BreathingMode.guided:

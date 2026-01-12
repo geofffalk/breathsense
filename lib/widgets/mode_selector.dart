@@ -18,30 +18,27 @@ class ModeSelector extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _ModeButton(
-                label: 'Off',
-                icon: Icons.power_settings_new,
-                isSelected: currentMode == BreathingMode.off,
-                isEnabled: isConnected,
-                onPressed: () => bleService.setMode(BreathingMode.off),
+              Expanded(
+                child: _ModeButton(
+                  label: 'Open',
+                  icon: Icons.air,
+                  isSelected: currentMode == BreathingMode.open,
+                  isEnabled: isConnected,
+                  color: const Color(0xFF4CAF50), // Vibrant Green
+                  onPressed: () => bleService.setMode(BreathingMode.open),
+                ),
               ),
-              _ModeButton(
-                label: 'Open',
-                icon: Icons.air,
-                isSelected: currentMode == BreathingMode.open,
-                isEnabled: isConnected,
-                color: const Color(0xFF4CAF50), // Vibrant Green
-                onPressed: () => bleService.setMode(BreathingMode.open),
-              ),
-              _ModeButton(
-                label: 'Guided',
-                icon: Icons.timeline,
-                isSelected: currentMode == BreathingMode.guided,
-                isEnabled: isConnected,
-                color: const Color(0xFF03A9F4), // Vibrant Blue/Cyan
-                onPressed: () => bleService.setMode(BreathingMode.guided),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _ModeButton(
+                  label: 'Guided',
+                  icon: Icons.timeline,
+                  isSelected: currentMode == BreathingMode.guided,
+                  isEnabled: isConnected,
+                  color: const Color(0xFF03A9F4), // Vibrant Blue/Cyan
+                  onPressed: () => bleService.setMode(BreathingMode.guided),
+                ),
               ),
             ],
           ),
@@ -71,28 +68,30 @@ class _ModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeColor = color ?? Theme.of(context).colorScheme.primary;
-    final displayColor = isSelected
+    // Only show as selected if both selected AND enabled (connected)
+    final showSelected = isSelected && isEnabled;
+    final displayColor = showSelected
         ? themeColor
         : isEnabled
-            ? Colors.grey[500] ?? Colors.grey // Darker icons
-            : Colors.grey[300] ?? Colors.grey;
+            ? Colors.grey[500] ?? Colors.grey // Darker icons when enabled but not selected
+            : Colors.grey[300] ?? Colors.grey; // Lighter grey when disabled
 
     return GestureDetector(
       onTap: isEnabled ? onPressed : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected
-              ? themeColor.withValues(alpha: 0.85)
+          color: showSelected
+              ? themeColor.withOpacity(0.85)
               : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? themeColor : Colors.grey[300]!,
-            width: isSelected ? 2.5 : 1,
+            color: showSelected ? themeColor : Colors.grey[300]!,
+            width: showSelected ? 2.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isSelected ? 0.1 : 0.02),
+              color: Colors.black.withOpacity(showSelected ? 0.1 : 0.02),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -103,15 +102,15 @@ class _ModeButton extends StatelessWidget {
           children: [
             Icon(
               icon, 
-              color: isSelected ? Colors.white : displayColor, 
+              color: showSelected ? Colors.white : displayColor, 
               size: 28
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : displayColor,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: showSelected ? Colors.white : displayColor,
+                fontWeight: showSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
@@ -120,3 +119,4 @@ class _ModeButton extends StatelessWidget {
     );
   }
 }
+

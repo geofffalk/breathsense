@@ -349,17 +349,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          Slider(
-            value: roundedValue.clamp(min, max),
-            min: min,
-            max: max,
-            divisions: ((max - min) * 2).round(), // 0.5s steps
-            activeColor: activeColor,
-            inactiveColor: Colors.grey[200],
-            onChanged: (v) {
-              final rounded = (v * 2).round() / 2;
-              onChanged(rounded);
-            },
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              showValueIndicator: ShowValueIndicator.always,
+              valueIndicatorColor: const Color(0xFF01579B),
+              valueIndicatorTextStyle: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            child: Slider(
+              value: roundedValue.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: ((max - min) * 2).round(), // 0.5s steps
+              label: '${roundedValue.toStringAsFixed(1)}s',
+              activeColor: activeColor,
+              inactiveColor: Colors.grey[200],
+              onChanged: (v) {
+                final rounded = (v * 2).round() / 2;
+                onChanged(rounded);
+              },
+            ),
           ),
         ],
       ),

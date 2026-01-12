@@ -20,7 +20,11 @@ class MainScreen extends StatelessWidget {
         elevation: 0,
         title: Row(
           children: [
-            const _SimpleBoldLogo(),
+            Image.asset(
+              'assets/logo.png',
+              height: 36,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(width: 8),
             RichText(
               text: const TextSpan(
@@ -63,7 +67,39 @@ class MainScreen extends StatelessWidget {
                 child: BreathGraph(height: 240), // Slightly reduced from 250
               ),
 
-              const SizedBox(height: 20), // Reduced from 24
+              const SizedBox(height: 8),
+
+              // Show Lights toggle - standard switch, right justified
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Consumer<BleService>(
+                  builder: (context, bleService, _) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Show lights',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: bleService.isConnected ? Colors.black87 : Colors.grey[400],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: bleService.ledEnabled,
+                          onChanged: bleService.isConnected ? (value) {
+                            bleService.toggleLed();
+                          } : null,
+                          activeColor: Colors.cyan[700],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 12),
 
               // Mode selector
               const ModeSelector(),
@@ -114,7 +150,7 @@ class _ConnectionStatus extends StatelessWidget {
             border: Border.all(color: const Color(0xFF81D4FA)), // Brand blue border
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF01579B).withValues(alpha: 0.05),
+                color: const Color(0xFF01579B).withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -171,7 +207,7 @@ class _DisconnectedAlert extends StatelessWidget {
     } else {
       primaryColor = const Color(0xFF455A64); // Professional Blue-Grey for "Not Found"
       icon = Icons.bluetooth_disabled;
-      title = 'Headset Not Found';
+      title = 'Breath Sensor Not Found';
     }
 
     return GestureDetector(
@@ -181,10 +217,10 @@ class _DisconnectedAlert extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: primaryColor.withValues(alpha: 0.05),
+          color: primaryColor.withOpacity(0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: primaryColor.withValues(alpha: 0.2),
+            color: primaryColor.withOpacity(0.2),
             width: 1.5,
           ),
         ),
@@ -204,16 +240,6 @@ class _DisconnectedAlert extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              status,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: primaryColor.withValues(alpha: 0.8),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
             ),
             if (!isScanning) ...[
               const SizedBox(height: 12),
@@ -284,7 +310,6 @@ class _CurrentModeIndicator extends StatelessWidget {
             icon = Icons.timeline;
             color = Colors.cyan[700]!; // Darker for light theme
             break;
-          case BreathingMode.off:
           default:
             message = 'Headset LEDs off (standby)';
             icon = Icons.power_settings_new;
@@ -416,7 +441,7 @@ class _SimpleBoldLogo extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0288D1).withValues(alpha: 0.2),
+            color: const Color(0xFF0288D1).withOpacity(0.2),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),

@@ -27,7 +27,7 @@ class _BreathGraphState extends State<BreathGraph>
   List<FlSpot> _spots = [];
   List<int> _phases = [];
   List<int> _depths = [];
-  BreathingMode _mode = BreathingMode.off;
+  BreathingMode _mode = BreathingMode.open;
   int _xCounter = 0;
 
   @override
@@ -70,7 +70,7 @@ class _BreathGraphState extends State<BreathGraph>
   }
 
   Color _getColorForPhase(int phase, int depth) {
-    if (_mode == BreathingMode.open || _mode == BreathingMode.off) {
+    if (_mode == BreathingMode.open) {
       // depthColor: 0-4 (red, white, cyan, purple, pink/magenta)
       switch (depth) {
         case 0: return Colors.redAccent;
@@ -108,12 +108,12 @@ class _BreathGraphState extends State<BreathGraph>
         height: widget.height,
         padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
         decoration: BoxDecoration(
-          color: Colors.grey[800], // Restored mid-dark grey for optimal white line pop
+          color: Colors.grey[800], // Restored mid-dark grey for best contrast
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey[300]!, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -175,10 +175,14 @@ class _BreathGraphState extends State<BreathGraph>
                   offset: Offset(0, 2),
                   blurRadius: 3,
                 ),
-                gradient: LinearGradient(
-                  colors: List.generate(_phases.length, (i) => _getColorForPhase(_phases[i], _depths[i])),
-                  stops: List.generate(_phases.length, (index) => index / (_phases.length - 1)),
-                ),
+                gradient: _phases.length > 1
+                    ? LinearGradient(
+                        colors: List.generate(_phases.length, (i) => _getColorForPhase(_phases[i], _depths[i])),
+                        stops: List.generate(_phases.length, (index) => index / (_phases.length - 1)),
+                      )
+                    : const LinearGradient(
+                        colors: [Colors.cyan, Colors.cyan],
+                      ),
                 barWidth: 1.5,
                 isStrokeCapRound: true,
                 dotData: const FlDotData(show: false),
@@ -188,8 +192,8 @@ class _BreathGraphState extends State<BreathGraph>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.cyan.withValues(alpha: 0.05),
-                      Colors.blue.withValues(alpha: 0.01),
+                      Colors.cyan.withOpacity(0.05),
+                      Colors.blue.withOpacity(0.01),
                     ],
                   ),
                 ),

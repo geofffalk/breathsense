@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>BREATHCRAFT uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>BREATHCRAFT uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
 </dict>
 </plist>

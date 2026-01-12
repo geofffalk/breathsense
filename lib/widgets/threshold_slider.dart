@@ -163,7 +163,8 @@ class _ThresholdSliderTrackState extends State<_ThresholdSliderTrack> {
     // Ensure ordering with minimum gap
     const minGap = 0.5;
     final minAllowed = index > 0 ? _values[index - 1] + minGap : widget.min;
-    final maxAllowed = index < 3 ? _values[index + 1] - minGap : widget.max;
+    // Prevent 4th thumb from reaching absolute max (leaves room for dragging back)
+    final maxAllowed = index < 3 ? _values[index + 1] - minGap : widget.max - 0.5;
     
     final clampedValue = newValue.clamp(minAllowed, maxAllowed);
     
@@ -213,7 +214,7 @@ class _ThresholdSliderTrackState extends State<_ThresholdSliderTrack> {
           ),
         ),
         
-        // 4 Thumbs (draggable dividers)
+        // 4 Thumbs (draggable dividers) with callouts
         for (int i = 0; i < 4; i++)
           Positioned(
             left: _valueToPosition(_values[i]) - thumbRadius,
@@ -224,40 +225,83 @@ class _ThresholdSliderTrackState extends State<_ThresholdSliderTrack> {
               onHorizontalDragUpdate: (details) => _handleHorizontalDrag(details, i),
               onHorizontalDragEnd: (_) => setState(() => _draggingIndex = null),
               onHorizontalDragCancel: () => setState(() => _draggingIndex = null),
-              child: Container(
+              child: SizedBox(
                 width: thumbRadius * 2,
-                height: thumbRadius * 2,
-                color: Colors.transparent, // Expand hit area
-                child: Center(
-                  child: Container(
-                    width: 24, // Visual thumb size
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(
-                        color: _draggingIndex == i ? Colors.cyan[700]! : Colors.grey[400]!,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                height: thumbRadius * 2 + 28, // Extra height for callout
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Callout bubble (visible when dragging)
+                    if (_draggingIndex == i)
+                      Positioned(
+                        top: -28,
+                        left: thumbRadius - 24,
+                        child: Container(
+                          width: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF01579B),
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            '${_values[i].toStringAsFixed(1)}s',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _values[i].toStringAsFixed(1),
-                        style: TextStyle(
-                          color: Colors.grey[900],
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
+                      ),
+                    // Thumb
+                    Positioned(
+                      top: _draggingIndex == i ? 28 : 0,
+                      child: Container(
+                        width: thumbRadius * 2,
+                        height: thumbRadius * 2,
+                        color: Colors.transparent, // Expand hit area
+                        child: Center(
+                          child: Container(
+                            width: 24, // Visual thumb size
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(
+                                color: _draggingIndex == i ? Colors.cyan[700]! : Colors.grey[400]!,
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                _values[i].toStringAsFixed(1),
+                                style: TextStyle(
+                                  color: Colors.grey[900],
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

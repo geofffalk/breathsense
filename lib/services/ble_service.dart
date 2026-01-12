@@ -16,7 +16,7 @@ final Guid rxCharUuid = Guid("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 final Guid txCharUuid = Guid("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
 
 /// Known device name patterns for the breathing headset
-const List<String> knownDeviceNames = ['sonar', 'vs-pulse', 'bliss', 'raspberrypi', 'breathing'];
+const List<String> knownDeviceNames = ['sonar', 'bliss', 'breathcraft', 'vs-pulse', 'raspberrypi', 'breathing'];
 
 /// Connection state
 enum BleConnectionState {
@@ -43,7 +43,8 @@ class BleService extends ChangeNotifier {
 
   String? _connectedAudioDeviceName;
   String _statusMessage = 'Initializing...';
-  BreathingMode _currentMode = BreathingMode.off;
+  BreathingMode _currentMode = BreathingMode.open;
+  bool _ledEnabled = true;
   bool _isBleConnected = false;
   bool _isConnecting = false;
   bool _bluetoothOn = false;
@@ -67,6 +68,7 @@ class BleService extends ChangeNotifier {
   BleConnectionState get connectionState => _connectionState;
   String get statusMessage => _statusMessage;
   BreathingMode get currentMode => _currentMode;
+  bool get ledEnabled => _ledEnabled;
   Stream<BreathData> get breathDataStream => _breathDataController.stream;
   int get currentGuidedPhase => _currentGuidedPhase;
   bool get isConnected => _isBleConnected;
@@ -78,37 +80,17 @@ class BleService extends ChangeNotifier {
 
   BleService() {
     debugPrint('[BLE] Service created');
-    _init();
-  }
-
-  Future<void> _init() async {
-    debugPrint('[BLE] Initializing...');
-    
-    // Check initial Bluetooth state
-    try {
-      final state = await FlutterBluePlus.adapterState.first;
-      debugPrint('[BLE] Initial adapter state: $state');
-      _bluetoothOn = state == BluetoothAdapterState.on;
-      if (!_bluetoothOn) {
-        _updateConnectionState(BleConnectionState.bluetoothOff);
-        _updateStatus('Turn on Bluetooth to connect');
-      }
-    } catch (e) {
-      debugPrint('[BLE] Error checking adapter state: $e');
-    }
-
     _startBleStateMonitoring();
-    await _requestPermissions();
     _startAudioBluetoothMonitoring();
   }
 
-  Future<void> _requestPermissions() async {
+  /// Request Bluetooth permissions
+  Future<void> _requestBluetoothAuthorization() async {
     if (Platform.isAndroid) {
-      debugPrint('[BLE] Requesting Android permissions...');
-      final location = await Permission.location.request();
-      final scan = await Permission.bluetoothScan.request();
-      final connect = await Permission.bluetoothConnect.request();
-      debugPrint('[BLE] Permissions: location=$location, scan=$scan, connect=$connect');
+      debugPrint('[BLE] Requesting Bluetooth authorization...');
+      await Permission.location.request();
+      await Permission.bluetoothScan.request();
+      await Permission.bluetoothConnect.request();
     }
   }
 
@@ -229,23 +211,19 @@ class BleService extends ChangeNotifier {
       debugPrint('[BLE] Found matching audio device: $_connectedAudioDeviceName');
       
       if (!_isBleConnected && _bluetoothOn) {
-        _updateStatus('$_connectedAudioDeviceName connected.\nConnecting to breath sensor...');
+        _updateStatus('Scanning for breath sensor...');
         _startScanning();
       }
     } else {
       _connectedAudioDeviceName = null;
       debugPrint('[BLE] No matching audio device found');
-      if (!_isBleConnected) {
-        if (_bluetoothOn) {
-          _updateStatus('Connect audio headphones or tap to scan');
-        }
-      }
+      // Don't update status - we'll still scan for BLE devices
     }
   }
 
   void _startBleStateMonitoring() {
     debugPrint('[BLE] Starting BLE state monitoring...');
-    _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
+    _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) async {
       debugPrint('[BLE] Adapter state changed: $state');
       
       if (state == BluetoothAdapterState.on) {
@@ -253,13 +231,9 @@ class BleService extends ChangeNotifier {
         if (_isBleConnected) {
           return; // Already connected
         }
-        if (_connectedAudioDeviceName != null) {
-          _updateStatus('$_connectedAudioDeviceName connected.\nConnecting to breath sensor...');
-          _startScanning();
-        } else {
-          _updateConnectionState(BleConnectionState.disconnected);
-          _updateStatus('Connect audio headphones or tap to scan');
-        }
+        _updateConnectionState(BleConnectionState.disconnected);
+        _updateStatus('Scanning for breath sensor...');
+        _startScanning();
       } else if (state == BluetoothAdapterState.off) {
         _bluetoothOn = false;
         _updateConnectionState(BleConnectionState.bluetoothOff);
@@ -285,11 +259,7 @@ class BleService extends ChangeNotifier {
 
     _updateConnectionState(BleConnectionState.scanning);
     
-    if (_connectedAudioDeviceName != null) {
-      _updateStatus('$_connectedAudioDeviceName connected.\nScanning for breath sensor...');
-    } else {
-      _updateStatus('Scanning for breath sensor...');
-    }
+    _updateStatus('Scanning for breath sensor...');
 
     debugPrint('[BLE] Starting scan (no service filter - matching by name)');
     
@@ -561,7 +531,7 @@ class BleService extends ChangeNotifier {
     _connectionSubscription?.cancel();
     _connectedDevice = null;
     _txChar = null;
-    _currentMode = BreathingMode.off;
+    _currentMode = BreathingMode.open;
     _isBleConnected = false;
     _isConnecting = false;
     _connectionReadyTime = null;
@@ -599,6 +569,12 @@ class BleService extends ChangeNotifier {
   Future<void> setMode(BreathingMode mode) async {
     await _sendMessage(mode.toMessage());
     _currentMode = mode;
+    notifyListeners();
+  }
+
+  Future<void> toggleLed() async {
+    _ledEnabled = !_ledEnabled;
+    await _sendMessage('L,${_ledEnabled ? 1 : 0}\n');
     notifyListeners();
   }
 
