@@ -452,11 +452,7 @@ class BleService extends ChangeNotifier {
   void _handleIncomingData(List<int> data) {
     if (_connectionReadyTime == null) return;
     
-    // Ignore any data for the first 5 seconds after connection to skip stale/buffered data
-    if (DateTime.now().difference(_connectionReadyTime!).inSeconds < 5) {
-      _incomingBuffer = ''; // Keep clearing to toss any partial junk
-      return;
-    }
+
 
     try {
       _incomingBuffer += utf8.decode(data);

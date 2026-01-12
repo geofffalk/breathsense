@@ -298,7 +298,7 @@ class GuidedBreathingLED:
         self.current_pos = self.led_end
         self.calibrating = True
 
-    def tick(self):
+    def tick(self, visible=True):
         """Update guided breathing LEDs."""
         now = time.monotonic()
         breath_phase = self.det.phase
@@ -317,22 +317,24 @@ class GuidedBreathingLED:
         elapsed = now - self.phase_start
 
         if self.phase == self.G_EXHALE:
-            self._tick_exhale(elapsed, breath_phase)
+            self._tick_exhale(elapsed, breath_phase, visible)
             if elapsed >= self.exhale_s:
                 self._enter_phase(self.G_HOLD_OUT, now)
 
         elif self.phase == self.G_HOLD_OUT:
-            self._render_hold(self.led_start)  # Hold at back end of range
+            if visible:
+                self._render_hold(self.led_start)  # Hold at back end of range
             if elapsed >= self.hold_out_s:
                 self._enter_phase(self.G_INHALE, now)
 
         elif self.phase == self.G_INHALE:
-            self._tick_inhale(elapsed, breath_phase)
+            self._tick_inhale(elapsed, breath_phase, visible)
             if elapsed >= self.inhale_s:
                 self._enter_phase(self.G_HOLD_IN, now)
 
         elif self.phase == self.G_HOLD_IN:
-            self._render_hold(self.led_end)  # Hold at front end of range
+            if visible:
+                self._render_hold(self.led_end)  # Hold at front end of range
             if elapsed >= self.hold_in_s:
                 self._enter_phase(self.G_EXHALE, now)
 
@@ -345,7 +347,7 @@ class GuidedBreathingLED:
         elif new_phase == self.G_INHALE:
             self.current_pos = self.led_start
 
-    def _tick_exhale(self, elapsed, breath_phase):
+    def _tick_exhale(self, elapsed, breath_phase, visible):
         """Exhale phase: LED moves from front to back."""
         if self.exhale_s <= 0:
             progress = 1.0
@@ -358,9 +360,10 @@ class GuidedBreathingLED:
                 # User is not exhaling correctly, stay at current position (no flashing)
                 pass
 
-        self._render_active(self.exhale_color)
+        if visible:
+            self._render_active(self.exhale_color)
 
-    def _tick_inhale(self, elapsed, breath_phase):
+    def _tick_inhale(self, elapsed, breath_phase, visible):
         """Inhale phase: LED moves from back to front."""
         if self.inhale_s <= 0:
             progress = 1.0
@@ -373,7 +376,8 @@ class GuidedBreathingLED:
                 # User is not inhaling correctly, stay at current position (no flashing)
                 pass
 
-        self._render_active(self.active_color)
+        if visible:
+            self._render_active(self.active_color)
 
     def _render_active(self, color):
         """Render active breathing LED."""

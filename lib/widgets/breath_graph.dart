@@ -77,7 +77,7 @@ class _BreathGraphState extends State<BreathGraph>
         case 1: return Colors.white; 
         case 2: return Colors.cyan[600]!;
         case 3: return Colors.purple[300]!;
-        case 4: return const Color(0xFF0D47A1); // Deep Blue
+        case 4: return const Color(0xFF2962FF); // Deep Blue (Brighter)
         default: return Colors.cyan[600]!;
       }
     }

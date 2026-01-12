@@ -309,11 +309,17 @@ try:
                 send_breath_data()
 
                 # Update LEDs based on mode and LED toggle
-                if settings.get("led_on", True):
+                # Update LEDs based on mode and LED toggle
+                leds_enabled = settings.get("led_on", True)
+
+                if current_mode == MODE_GUIDED:
+                    # Always tick guided to keep phase logic running
+                    guided_led.tick(visible=leds_enabled)
+                    if not leds_enabled:
+                        hide_all()
+                elif leds_enabled:
                     if current_mode == MODE_OPEN:
                         open_led.tick()
-                    elif current_mode == MODE_GUIDED:
-                        guided_led.tick()
                 else:
                     hide_all()
 
