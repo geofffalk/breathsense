@@ -28,13 +28,26 @@ class MainScreen extends StatelessWidget {
             const SizedBox(width: 8),
             RichText(
               text: const TextSpan(
-                text: 'BREATHCRAFT',
-                style: TextStyle(
-                  color: Color(0xFF01579B), // Deep Vibrant Blue (Cyan 900)
-                  fontWeight: FontWeight.w900,
-                  fontSize: 26,
-                  letterSpacing: 2,
-                ),
+                children: [
+                  TextSpan(
+                    text: 'Breath',
+                    style: TextStyle(
+                      color: Color(0xFF1565C0), // Blue 800
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  TextSpan(
+                    text: 'Sense',
+                    style: TextStyle(
+                      color: Color(0xFF2E7D32), // Green 800
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

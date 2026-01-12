@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Breathing App</string>
+	<string>BreathSense</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,8 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>BREATHCRAFT uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
+	<string>BreathSense uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>BREATHCRAFT uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
+	<string>BreathSense uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
 </dict>
 </plist>

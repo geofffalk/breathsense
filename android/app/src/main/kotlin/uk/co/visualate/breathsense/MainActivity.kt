@@ -1,4 +1,4 @@
-package com.example.breathing_app
+package uk.co.visualate.breathsense
 
 import io.flutter.embedding.android.FlutterActivity
 
