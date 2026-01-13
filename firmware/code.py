@@ -128,11 +128,11 @@ def send_breath_data():
         meditation = state.get("meditation_score", -1)
         calibrating = 1 if is_calibrating else 0
     else:
-        # In Guided mode or unworn, send N/A values
+        # In Guided mode or unworn, send N/A values but still track calibrating
         stress = -99
         focus = -1
         meditation = -1
-        calibrating = 0
+        calibrating = 1 if is_calibrating else 0  # Always send actual calibrating state
 
     msg = "B,{},{},{:.3f},{},{},{},{},{},{},{}\n".format(
         now & 0xFFFFFFFF,

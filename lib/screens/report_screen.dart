@@ -200,7 +200,7 @@ class ReportScreen extends StatelessWidget {
               const SizedBox(width: 24),
               _buildStatItem(
                 'Breaths',
-                '${sessionData.snapshots.length}',
+                '${sessionData.breathCount}',
                 Icons.air,
               ),
               const SizedBox(width: 24),

@@ -496,28 +496,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }),
           ),
           
-          // Calm Variability (RMSSD)
+          // Calm Variability (RMSSD CV)
           _buildMoodSliderWithDesc(
             label: 'Calm Variability',
-            description: 'Lower values require more consistent breath-to-breath timing to show as calm.',
+            description: 'Lower values require more consistent breath-to-breath timing to show as calm. Values are relative (% of breath length).',
             value: _moodSettings.calmVariability,
-            min: 0.1,
-            max: 2.0,
-            unit: 's',
+            min: 0.05,
+            max: 0.50,
+            unit: '',
+            displayAsPercent: true,
             activeColor: Colors.teal,
             onChanged: (v) => setState(() {
               _moodSettings = _moodSettings.copyWith(calmVariability: v);
             }),
           ),
           
-          // Focus Consistency
+          // Focus Consistency (CV)
           _buildMoodSliderWithDesc(
             label: 'Focus Threshold',
-            description: 'Lower values require more rhythmic breathing to show as focused.',
+            description: 'Lower values require more rhythmic breathing to show as focused. Values are relative (% of breath length).',
             value: _moodSettings.focusConsistency,
-            min: 0.1,
-            max: 1.5,
-            unit: 's',
+            min: 0.05,
+            max: 0.50,
+            unit: '',
+            displayAsPercent: true,
             activeColor: Colors.purple,
             onChanged: (v) => setState(() {
               _moodSettings = _moodSettings.copyWith(focusConsistency: v);
@@ -623,8 +625,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String unit,
     required Color activeColor,
     required ValueChanged<double> onChanged,
+    bool displayAsPercent = false,
   }) {
-    final displayValue = value.toStringAsFixed(2);
+    final displayValue = displayAsPercent 
+        ? '${(value * 100).round()}%'
+        : '${value.toStringAsFixed(2)}$unit';
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -638,7 +643,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(label, style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
               ),
               Text(
-                '$displayValue$unit',
+                displayValue,
                 style: TextStyle(color: activeColor, fontWeight: FontWeight.bold),
               ),
             ],

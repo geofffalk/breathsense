@@ -5,9 +5,19 @@ class SessionData {
   final DateTime startTime;
   DateTime? endTime;
   
+  int _breathCount = 0; // Actual breath count (incremented on each exhale)
+  
   DateTime? _guidedStartTime; // Track current Guided period start
 
   SessionData() : startTime = DateTime.now();
+  
+  /// Increment breath count (call on each complete breath cycle)
+  void recordBreath() {
+    _breathCount++;
+  }
+  
+  /// Get total breath count
+  int get breathCount => _breathCount;
 
   /// Add a new mood snapshot
   void addSnapshot({
@@ -435,7 +445,7 @@ class SessionData {
     buffer.writeln();
     buffer.writeln('Date: ${startTime.toString().substring(0, 16)}');
     buffer.writeln('Duration: ${durationMinutes.toStringAsFixed(1)} minutes');
-    buffer.writeln('Breaths recorded: ${snapshots.length}');
+    buffer.writeln('Breaths recorded: $breathCount');
     buffer.writeln();
     buffer.writeln('AVERAGES');
     buffer.writeln('-' * 20);

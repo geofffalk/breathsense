@@ -75,6 +75,7 @@ class BleService extends ChangeNotifier {
   // Session tracking for report generation
   SessionData? _currentSession;
   double _lastBreathCycleLength = 4.0; // Track breath cycle length
+  int _lastBreathPhase = 0; // Track last breath phase for cycle detection
 
   final _breathDataController = StreamController<BreathData>.broadcast();
 
@@ -92,7 +93,7 @@ class BleService extends ChangeNotifier {
   bool get isMoodCalibrating => _isMoodCalibrating;
   bool get isUnworn => _isUnworn;
   SessionData? get currentSession => _currentSession;
-  bool get hasSessionData => _currentSession != null && _currentSession!.snapshots.isNotEmpty;
+  bool get hasSessionData => _currentSession != null && _currentSession!.breathCount >= 5;
   
   OpenBreathingSettings get openSettings => _openSettings;
   GuidedBreathingSettings get guidedSettings => _guidedSettings;
@@ -558,13 +559,14 @@ class BleService extends ChangeNotifier {
             notifyListeners();
           }
           
-          // Track breath phase transitions for cycle length estimation (only when worn)
-          if (!breathData.isUnworn &&
-              breathData.phase == 1 && _phaseBuffer[(_writeIndex - 1 + bufferSize) % bufferSize] != 1) {
-            // Inhale started - estimate breath cycle from time between inhales
-            // This is a simplification; firmware could send actual duration
-            _lastBreathCycleLength = 4.0 + (_currentMeditationScore * 0.5); // rough estimate
+          // Track breath phase transitions for cycle counting (only when worn)
+          // Count a breath when transitioning from exhale (phase 2) to inhale (phase 1)
+          if (!breathData.isUnworn && breathData.phase == 1 && _lastBreathPhase == 2) {
+            // Completed exhale→inhale transition = one breath cycle
+            _currentSession?.recordBreath();
+            _lastBreathCycleLength = 4.0 + (_currentMeditationScore * 0.5);
           }
+          _lastBreathPhase = breathData.phase;
           
           _breathDataController.add(breathData);
         } else if (line.startsWith('R,')) {
@@ -631,6 +633,13 @@ class BleService extends ChangeNotifier {
     _connectionReadyTime = null;
     _incomingBuffer = '';
     _currentGuidedPhase = -1;
+    
+    // Reset mood state so "Calibrating..." shows on reconnect
+    _isMoodCalibrating = true;
+    _isUnworn = false;
+    _currentStressScore = 0;
+    _currentFocusScore = 0;
+    _currentMeditationScore = 0;
 
     _updateConnectionState(BleConnectionState.disconnected);
     

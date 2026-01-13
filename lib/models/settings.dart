@@ -111,14 +111,14 @@ extension BreathingModeExtension on BreathingMode {
 /// Mood detection settings (thresholds for stress/focus/meditation)
 class MoodDetectionSettings {
   double calmRatio; // E/I ratio for calm detection (higher = calmer required)
-  double calmVariability; // RMSSD threshold for calm (lower = calmer required)
-  double focusConsistency; // Std dev for focus (lower = more focused required)
+  double calmVariability; // RMSSD CV threshold for calm (e.g., 0.10 = 10% relative variation)
+  double focusConsistency; // CV threshold for focus (e.g., 0.15 = 15% relative variation)
   int calibrationBreaths; // Number of breaths before showing scores
 
   MoodDetectionSettings({
     this.calmRatio = 1.5,
-    this.calmVariability = 0.5,
-    this.focusConsistency = 0.5,
+    this.calmVariability = 0.10, // CV: 10% relative variation = calm
+    this.focusConsistency = 0.15, // CV: 15% relative variation = focused
     this.calibrationBreaths = 6,
   });
 

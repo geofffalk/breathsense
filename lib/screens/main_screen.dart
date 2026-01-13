@@ -208,7 +208,7 @@ class _ConnectionStatus extends StatelessWidget {
               Flexible(
                 child: Text(
                   isUnworn 
-                      ? 'Not detecting breath — position thermistor'
+                      ? 'Not detecting breath — check sensor is attached and under nostril'
                       : status,
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -410,6 +410,11 @@ class _BreathingModeIndicator extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
+        // Hide mood indicators when not detecting breath (unworn)
+        if (bleService.isUnworn) {
+          return const SizedBox.shrink();
+        }
+
         // In Open mode: show calm and focus indicators (meditation in report only)
         if (bleService.currentMode == BreathingMode.open) {
           return Column(
@@ -561,38 +566,72 @@ class _GenerateReportButton extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ElevatedButton.icon(
-            onPressed: () {
-              final session = bleService.currentSession;
-              if (session != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ReportScreen(sessionData: session),
+          child: Column(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  final session = bleService.currentSession;
+                  if (session != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReportScreen(sessionData: session),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.analytics_outlined, size: 20),
+                label: Text(
+                  bleService.hasSessionData 
+                      ? 'View Session Report' 
+                      : 'Session Report (collecting data...)',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: bleService.hasSessionData 
+                      ? const Color(0xFF4A6572) 
+                      : Colors.grey[400],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ).then((_) {
-                  // Optionally reset session after viewing report
-                  // bleService.resetSession();
-                });
-              }
-            },
-            icon: const Icon(Icons.analytics_outlined, size: 20),
-            label: Text(
-              bleService.hasSessionData 
-                  ? 'View Session Report' 
-                  : 'Session Report (collecting data...)',
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: bleService.hasSessionData 
-                  ? const Color(0xFF4A6572) 
-                  : Colors.grey[400],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                  elevation: bleService.hasSessionData ? 2 : 0,
+                ),
               ),
-              elevation: bleService.hasSessionData ? 2 : 0,
-            ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: bleService.hasSessionData ? () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Reset Session?'),
+                      content: const Text('This will clear all recorded breath and mood data. Are you sure?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            bleService.resetSession();
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                } : null,
+                icon: Icon(Icons.refresh, size: 18, color: bleService.hasSessionData ? Colors.grey[600] : Colors.grey[400]),
+                label: Text(
+                  'Reset Session Data',
+                  style: TextStyle(
+                    color: bleService.hasSessionData ? Colors.grey[600] : Colors.grey[400],
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

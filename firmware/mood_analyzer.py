@@ -17,15 +17,16 @@ STRESS_RATIO_ANXIOUS = 0.8    # Short exhale relative to inhale = stressed
 STRESS_RATIO_CALM = 1.5       # Long exhale = calm (1.5x inhale length)
 
 # Successive breath difference (RMSSD analog for breathing)
-# Large jumps between consecutive breaths = stress response
-STRESS_RMSSD_ANXIOUS = 2.0    # >2 second jumps between breaths = stressed  
-STRESS_RMSSD_CALM = 0.5       # <0.5 second variation = very calm
+# Using Coefficient of Variation (CV) to normalize by breath duration
+# This prevents longer breaths from being incorrectly flagged as erratic
+STRESS_RMSSD_CV_ANXIOUS = 0.40    # >40% relative variation = stressed  
+STRESS_RMSSD_CV_CALM = 0.10       # <10% relative variation = very calm
 
 # === FOCUS DETECTION ===
 # Based on consistency of breath timing (like HRV for attention)
-# Research: Focused attention produces regular, consistent breathing
-FOCUS_CONSISTENCY_THRESHOLD = 0.5  # Std dev of last 5 breaths in seconds (was 0.3)
-FOCUS_DRIFT_THRESHOLD = 1.0        # Max acceptable drift from target rhythm
+# Using CV to normalize - longer breaths won't be penalized
+FOCUS_CONSISTENCY_CV_THRESHOLD = 0.15  # CV of last 5 breaths (15% variation)
+FOCUS_DRIFT_THRESHOLD = 1.0            # Max acceptable drift from target rhythm
 
 # === MEDITATION DETECTION ===
 # Based on breath cycle duration and stability
@@ -47,8 +48,8 @@ class MoodAnalyzer:
 
         # Configurable thresholds (can be updated via set_thresholds)
         self.calm_ratio = STRESS_RATIO_CALM
-        self.calm_variability = STRESS_RMSSD_CALM
-        self.focus_consistency = FOCUS_CONSISTENCY_THRESHOLD
+        self.calm_variability_cv = STRESS_RMSSD_CV_CALM  # Now uses CV
+        self.focus_consistency_cv = FOCUS_CONSISTENCY_CV_THRESHOLD  # Now uses CV
         self.calibration_breaths = CALIBRATION_BREATHS
 
         # Rolling window of recent breaths (short for responsiveness)
@@ -72,12 +73,16 @@ class MoodAnalyzer:
         self._meditation_score = 0
 
     def set_thresholds(self, calm_ratio, calm_variability, focus_consistency, calibration_breaths):
-        """Update configurable thresholds from settings."""
+        """Update configurable thresholds from settings.
+        
+        Note: calm_variability and focus_consistency are now interpreted as CV values
+        (coefficients of variation, e.g., 0.10 = 10% relative variation).
+        """
         self.calm_ratio = calm_ratio
-        self.calm_variability = calm_variability
-        self.focus_consistency = focus_consistency
+        self.calm_variability_cv = calm_variability  # Interpreted as CV
+        self.focus_consistency_cv = focus_consistency  # Interpreted as CV
         self.calibration_breaths = int(calibration_breaths)
-        print("[MOOD] Thresholds: ratio={} var={} focus={} cal={}".format(
+        print("[MOOD] Thresholds: ratio={} var_cv={} focus_cv={} cal={}".format(
             calm_ratio, calm_variability, focus_consistency, calibration_breaths
         ))
 
@@ -155,7 +160,8 @@ class MoodAnalyzer:
         
         Based on:
         1. E/I Ratio: Low ratio (short exhale) = stress (sympathetic)
-        2. RMSSD: High variability between successive breaths = stress
+        2. Breath Duration: Shorter than personal baseline = stress
+        3. RMSSD CV: High relative variability between successive breaths = stress
         """
         # Ratio component: higher ratio = more calm = negative stress
         ratio_range = self.calm_ratio - STRESS_RATIO_ANXIOUS
@@ -163,52 +169,73 @@ class MoodAnalyzer:
         ratio_score = 5 - (ratio_norm * 10)  # Invert: high ratio = low stress
         ratio_score = max(-5, min(5, ratio_score))
         
-        # RMSSD component: high RMSSD = erratic = stressed
-        rmssd_range = STRESS_RMSSD_ANXIOUS - self.calm_variability
-        rmssd_norm = (self.current_rmssd - self.calm_variability) / max(0.1, rmssd_range)
-        rmssd_score = -5 + (rmssd_norm * 10)  # High RMSSD = high stress
+        # Duration component: compare to personal session baseline
+        # Uses rolling average as baseline - personalized for each user
+        # 20% faster than baseline = stressed, 20% slower = calm
+        if len(self.recent_breaths) >= 3:
+            baseline = sum(t for _, _, t in self.recent_breaths) / len(self.recent_breaths)
+            # How much does current breath differ from baseline? (as ratio)
+            duration_ratio = self.current_cycle / max(0.1, baseline)
+            # < 0.8 (20% faster) = stressed, > 1.2 (20% slower) = calm
+            duration_norm = (duration_ratio - 1.0) / 0.2  # ±0.2 maps to ±1
+            duration_score = -duration_norm * 3  # Scaled down since it's session-relative
+        else:
+            # Not enough data - use neutral
+            duration_score = 0
+        duration_score = max(-5, min(5, duration_score))
+        
+        # RMSSD CV component: normalize RMSSD by mean breath duration
+        rmssd_cv = self.current_rmssd / max(0.1, self.current_cycle)
+        rmssd_range = STRESS_RMSSD_CV_ANXIOUS - self.calm_variability_cv
+        rmssd_norm = (rmssd_cv - self.calm_variability_cv) / max(0.01, rmssd_range)
+        rmssd_score = -5 + (rmssd_norm * 10)  # High RMSSD CV = high stress
         rmssd_score = max(-5, min(5, rmssd_score))
         
-        # Combine: 70% ratio (primary), 30% RMSSD (secondary)
-        raw_stress = 0.7 * ratio_score + 0.3 * rmssd_score
+        # Combine: 50% ratio, 25% duration, 25% RMSSD
+        raw_stress = 0.5 * ratio_score + 0.25 * duration_score + 0.25 * rmssd_score
         self._stress_score = int(round(max(-5, min(5, raw_stress))))
         
         # Debug: log first few scores
         if self.breath_count <= 10:
-            print("[STRESS] ratio={:.2f} rmssd={:.2f} -> ratio_sc={:.1f} rmssd_sc={:.1f} -> {}".format(
-                self.current_ratio, self.current_rmssd, ratio_score, rmssd_score, self._stress_score
+            print("[STRESS] ratio={:.2f} dur={:.1f}s rmssd_cv={:.2f} -> r={:.1f} d={:.1f} v={:.1f} -> {}".format(
+                self.current_ratio, self.current_cycle, rmssd_cv,
+                ratio_score, duration_score, rmssd_score, self._stress_score
             ))
 
     def _compute_focus_score(self):
         """
         Focus: 0 (distracted) to 10 (deeply focused)
         
-        Based on breath consistency (std dev of timing).
+        Based on breath consistency as Coefficient of Variation (CV).
+        Normalized by breath duration so longer breaths aren't penalized.
         Focused attention = regular, consistent breathing rhythm.
         """
-        # Low consistency (low std dev) = high focus
-        thresh = self.focus_consistency
-        if self.current_consistency < thresh * 0.5:
+        # Compute CV: standard deviation / mean (unitless ratio)
+        consistency_cv = self.current_consistency / max(0.1, self.current_cycle)
+        
+        # Low CV = high focus
+        thresh = self.focus_consistency_cv
+        if consistency_cv < thresh * 0.5:
             # Very consistent = high focus
-            focus = 9 + min(1, (thresh * 0.5 - self.current_consistency) * 5)
-        elif self.current_consistency < thresh:
+            focus = 9 + min(1, (thresh * 0.5 - consistency_cv) * 20)
+        elif consistency_cv < thresh:
             # Moderately consistent
-            norm = self.current_consistency / thresh
+            norm = consistency_cv / thresh
             focus = 6 + (1 - norm) * 3  # 6-9 range
-        elif self.current_consistency < thresh * 2:
+        elif consistency_cv < thresh * 2:
             # Some variation
-            norm = (self.current_consistency - thresh) / thresh
+            norm = (consistency_cv - thresh) / thresh
             focus = 3 + (1 - norm) * 3  # 3-6 range
         else:
             # Highly variable = distracted
-            focus = max(0, 3 - (self.current_consistency - thresh * 2))
+            focus = max(0, 3 - (consistency_cv - thresh * 2) * 10)
         
         self._focus_score = int(round(max(0, min(10, focus))))
         
         # Debug: log first few
         if self.breath_count <= 10:
-            print("[FOCUS] consistency={:.2f}s -> score={}".format(
-                self.current_consistency, self._focus_score
+            print("[FOCUS] consistency_cv={:.2f} -> score={}".format(
+                consistency_cv, self._focus_score
             ))
 
     def _compute_meditation_score(self):

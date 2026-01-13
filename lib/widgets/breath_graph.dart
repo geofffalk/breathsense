@@ -121,6 +121,7 @@ class _BreathGraphState extends State<BreathGraph>
         ),
         child: LineChart(
           LineChartData(
+            lineTouchData: const LineTouchData(enabled: false),
             minY: -yLimit,
             maxY: yLimit,
             minX: minX,
