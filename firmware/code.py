@@ -79,6 +79,10 @@ guided_led.set_range(
     settings["led_end"],
 )
 guided_led.set_color_scheme(settings.get("color_scheme", 0))
+guided_led.set_thresholds(
+    settings.get("exhale_threshold", 0.8),
+    settings.get("inhale_threshold", 0.5),
+)
 
 # Apply mood detection thresholds
 detector.mood.set_thresholds(
@@ -219,7 +223,7 @@ def parse_message(msg):
                 pass
 
         elif setting_type == "G" and len(parts) >= 8:
-            # Guided breathing settings: S,G,inhale,holdIn,exhale,holdOut,ledStart,ledEnd
+            # Guided breathing settings: S,G,inhale,holdIn,exhale,holdOut,ledStart,ledEnd[,exhaleThresh,inhaleThresh]
             try:
                 inh = float(parts[2])
                 hi = float(parts[3])
@@ -237,6 +241,15 @@ def parse_message(msg):
                 settings["hold_out_s"] = ho
                 settings["led_start"] = ls
                 settings["led_end"] = le
+                
+                # Optional sensitivity thresholds
+                if len(parts) >= 10:
+                    ex_thresh = float(parts[8])
+                    in_thresh = float(parts[9])
+                    guided_led.set_thresholds(ex_thresh, in_thresh)
+                    settings["exhale_threshold"] = ex_thresh
+                    settings["inhale_threshold"] = in_thresh
+                
                 save_settings(settings)
                 log("Guided settings saved")
             except Exception as e:

@@ -147,13 +147,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 32),
 
-            // Sensor Sensitivity
-            _buildSectionHeader('Sensor Sensitivity', Icons.tune),
-            const SizedBox(height: 8),
-            _buildSensitivitySettings(bleService),
-
-            const SizedBox(height: 32),
-
             // Mood Detection
             _buildSectionHeader('Mood Detection', Icons.psychology),
             const SizedBox(height: 8),
@@ -246,6 +239,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               });
             },
+          ),
+
+          const SizedBox(height: 24),
+          
+          // Breath Sensitivity slider
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Breath Sensitivity', style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
+              Text(
+                '${_openSettings.sensitivity}',
+                style: TextStyle(color: Colors.cyan[700], fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Low', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              Expanded(
+                child: Slider(
+                  value: _openSettings.sensitivity.toDouble(),
+                  min: 0,
+                  max: 9,
+                  divisions: 9,
+                  activeColor: Colors.cyan[700],
+                  inactiveColor: Colors.grey[200],
+                  onChanged: (v) => _updateSensitivity(v.round()),
+                ),
+              ),
+              const Text('High', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
           ),
 
           const SizedBox(height: 24),
@@ -426,6 +451,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildColorSchemeButton(0, 'Default', [Color(0xFF00FF00), Color(0xFFFF5000), Color(0xFF00FFFF)], bleService),
               _buildColorSchemeButton(1, 'High Contrast', [Color(0xFFFFFF00), Color(0xFF8000FF), Color(0xFFFFFFFF)], bleService),
               _buildColorSchemeButton(2, 'Cool Tones', [Color(0xFF0064FF), Color(0xFFFF0080), Color(0xFFFFFFFF)], bleService),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          Text(
+            'Flow Sensitivity',
+            style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Adjust how strongly you need to breathe for LED to respond. Higher = less sensitive.',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(width: 100, child: Text('Exhale', style: TextStyle(color: Colors.grey[700], fontSize: 13))),
+              Expanded(
+                child: Slider(
+                  value: _guidedSettings.exhaleSensitivity,
+                  min: 0.3,
+                  max: 1.0,
+                  divisions: 7,
+                  label: _guidedSettings.exhaleSensitivity.toStringAsFixed(1),
+                  onChanged: (v) => _updateGuidedSettings(_guidedSettings.copyWith(exhaleSensitivity: v)),
+                ),
+              ),
+              SizedBox(width: 32, child: Text(_guidedSettings.exhaleSensitivity.toStringAsFixed(1), style: TextStyle(fontSize: 12, color: Colors.grey[600]))),
+            ],
+          ),
+          Row(
+            children: [
+              SizedBox(width: 100, child: Text('Inhale', style: TextStyle(color: Colors.grey[700], fontSize: 13))),
+              Expanded(
+                child: Slider(
+                  value: _guidedSettings.inhaleSensitivity,
+                  min: 0.3,
+                  max: 1.0,
+                  divisions: 7,
+                  label: _guidedSettings.inhaleSensitivity.toStringAsFixed(1),
+                  onChanged: (v) => _updateGuidedSettings(_guidedSettings.copyWith(inhaleSensitivity: v)),
+                ),
+              ),
+              SizedBox(width: 32, child: Text(_guidedSettings.inhaleSensitivity.toStringAsFixed(1), style: TextStyle(fontSize: 12, color: Colors.grey[600]))),
             ],
           ),
         ],

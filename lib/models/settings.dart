@@ -48,6 +48,8 @@ class GuidedBreathingSettings {
   int ledStart; // 0-9
   int ledEnd; // 0-9
   int colorScheme; // 0=Default, 1=High Contrast, 2=Cool Tones
+  double exhaleSensitivity; // 0.3-1.0, higher = less sensitive
+  double inhaleSensitivity; // 0.3-1.0, higher = less sensitive
 
   GuidedBreathingSettings({
     this.inhaleLength = 5.0,
@@ -57,11 +59,13 @@ class GuidedBreathingSettings {
     this.ledStart = 2,
     this.ledEnd = 9,
     this.colorScheme = 0,
+    this.exhaleSensitivity = 0.8,
+    this.inhaleSensitivity = 0.5,
   });
 
-  /// Convert to BLE message format: "S,G,{inhale},{holdIn},{exhale},{holdOut},{ledStart},{ledEnd}\n"
+  /// Convert to BLE message format
   String toMessage() {
-    return 'S,G,$inhaleLength,$holdAfterInhale,$exhaleLength,$holdAfterExhale,$ledStart,$ledEnd\n';
+    return 'S,G,$inhaleLength,$holdAfterInhale,$exhaleLength,$holdAfterExhale,$ledStart,$ledEnd,$exhaleSensitivity,$inhaleSensitivity\n';
   }
 
   GuidedBreathingSettings copyWith({
@@ -72,6 +76,8 @@ class GuidedBreathingSettings {
     int? ledStart,
     int? ledEnd,
     int? colorScheme,
+    double? exhaleSensitivity,
+    double? inhaleSensitivity,
   }) {
     return GuidedBreathingSettings(
       inhaleLength: inhaleLength ?? this.inhaleLength,
@@ -81,6 +87,8 @@ class GuidedBreathingSettings {
       ledStart: ledStart ?? this.ledStart,
       ledEnd: ledEnd ?? this.ledEnd,
       colorScheme: colorScheme ?? this.colorScheme,
+      exhaleSensitivity: exhaleSensitivity ?? this.exhaleSensitivity,
+      inhaleSensitivity: inhaleSensitivity ?? this.inhaleSensitivity,
     );
   }
 }

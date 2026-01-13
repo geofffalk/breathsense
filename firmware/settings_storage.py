@@ -29,6 +29,9 @@ DEFAULT_SETTINGS = {
     # LED state and color scheme
     "led_enabled": 1,               # 1 = on, 0 = off
     "color_scheme": 0,              # 0 = default, 1 = high contrast, 2 = cool tones
+    # Guided breathing flow thresholds (sensitivity)
+    "exhale_threshold": 0.8,        # Flow magnitude to detect exhale (0.3-1.0, higher = less sensitive)
+    "inhale_threshold": 0.5,        # Flow magnitude to detect inhale (0.3-1.0, higher = less sensitive)
 }
 
 

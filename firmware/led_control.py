@@ -273,6 +273,14 @@ class GuidedBreathingLED:
         # LED position
         self.current_pos = self.led_end
 
+        # Flow-gated timing: track cumulative time when flow exceeds threshold
+        self.flow_time = 0.0  # Cumulative breathing time in current phase
+        self.last_flow_tick = time.monotonic()  # For delta time calculation
+
+        # Flow sensitivity thresholds (configurable via settings)
+        self.exhale_threshold = 0.8  # Need norm < -threshold to detect exhale
+        self.inhale_threshold = 0.5  # Need norm > +threshold to detect inhale
+
     def _apply_color_scheme(self):
         """Apply colors from current scheme."""
         scheme = GUIDED_COLOR_SCHEMES[self.color_scheme]
@@ -298,6 +306,13 @@ class GuidedBreathingLED:
         self.led_start = int(start)
         self.led_end = int(end)
 
+    def set_thresholds(self, exhale_threshold, inhale_threshold):
+        """Update flow sensitivity thresholds (0.3-1.0, higher = less sensitive)."""
+        self.exhale_threshold = float(exhale_threshold)
+        self.inhale_threshold = float(inhale_threshold)
+        print("[LED] Thresholds: exhale={:.2f}, inhale={:.2f}".format(
+            self.exhale_threshold, self.inhale_threshold))
+
     def get_phase(self):
         """Return current guided phase (0-3) or -1 if calibrating."""
         if self.calibrating:
@@ -310,19 +325,24 @@ class GuidedBreathingLED:
         self.phase_start = time.monotonic()
         self.current_pos = self.led_end
         self.calibrating = True
+        self.flow_time = 0.0
+        self.last_flow_tick = time.monotonic()
 
     def tick(self, visible=True):
         """Update guided breathing LEDs."""
         now = time.monotonic()
         breath_phase = self.det.phase
 
-        # Calibration: wait for first exhale to sync
+        # Calibration: wait for first exhale to sync (using flow, not breath phase)
         if self.calibrating:
-            if breath_phase == PH_EXH:
+            norm = self.det.norm
+            if norm < -self.exhale_threshold:  # Actively exhaling
                 self.calibrating = False
                 self.phase = self.G_EXHALE
                 self.phase_start = now
                 self.current_pos = self.led_end
+                self.flow_time = 0.0
+                self.last_flow_tick = now
             else:
                 hide_all()
                 return
@@ -330,8 +350,9 @@ class GuidedBreathingLED:
         elapsed = now - self.phase_start
 
         if self.phase == self.G_EXHALE:
-            self._tick_exhale(elapsed, breath_phase, visible)
-            if elapsed >= self.exhale_s:
+            self._tick_exhale(now, visible)
+            # Phase ends when FLOW time reaches target
+            if self.flow_time >= self.exhale_s:
                 self._enter_phase(self.G_HOLD_OUT, now)
 
         elif self.phase == self.G_HOLD_OUT:
@@ -341,8 +362,9 @@ class GuidedBreathingLED:
                 self._enter_phase(self.G_INHALE, now)
 
         elif self.phase == self.G_INHALE:
-            self._tick_inhale(elapsed, breath_phase, visible)
-            if elapsed >= self.inhale_s:
+            self._tick_inhale(now, visible)
+            # Phase ends when FLOW time reaches target
+            if self.flow_time >= self.inhale_s:
                 self._enter_phase(self.G_HOLD_IN, now)
 
         elif self.phase == self.G_HOLD_IN:
@@ -355,42 +377,52 @@ class GuidedBreathingLED:
         """Transition to new guided phase."""
         self.phase = new_phase
         self.phase_start = now
-        self.active_time = 0.0  # Reset cumulative time for new phase
-        self.last_tick = now
+        self.flow_time = 0.0  # Reset cumulative flow time for new phase
+        self.last_flow_tick = now
         # Set starting position for active phases only
         if new_phase == self.G_EXHALE:
             self.current_pos = self.led_end  # Start exhale at front
         elif new_phase == self.G_INHALE:
             self.current_pos = self.led_start  # Start inhale at back
 
-    def _tick_exhale(self, elapsed, breath_phase, visible):
-        """Exhale phase: LED moves from front to back."""
+    def _tick_exhale(self, now, visible):
+        """Exhale phase: LED moves based on cumulative flow time."""
+        # Calculate delta time since last tick
+        dt = now - self.last_flow_tick
+        self.last_flow_tick = now
+        
         if self.exhale_s <= 0:
             progress = 1.0
         else:
-            # Only advance if user is actually exhaling
-            if breath_phase == PH_EXH:
-                progress = min(1.0, elapsed / self.exhale_s)
-                self.current_pos = int(self.led_end - progress * (self.led_end - self.led_start))
-            else:
-                # User is not exhaling correctly, stay at current position
-                pass
+            # Accumulate time only when actively exhaling
+            norm = self.det.norm
+            if norm < -self.exhale_threshold:
+                self.flow_time += dt
+            
+            # LED position based on cumulative flow time
+            progress = min(1.0, self.flow_time / self.exhale_s)
+            self.current_pos = int(self.led_end - progress * (self.led_end - self.led_start))
 
         if visible:
             self._render_active(self.exhale_color)
 
-    def _tick_inhale(self, elapsed, breath_phase, visible):
-        """Inhale phase: LED moves from back to front."""
+    def _tick_inhale(self, now, visible):
+        """Inhale phase: LED moves based on cumulative flow time."""
+        # Calculate delta time since last tick
+        dt = now - self.last_flow_tick
+        self.last_flow_tick = now
+        
         if self.inhale_s <= 0:
             progress = 1.0
         else:
-            # Only advance if user is actually inhaling
-            if breath_phase == PH_INH:
-                progress = min(1.0, elapsed / self.inhale_s)
-                self.current_pos = int(self.led_start + progress * (self.led_end - self.led_start))
-            else:
-                # User is not inhaling correctly, stay at current position
-                pass
+            # Accumulate time only when actively inhaling
+            norm = self.det.norm
+            if norm > self.inhale_threshold:
+                self.flow_time += dt
+            
+            # LED position based on cumulative flow time
+            progress = min(1.0, self.flow_time / self.inhale_s)
+            self.current_pos = int(self.led_start + progress * (self.led_end - self.led_start))
 
         if visible:
             self._render_active(self.active_color)
