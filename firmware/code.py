@@ -78,6 +78,7 @@ guided_led.set_range(
     settings["led_start"],
     settings["led_end"],
 )
+guided_led.set_color_scheme(settings.get("color_scheme", 0))
 
 # Apply mood detection thresholds
 detector.mood.set_thresholds(
@@ -99,7 +100,7 @@ def now_ms():
 
 
 def send_breath_data():
-    """Send: B,{ts},{phase},{flow},{depth},{guided},{stress},{focus},{meditation},{calibrating},{unworn}"""
+    """Send: B,{ts},{phase},{flow},{depth},{guided},{exhale_dur},{inhale_dur},{cycle_dur},{smoothness},{peak_flow},{symmetry},{unworn}"""
     global last_tx_ms
 
     now = now_ms()
@@ -117,33 +118,28 @@ def send_breath_data():
     if current_mode == MODE_GUIDED:
         guided_phase = guided_led.get_phase()
 
-    # Use .get() for safety in case mood analyzer failed
+    # Extract raw metrics
     unworn = 1 if state.get("unworn", False) else 0
-    is_calibrating = state.get("calibrating", True)
+    exhale_dur = state.get("exhale_dur", 0.0)
+    inhale_dur = state.get("inhale_dur", 0.0)
+    cycle_dur = state.get("cycle_dur", 0.0)
+    smoothness = state.get("smoothness", 100)
+    peak_flow = state.get("peak_flow", 0.0)
+    symmetry = state.get("symmetry", 50)
 
-    # Only include mood scores in Open mode AND when worn
-    if current_mode == MODE_OPEN and not unworn:
-        stress = state.get("stress_score", -99)
-        focus = state.get("focus_score", -1)
-        meditation = state.get("meditation_score", -1)
-        calibrating = 1 if is_calibrating else 0
-    else:
-        # In Guided mode or unworn, send N/A values but still track calibrating
-        stress = -99
-        focus = -1
-        meditation = -1
-        calibrating = 1 if is_calibrating else 0  # Always send actual calibrating state
-
-    msg = "B,{},{},{:.3f},{},{},{},{},{},{},{}\n".format(
+    # New format: raw metrics including peak_flow and symmetry
+    msg = "B,{},{},{:.3f},{},{},{:.2f},{:.2f},{:.2f},{},{:.2f},{},{}\n".format(
         now & 0xFFFFFFFF,
         state.get("phase", 0),
         state.get("norm", 0.0),
         state.get("depth_color", 0),
         guided_phase,
-        stress,
-        focus,
-        meditation,
-        calibrating,
+        exhale_dur,
+        inhale_dur,
+        cycle_dur,
+        smoothness,
+        peak_flow,
+        symmetry,
         unworn,
     )
 
@@ -234,7 +230,6 @@ def parse_message(msg):
                 guided_led.set_durations(inh, hi, exh, ho)
                 guided_led.set_range(ls, le)
                 
-                # Save to settings
                 settings["inhale_s"] = inh
                 settings["hold_in_s"] = hi
                 settings["exhale_s"] = exh
@@ -245,6 +240,17 @@ def parse_message(msg):
                 log("Guided settings saved")
             except Exception as e:
                 log("Guided set err: " + str(e))
+
+        elif setting_type == "CS" and len(parts) >= 3:
+            # Color scheme: S,CS,{0-2}
+            try:
+                scheme = int(parts[2])
+                guided_led.set_color_scheme(scheme)
+                settings["color_scheme"] = scheme
+                save_settings(settings)
+                log("Color scheme: " + str(scheme))
+            except Exception as e:
+                log("Color scheme err: " + str(e))
 
         elif setting_type == "C" and len(parts) >= 3:
             # Sensitivity: S,C,{0-9}

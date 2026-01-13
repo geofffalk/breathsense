@@ -304,18 +304,18 @@ class BreathDetector:
             self.unworn = False
 
     def get_state(self):
-        """Get current breath state as a dict."""
-        stress_score = self.mood.get_stress_score()
-        focus_score = self.mood.get_focus_score()
-        meditation_score = self.mood.get_meditation_score()
+        """Get current breath state as a dict with raw metrics."""
+        raw = self.mood.get_raw_metrics()
         return {
             "phase": self.phase,
             "norm": self.norm,
             "depth_color": self.get_depth_color(),
-            "exhale_duration": self.last_exhale_duration,
+            "exhale_dur": raw["exhale_dur"],
+            "inhale_dur": raw["inhale_dur"],
+            "cycle_dur": raw["cycle_dur"],
+            "smoothness": raw["smoothness"],
+            "peak_flow": raw["peak_flow"],
+            "symmetry": raw["symmetry"],
             "unworn": self.unworn,
-            "stress_score": stress_score if stress_score is not None else -99,
-            "focus_score": focus_score if focus_score is not None else -1,
-            "meditation_score": meditation_score if meditation_score is not None else -1,
-            "calibrating": self.mood.get_calibrating(),
+            "calibrating": raw["calibrating"],
         }

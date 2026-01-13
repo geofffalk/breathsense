@@ -9,6 +9,7 @@ import neopixel
 from config import (
     COLOR_RED, COLOR_WHITE, COLOR_LIGHT_BLUE, COLOR_PURPLE, COLOR_DEEP_BLUE,
     DEFAULT_INHALE_S, DEFAULT_HOLD_IN_S, DEFAULT_EXHALE_S, DEFAULT_HOLD_OUT_S,
+    GUIDED_COLOR_SCHEMES,
 )
 from breath_detector import PH_IDLE, PH_INH, PH_EXH
 
@@ -265,13 +266,25 @@ class GuidedBreathingLED:
         self.phase_start = time.monotonic()
         self.calibrating = True
 
-        # Colors
-        self.active_color = (0, 255, 0)  # Green for active breathing
-        self.exhale_color = (0, 255, 255) # Cyan for guided exhale
-        self.hold_color = (255, 20, 0)   # Orange-red for hold
+        # Color scheme (0=Default, 1=High Contrast, 2=Cool Tones)
+        self.color_scheme = 0
+        self._apply_color_scheme()
 
         # LED position
         self.current_pos = self.led_end
+
+    def _apply_color_scheme(self):
+        """Apply colors from current scheme."""
+        scheme = GUIDED_COLOR_SCHEMES[self.color_scheme]
+        self.active_color = scheme[0]   # Inhale color
+        self.hold_color = scheme[1]     # Hold color
+        self.exhale_color = scheme[2]   # Exhale color
+
+    def set_color_scheme(self, scheme_id):
+        """Update color scheme (0=Default, 1=High Contrast, 2=Cool Tones)."""
+        if 0 <= scheme_id < len(GUIDED_COLOR_SCHEMES):
+            self.color_scheme = scheme_id
+            self._apply_color_scheme()
 
     def set_durations(self, inhale, hold_in, exhale, hold_out):
         """Update guided breathing timing."""
@@ -323,7 +336,7 @@ class GuidedBreathingLED:
 
         elif self.phase == self.G_HOLD_OUT:
             if visible:
-                self._render_hold(self.led_start)  # Hold at back end of range
+                self._render_hold(self.led_start)  # Hold at back after exhale
             if elapsed >= self.hold_out_s:
                 self._enter_phase(self.G_INHALE, now)
 
@@ -334,7 +347,7 @@ class GuidedBreathingLED:
 
         elif self.phase == self.G_HOLD_IN:
             if visible:
-                self._render_hold(self.led_end)  # Hold at front end of range
+                self._render_hold(self.led_end)  # Hold at front after inhale
             if elapsed >= self.hold_in_s:
                 self._enter_phase(self.G_EXHALE, now)
 
@@ -342,10 +355,11 @@ class GuidedBreathingLED:
         """Transition to new guided phase."""
         self.phase = new_phase
         self.phase_start = now
+        # Set starting position for active phases only
         if new_phase == self.G_EXHALE:
-            self.current_pos = self.led_end
+            self.current_pos = self.led_end  # Start exhale at front
         elif new_phase == self.G_INHALE:
-            self.current_pos = self.led_start
+            self.current_pos = self.led_start  # Start inhale at back
 
     def _tick_exhale(self, elapsed, breath_phase, visible):
         """Exhale phase: LED moves from front to back."""

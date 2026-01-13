@@ -47,14 +47,16 @@ class GuidedBreathingSettings {
   double holdAfterExhale; // seconds
   int ledStart; // 0-9
   int ledEnd; // 0-9
+  int colorScheme; // 0=Default, 1=High Contrast, 2=Cool Tones
 
   GuidedBreathingSettings({
-    this.inhaleLength = 4.0,
-    this.holdAfterInhale = 2.0,
+    this.inhaleLength = 5.0,
+    this.holdAfterInhale = 5.0,
     this.exhaleLength = 5.0,
-    this.holdAfterExhale = 1.0,
+    this.holdAfterExhale = 5.0,
     this.ledStart = 2,
     this.ledEnd = 9,
+    this.colorScheme = 0,
   });
 
   /// Convert to BLE message format: "S,G,{inhale},{holdIn},{exhale},{holdOut},{ledStart},{ledEnd}\n"
@@ -69,6 +71,7 @@ class GuidedBreathingSettings {
     double? holdAfterExhale,
     int? ledStart,
     int? ledEnd,
+    int? colorScheme,
   }) {
     return GuidedBreathingSettings(
       inhaleLength: inhaleLength ?? this.inhaleLength,
@@ -77,6 +80,7 @@ class GuidedBreathingSettings {
       holdAfterExhale: holdAfterExhale ?? this.holdAfterExhale,
       ledStart: ledStart ?? this.ledStart,
       ledEnd: ledEnd ?? this.ledEnd,
+      colorScheme: colorScheme ?? this.colorScheme,
     );
   }
 }
@@ -110,19 +114,36 @@ extension BreathingModeExtension on BreathingMode {
 
 /// Mood detection settings (thresholds for stress/focus/meditation)
 class MoodDetectionSettings {
+  // Basic settings
   double calmRatio; // E/I ratio for calm detection (higher = calmer required)
   double calmVariability; // RMSSD CV threshold for calm (e.g., 0.10 = 10% relative variation)
   double focusConsistency; // CV threshold for focus (e.g., 0.15 = 15% relative variation)
   int calibrationBreaths; // Number of breaths before showing scores
+  
+  // Advanced mode toggle
+  bool advancedMode; // When true, show advanced weight sliders
+  
+  // Stress calculation weights (only used in advanced mode, must sum to 1.0)
+  double stressRatioWeight;      // E/I ratio contribution
+  double stressDurationWeight;   // Breath duration contribution
+  double stressSmoothnessWeight; // Exhale smoothness contribution
+  double stressPeakFlowWeight;   // Breath depth contribution
+  double stressRmssdWeight;      // Variability contribution
 
   MoodDetectionSettings({
     this.calmRatio = 1.5,
     this.calmVariability = 0.10, // CV: 10% relative variation = calm
     this.focusConsistency = 0.15, // CV: 15% relative variation = focused
     this.calibrationBreaths = 6,
+    this.advancedMode = false,
+    this.stressRatioWeight = 0.35,
+    this.stressDurationWeight = 0.20,
+    this.stressSmoothnessWeight = 0.15,
+    this.stressPeakFlowWeight = 0.15,
+    this.stressRmssdWeight = 0.15,
   });
 
-  /// Convert to BLE message format: "S,M,{calmRatio},{calmVar},{focusCon},{calBreaths}\n"
+  /// Convert to BLE message format (basic settings only - weights are app-side)
   String toMessage() {
     return 'S,M,$calmRatio,$calmVariability,$focusConsistency,$calibrationBreaths\n';
   }
@@ -132,12 +153,37 @@ class MoodDetectionSettings {
     double? calmVariability,
     double? focusConsistency,
     int? calibrationBreaths,
+    bool? advancedMode,
+    double? stressRatioWeight,
+    double? stressDurationWeight,
+    double? stressSmoothnessWeight,
+    double? stressPeakFlowWeight,
+    double? stressRmssdWeight,
   }) {
     return MoodDetectionSettings(
       calmRatio: calmRatio ?? this.calmRatio,
       calmVariability: calmVariability ?? this.calmVariability,
       focusConsistency: focusConsistency ?? this.focusConsistency,
       calibrationBreaths: calibrationBreaths ?? this.calibrationBreaths,
+      advancedMode: advancedMode ?? this.advancedMode,
+      stressRatioWeight: stressRatioWeight ?? this.stressRatioWeight,
+      stressDurationWeight: stressDurationWeight ?? this.stressDurationWeight,
+      stressSmoothnessWeight: stressSmoothnessWeight ?? this.stressSmoothnessWeight,
+      stressPeakFlowWeight: stressPeakFlowWeight ?? this.stressPeakFlowWeight,
+      stressRmssdWeight: stressRmssdWeight ?? this.stressRmssdWeight,
     );
+  }
+  
+  /// Normalize weights to sum to 1.0
+  void normalizeWeights() {
+    final total = stressRatioWeight + stressDurationWeight + 
+                  stressSmoothnessWeight + stressPeakFlowWeight + stressRmssdWeight;
+    if (total > 0) {
+      stressRatioWeight /= total;
+      stressDurationWeight /= total;
+      stressSmoothnessWeight /= total;
+      stressPeakFlowWeight /= total;
+      stressRmssdWeight /= total;
+    }
   }
 }

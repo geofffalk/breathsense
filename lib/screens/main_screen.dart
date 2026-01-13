@@ -447,65 +447,107 @@ class _GuidedPhaseIndicator extends StatelessWidget {
   final int phase;
   
   const _GuidedPhaseIndicator({required this.phase});
+  
+  // Color schemes matching firmware: (inhale, hold, exhale)
+  static const List<List<Color>> _colorSchemes = [
+    // 0: Default - Green/Orange/Cyan
+    [Color(0xFF00FF00), Color(0xFFFF3200), Color(0xFF00FFFF)],
+    // 1: High Contrast - Yellow/Purple/White
+    [Color(0xFFFFFF00), Color(0xFF8000FF), Color(0xFFFFFFFF)],
+    // 2: Cool Tones - Blue/Magenta/White
+    [Color(0xFF0064FF), Color(0xFFFF0080), Color(0xFFFFFFFF)],
+  ];
+  
+  /// Check if a color is light enough to need dark text
+  bool _isLightColor(Color color) {
+    // Use relative luminance calculation
+    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    return luminance > 0.5;
+  }
 
   @override
   Widget build(BuildContext context) {
-    String text;
-    Color color;
-    
-    switch (phase) {
-      case 0: // INHALE
-        text = 'INHALE';
-        color = Colors.green;
-        break;
-      case 1: // HOLD (In)
-        text = 'HOLD';
-        color = Colors.red;
-        break;
-      case 2: // EXHALE
-        text = 'EXHALE';
-        color = Colors.cyan;
-        break;
-      case 3: // HOLD (Out)
-        text = 'HOLD';
-        color = Colors.red;
-        break;
-      default:
-        text = 'SYNCING...';
-        color = Colors.grey;
-    }
+    return Consumer<BleService>(
+      builder: (context, bleService, _) {
+        final schemeId = bleService.guidedSettings.colorScheme.clamp(0, 2);
+        final colors = _colorSchemes[schemeId];
+        final settings = bleService.guidedSettings;
+        
+        String text;
+        Color bgColor;
+        
+        switch (phase) {
+          case 0: // INHALE
+            text = 'INHALE';
+            bgColor = colors[0];
+            break;
+          case 1: // HOLD (In) - skip if duration is 0
+            if (settings.holdAfterInhale == 0) {
+              return const SizedBox.shrink();
+            }
+            text = 'HOLD';
+            bgColor = colors[1];
+            break;
+          case 2: // EXHALE
+            text = 'EXHALE';
+            bgColor = colors[2];
+            break;
+          case 3: // HOLD (Out) - skip if duration is 0
+            if (settings.holdAfterExhale == 0) {
+              return const SizedBox.shrink();
+            }
+            text = 'HOLD';
+            bgColor = colors[1];
+            break;
+          default:
+            text = 'SYNCING...';
+            bgColor = Colors.grey;
+        }
+        
+        // Determine text color based on background luminance
+        final isLight = _isLightColor(bgColor);
+        final textColor = isLight ? Colors.black87 : Colors.white;
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: bgColor.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Center(
-        child: SizedBox(
-          height: 50,
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
+          child: Center(
+            child: SizedBox(
+              height: 50,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                    shadows: isLight ? [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.2),
+                        offset: const Offset(1, 1),
+                        blurRadius: 2,
+                      ),
+                    ] : null,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -559,8 +601,8 @@ class _GenerateReportButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BleService>(
       builder: (context, bleService, child) {
-        // Only show when connected and has session data
-        if (!bleService.isConnected) {
+        // Only show when connected, in Open mode, and has session data
+        if (!bleService.isConnected || bleService.currentMode != BreathingMode.open) {
           return const SizedBox.shrink();
         }
 

@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/breath_data.dart';
 import '../models/session_data.dart';
 import '../models/settings.dart';
+import 'mood_analyzer.dart';
 
 /// Nordic UART Service UUIDs
 final Guid uartServiceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
@@ -65,16 +66,14 @@ class BleService extends ChangeNotifier {
   int _sampleCount = 0;
   int _currentGuidedPhase = -1; // -1=none, 0=inhale, 1=hold_out, 2=exhale, 3=hold_in (matches firmware)
 
-  // Mood tracking (Open Breathing mode)
-  int _currentStressScore = 0;
-  int _currentFocusScore = 0;
-  int _currentMeditationScore = 0;
-  bool _isMoodCalibrating = true;
+  // App-side mood analyzer (calculates scores from raw breath metrics)
+  final MoodAnalyzer _moodAnalyzer = MoodAnalyzer();
+  
+  // Mood state (computed by app from raw metrics)
   bool _isUnworn = false; // Headset not detecting breath
   
   // Session tracking for report generation
   SessionData? _currentSession;
-  double _lastBreathCycleLength = 4.0; // Track breath cycle length
   int _lastBreathPhase = 0; // Track last breath phase for cycle detection
 
   final _breathDataController = StreamController<BreathData>.broadcast();
@@ -87,10 +86,13 @@ class BleService extends ChangeNotifier {
   int get currentGuidedPhase => _currentGuidedPhase;
   bool get isConnected => _isBleConnected;
   bool get isBluetoothOff => _connectionState == BleConnectionState.bluetoothOff;
-  int get currentStressScore => _currentStressScore;
-  int get currentFocusScore => _currentFocusScore;
-  int get currentMeditationScore => _currentMeditationScore;
-  bool get isMoodCalibrating => _isMoodCalibrating;
+  int get currentStressScore => _moodAnalyzer.stressScore;
+  int get currentFocusScore => _moodAnalyzer.focusScore;
+  int get currentMeditationScore => _moodAnalyzer.meditationScore;
+  bool get isMoodCalibrating => _moodAnalyzer.isCalibrating;
+  String get stressLabel => _moodAnalyzer.stressLabel;
+  String get focusLabel => _moodAnalyzer.focusLabel;
+  MoodAnalyzer get moodAnalyzer => _moodAnalyzer; // Expose for expandable UI
   bool get isUnworn => _isUnworn;
   SessionData? get currentSession => _currentSession;
   bool get hasSessionData => _currentSession != null && _currentSession!.breathCount >= 5;
@@ -507,11 +509,6 @@ class BleService extends ChangeNotifier {
           }
           final breathData = BreathData.fromMessage(line);
           
-          // Debug: log calibrating state changes
-          if (_isMoodCalibrating != breathData.isCalibrating) {
-            debugPrint('[BLE] Calibrating: ${breathData.isCalibrating} (stress=${breathData.stressScore})');
-          }
-          
           // Track unworn state changes
           if (_isUnworn != breathData.isUnworn) {
             _isUnworn = breathData.isUnworn;
@@ -533,38 +530,40 @@ class BleService extends ChangeNotifier {
             notifyListeners();
           }
           
-          // Track mood score changes (stress, focus, meditation)
-          if (_currentStressScore != breathData.stressScore || 
-              _currentFocusScore != breathData.focusScore ||
-              _currentMeditationScore != breathData.meditationScore ||
-              _isMoodCalibrating != breathData.isCalibrating) {
-            _currentStressScore = breathData.stressScore;
-            _currentFocusScore = breathData.focusScore;
-            _currentMeditationScore = breathData.meditationScore;
-            _isMoodCalibrating = breathData.isCalibrating;
-            
-            // Record snapshot for session report (only in Open mode, when worn, and not calibrating)
-            if (!breathData.isCalibrating && 
-                !breathData.isUnworn &&
-                _currentSession != null && 
-                _currentMode == BreathingMode.open) {
-              _currentSession!.addSnapshot(
-                stressScore: breathData.stressScore,
-                focusScore: breathData.focusScore,
-                meditationScore: breathData.meditationScore,
-                breathLength: _lastBreathCycleLength,
-              );
-            }
-            
-            notifyListeners();
-          }
+          // Track unworn state
+          _isUnworn = breathData.isUnworn;
           
-          // Track breath phase transitions for cycle counting (only when worn)
-          // Count a breath when transitioning from exhale (phase 2) to inhale (phase 1)
+          // Track breath phase transitions for mood calculation and cycle counting
+          // Feed raw metrics to analyzer when breath cycle completes (exhale→inhale)
           if (!breathData.isUnworn && breathData.phase == 1 && _lastBreathPhase == 2) {
             // Completed exhale→inhale transition = one breath cycle
             _currentSession?.recordBreath();
-            _lastBreathCycleLength = 4.0 + (_currentMeditationScore * 0.5);
+            
+            // Feed raw metrics to app-side mood analyzer
+            if (breathData.cycleDuration > 0) {
+              _moodAnalyzer.recordBreath(
+                exhaleDuration: breathData.exhaleDuration,
+                inhaleDuration: breathData.inhaleDuration,
+                cycleDuration: breathData.cycleDuration,
+                smoothness: breathData.smoothness,
+                peakFlow: breathData.peakFlow,
+                symmetry: breathData.symmetry,
+              );
+              
+              // Record snapshot for session report (only in Open mode, when worn, not calibrating)
+              if (!_moodAnalyzer.isCalibrating && 
+                  _currentSession != null && 
+                  _currentMode == BreathingMode.open) {
+                _currentSession!.addSnapshot(
+                  stressScore: _moodAnalyzer.stressScore,
+                  focusScore: _moodAnalyzer.focusScore,
+                  meditationScore: _moodAnalyzer.meditationScore,
+                  breathLength: breathData.cycleDuration,
+                );
+              }
+              
+              notifyListeners();
+            }
           }
           _lastBreathPhase = breathData.phase;
           
@@ -634,12 +633,9 @@ class BleService extends ChangeNotifier {
     _incomingBuffer = '';
     _currentGuidedPhase = -1;
     
-    // Reset mood state so "Calibrating..." shows on reconnect
-    _isMoodCalibrating = true;
+    // Reset mood analyzer so "Calibrating..." shows on reconnect
+    _moodAnalyzer.reset();
     _isUnworn = false;
-    _currentStressScore = 0;
-    _currentFocusScore = 0;
-    _currentMeditationScore = 0;
 
     _updateConnectionState(BleConnectionState.disconnected);
     
@@ -683,6 +679,12 @@ class BleService extends ChangeNotifier {
       }
     }
     
+    // Reset session and mood analyzer when switching from Guided back to Open
+    if (previousMode == BreathingMode.guided && mode == BreathingMode.open) {
+      resetSession();
+      _moodAnalyzer.reset();  // Reset to Calibrating state
+    }
+    
     notifyListeners();
   }
 
@@ -702,14 +704,36 @@ class BleService extends ChangeNotifier {
 
   Future<void> sendGuidedBreathingSettings(GuidedBreathingSettings settings) async {
     await _sendMessage(settings.toMessage());
+    // Update local state so settings persist when returning to settings screen
+    _guidedSettings = settings.copyWith();
+    notifyListeners();
   }
 
   Future<void> sendSensitivity(int preset) async {
     await _sendMessage('S,C,$preset\n');
   }
 
+  Future<void> sendColorScheme(int schemeId) async {
+    await _sendMessage('S,CS,$schemeId\n');
+  }
+
   Future<void> sendMoodSettings(MoodDetectionSettings settings) async {
     _moodSettings = settings;
+    
+    // Apply weights to app-side MoodAnalyzer (if advanced mode enabled)
+    if (settings.advancedMode) {
+      _moodAnalyzer.stressRatioWeight = settings.stressRatioWeight;
+      _moodAnalyzer.stressDurationWeight = settings.stressDurationWeight;
+      _moodAnalyzer.stressSmoothnessWeight = settings.stressSmoothnessWeight;
+      _moodAnalyzer.stressPeakFlowWeight = settings.stressPeakFlowWeight;
+      _moodAnalyzer.stressRmssdWeight = settings.stressRmssdWeight;
+      _moodAnalyzer.calmRatio = settings.calmRatio;
+      _moodAnalyzer.focusConsistencyCv = settings.focusConsistency;
+      _moodAnalyzer.calmVariabilityCv = settings.calmVariability;
+    }
+    _moodAnalyzer.calibrationBreaths = settings.calibrationBreaths;
+    
+    // Send basic settings to firmware (thresholds only)
     await _sendMessage(settings.toMessage());
     notifyListeners();
   }

@@ -43,10 +43,21 @@ COLOR_PURPLE = (110, 0, 160)
 COLOR_DEEP_BLUE = (0, 0, 180)
 
 # ===== Guided Breathing Defaults (seconds) =====
-DEFAULT_INHALE_S = 4.0
-DEFAULT_HOLD_IN_S = 2.0
-DEFAULT_EXHALE_S = 6.0
-DEFAULT_HOLD_OUT_S = 2.0
+DEFAULT_INHALE_S = 5.0
+DEFAULT_HOLD_IN_S = 5.0
+DEFAULT_EXHALE_S = 5.0
+DEFAULT_HOLD_OUT_S = 5.0
+
+# ===== Guided Breathing Color Schemes =====
+# Each scheme: (inhale_color, hold_color, exhale_color)
+GUIDED_COLOR_SCHEMES = [
+    # 0: Default - Green/Orange/Cyan
+    ((0, 255, 0), (255, 20, 0), (0, 255, 255)),
+    # 1: High Contrast - Yellow/Purple/White (color-blind friendly)
+    ((255, 255, 0), (128, 0, 255), (255, 255, 255)),
+    # 2: Cool Tones - Blue/Magenta/White
+    ((0, 100, 255), (255, 0, 128), (255, 255, 255)),
+]
 
 # ===== Sensitivity Presets =====
 # Each preset: (alpha_flow, deriv_gain, th_start, th_end)

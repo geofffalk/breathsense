@@ -28,6 +28,7 @@ class _BreathGraphState extends State<BreathGraph>
   List<int> _phases = [];
   List<int> _depths = [];
   BreathingMode _mode = BreathingMode.open;
+  int _colorSchemeId = 0; // Cached color scheme
   int _xCounter = 0;
 
   @override
@@ -44,11 +45,14 @@ class _BreathGraphState extends State<BreathGraph>
   }
 
   void _updateGraph() {
+    if (!mounted) return; // Prevent context access after unmount
+    
     final bleService = context.read<BleService>();
     final flowValues = bleService.getFlowValues(windowSize);
     final phases = bleService.getPhaseValues(windowSize);
     final depths = bleService.getDepthValues(windowSize);
     final mode = bleService.currentMode;
+    final schemeId = bleService.guidedSettings.colorScheme.clamp(0, 2);
 
     final newSpots = <FlSpot>[];
     for (int i = 0; i < flowValues.length; i++) {
@@ -65,9 +69,20 @@ class _BreathGraphState extends State<BreathGraph>
         _phases = phases;
         _depths = depths;
         _mode = mode;
+        _colorSchemeId = schemeId; // Cache scheme ID
       });
     }
   }
+
+  // Color schemes matching firmware: (inhale, hold, exhale)
+  static const List<List<Color>> _colorSchemes = [
+    // 0: Default - Green/Orange/Cyan
+    [Color(0xFF00FF00), Color(0xFFFF3200), Color(0xFF00FFFF)],
+    // 1: High Contrast - Yellow/Purple/White
+    [Color(0xFFFFFF00), Color(0xFF8000FF), Color(0xFFFFFFFF)],
+    // 2: Cool Tones - Blue/Magenta/White
+    [Color(0xFF0064FF), Color(0xFFFF0080), Color(0xFFFFFFFF)],
+  ];
 
   Color _getColorForPhase(int phase, int depth) {
     if (_mode == BreathingMode.open) {
@@ -82,12 +97,14 @@ class _BreathGraphState extends State<BreathGraph>
       }
     }
     
-    // Guided mode: Standard Green/Red/Cyan consistency
+    // Guided mode: Use cached color scheme (avoids context access in build)
+    final colors = _colorSchemes[_colorSchemeId];
+    
     switch (phase) {
-      case 0: return Colors.green; // Inhale
-      case 1: return Colors.red;   // Hold In
-      case 2: return Colors.cyan;  // Exhale
-      case 3: return Colors.red;   // Hold Out
+      case 0: return colors[0]; // Inhale
+      case 1: return colors[1]; // Hold In
+      case 2: return colors[2]; // Exhale
+      case 3: return colors[1]; // Hold Out
       default: return Colors.grey;
     }
   }
