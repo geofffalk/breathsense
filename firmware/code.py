@@ -185,6 +185,7 @@ def parse_message(msg):
         mode_char = parts[1].upper()
         if mode_char == "F":
             current_mode = MODE_OPEN
+            det.mood.reset()  # Reset calibration when switching back to Open
             log("Mode: OPEN")
         elif mode_char == "G":
             current_mode = MODE_GUIDED

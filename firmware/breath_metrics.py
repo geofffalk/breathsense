@@ -8,7 +8,7 @@ import math
 CALIBRATION_BREATHS = 6
 
 
-class MoodAnalyzer:
+class BreathMetrics:
     """Collects raw breath metrics for app-side mood calculation."""
 
     def __init__(self):
@@ -32,6 +32,19 @@ class MoodAnalyzer:
         """Update calibration breaths from settings (other params ignored in v2)."""
         self.calibration_breaths = int(calibration_breaths)
         print("[MOOD] Calibration breaths: {}".format(calibration_breaths))
+
+    def reset(self):
+        """Reset calibration state for new session."""
+        self.breath_count = 0
+        self.is_calibrating = True
+        self.last_exhale_duration = 0.0
+        self.last_inhale_duration = 0.0
+        self.last_cycle_duration = 0.0
+        self.last_smoothness = 100
+        self.last_peak_flow = 0.0
+        self.last_symmetry = 50
+        self._exhale_samples = []
+        print("[MOOD] Reset calibration")
 
     def start_exhale(self):
         """Called when exhale begins - reset sample collection."""
@@ -80,22 +93,42 @@ class MoodAnalyzer:
         """
         Compute exhale smoothness from flow samples.
         Returns 0-100 where 100 = perfectly smooth, 0 = very jerky.
-        Uses coefficient of variation (CV) of flow values.
+        
+        Uses SECOND DERIVATIVE (acceleration): rate of change of rate of change.
+        Smooth = constant velocity, jerky = sudden acceleration/deceleration.
         """
-        if len(self._exhale_samples) < 5:
-            return 100  # Not enough samples, assume smooth
+        if len(self._exhale_samples) < 7:
+            return 100  # Not enough samples for 2nd derivative
         
         samples = self._exhale_samples
-        mean = sum(samples) / len(samples)
-        if abs(mean) < 0.01:
-            return 100  # Near-zero flow, can't compute CV
         
-        variance = sum((s - mean) ** 2 for s in samples) / len(samples)
-        std_dev = math.sqrt(variance)
-        cv = std_dev / abs(mean)
+        # Compute mean absolute flow (to normalize)
+        mean_abs_flow = sum(abs(s) for s in samples) / len(samples)
+        if mean_abs_flow < 0.05:
+            return 100  # Near-zero flow, can't compute
         
-        # Map CV to 0-100: CV 0 -> 100, CV 1+ -> 0
-        smoothness = 100 - int(min(1.0, cv) * 100)
+        # First derivative: velocity changes
+        first_deriv = []
+        for i in range(1, len(samples)):
+            first_deriv.append(samples[i] - samples[i-1])
+        
+        # Second derivative: acceleration (rate of change of velocity)
+        second_deriv = []
+        for i in range(1, len(first_deriv)):
+            second_deriv.append(abs(first_deriv[i] - first_deriv[i-1]))
+        
+        if not second_deriv:
+            return 100
+        
+        # Mean acceleration magnitude
+        mean_accel = sum(second_deriv) / len(second_deriv)
+        
+        # Normalize by flow magnitude
+        relative_accel = mean_accel / mean_abs_flow
+        
+        # Map to 0-100: 0 accel -> 100, 0.2+ accel -> 0
+        # Middle ground: 0.2 threshold (original was 0.3, too insensitive)
+        smoothness = 100 - int(min(0.2, relative_accel) * 500)
         return max(0, min(100, smoothness))
 
     def _compute_peak_flow(self):

@@ -76,6 +76,7 @@ class MoodAnalyzer {
   // Latest smoothness and peak flow (from most recent breath)
   int get currentSmoothness => _recentBreaths.isEmpty ? 50 : _recentBreaths.last.smoothness;
   double get currentPeakFlow => _recentBreaths.isEmpty ? 0.0 : _recentBreaths.last.peakFlow;
+  double get latestCycleDuration => _recentBreaths.isEmpty ? 4.0 : _recentBreaths.last.cycleDuration;
   
   /// Process a new breath with raw metrics
   void recordBreath({

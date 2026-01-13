@@ -139,11 +139,11 @@ class _StressIndicatorState extends State<StressIndicator> {
                         value: _normalizeRatio(analyzer.currentRatio),
                         displayValue: analyzer.currentRatio.toStringAsFixed(2),
                       ),
-                      // Duration: compare to baseline
+                      // Duration: compare LATEST breath to baseline (not sliding avg)
                       MoodScaleBar(
                         label: 'Duration',
-                        value: _normalizeDuration(analyzer.currentCycle, analyzer.baselineCycle),
-                        displayValue: '${analyzer.currentCycle.toStringAsFixed(1)}s',
+                        value: _normalizeDuration(analyzer.latestCycleDuration, analyzer.baselineCycle),
+                        displayValue: '${analyzer.latestCycleDuration.toStringAsFixed(1)}s',
                       ),
                       // Smoothness: 0% (stressed) to 100% (calm)
                       MoodScaleBar(

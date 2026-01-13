@@ -83,6 +83,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
   
   void _onBleServiceUpdate() {
+    if (!mounted) return; // Prevent context access after unmount
+    
     final bleService = context.read<BleService>();
     if (bleService.settingsReceived && !_initialized) {
       setState(() {

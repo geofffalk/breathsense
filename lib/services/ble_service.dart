@@ -607,8 +607,15 @@ class BleService extends ChangeNotifier {
             calibrationBreaths: int.parse(parts[15]),
           );
         }
+        // LED enabled and color scheme (parts 16-17 if present)
+        if (parts.length >= 18) {
+          _ledEnabled = int.parse(parts[16]) == 1;
+          _guidedSettings = _guidedSettings.copyWith(
+            colorScheme: int.parse(parts[17]),
+          );
+        }
         _settingsReceived = true;
-        debugPrint('[BLE] Settings received');
+        debugPrint('[BLE] Settings received (LED: $_ledEnabled, Color scheme: ${_guidedSettings.colorScheme})');
         notifyListeners();
       }
     } catch (e) {

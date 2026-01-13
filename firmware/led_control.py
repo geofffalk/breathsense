@@ -355,6 +355,8 @@ class GuidedBreathingLED:
         """Transition to new guided phase."""
         self.phase = new_phase
         self.phase_start = now
+        self.active_time = 0.0  # Reset cumulative time for new phase
+        self.last_tick = now
         # Set starting position for active phases only
         if new_phase == self.G_EXHALE:
             self.current_pos = self.led_end  # Start exhale at front
@@ -371,7 +373,7 @@ class GuidedBreathingLED:
                 progress = min(1.0, elapsed / self.exhale_s)
                 self.current_pos = int(self.led_end - progress * (self.led_end - self.led_start))
             else:
-                # User is not exhaling correctly, stay at current position (no flashing)
+                # User is not exhaling correctly, stay at current position
                 pass
 
         if visible:
@@ -387,7 +389,7 @@ class GuidedBreathingLED:
                 progress = min(1.0, elapsed / self.inhale_s)
                 self.current_pos = int(self.led_start + progress * (self.led_end - self.led_start))
             else:
-                # User is not inhaling correctly, stay at current position (no flashing)
+                # User is not inhaling correctly, stay at current position
                 pass
 
         if visible:

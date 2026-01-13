@@ -16,7 +16,7 @@ from config import (
     DEFAULT_MEDIUM_MAX, DEFAULT_LONG_MAX,
     SENSITIVITY_PRESETS,
 )
-from mood_analyzer import MoodAnalyzer
+from breath_metrics import BreathMetrics
 
 # Phase constants
 PH_IDLE = 0
@@ -76,7 +76,7 @@ class BreathDetector:
         self.inhale_start_time = None
 
         # Stress analyzer
-        self.mood = MoodAnalyzer()
+        self.mood = BreathMetrics()
 
         # Off-head (unworn) detection
         # Detects when headset is not being worn based on short/artifact exhales
