@@ -79,6 +79,14 @@ guided_led.set_range(
     settings["led_end"],
 )
 
+# Apply mood detection thresholds
+detector.mood.set_thresholds(
+    settings.get("mood_calm_ratio", 1.5),
+    settings.get("mood_calm_variability", 0.5),
+    settings.get("mood_focus_consistency", 0.5),
+    settings.get("mood_calibration_breaths", 6),
+)
+
 # ========== State ==========
 current_mode = MODE_OPEN  # Default to open breathing when standalone
 last_tx_ms = 0
@@ -91,7 +99,7 @@ def now_ms():
 
 
 def send_breath_data():
-    """Send breath data to app: B,{timestamp},{phase},{flow},{depth_color}"""
+    """Send: B,{ts},{phase},{flow},{depth},{guided},{stress},{focus},{meditation},{calibrating},{unworn}"""
     global last_tx_ms
 
     now = now_ms()
@@ -99,17 +107,44 @@ def send_breath_data():
         return
     last_tx_ms = now
 
-    state = detector.get_state()
+    try:
+        state = detector.get_state()
+    except Exception as e:
+        log("get_state err: " + str(e))
+        return
+
     guided_phase = -1
     if current_mode == MODE_GUIDED:
         guided_phase = guided_led.get_phase()
 
-    msg = "B,{},{},{:.3f},{},{}\n".format(
+    # Use .get() for safety in case mood analyzer failed
+    unworn = 1 if state.get("unworn", False) else 0
+    is_calibrating = state.get("calibrating", True)
+
+    # Only include mood scores in Open mode AND when worn
+    if current_mode == MODE_OPEN and not unworn:
+        stress = state.get("stress_score", -99)
+        focus = state.get("focus_score", -1)
+        meditation = state.get("meditation_score", -1)
+        calibrating = 1 if is_calibrating else 0
+    else:
+        # In Guided mode or unworn, send N/A values
+        stress = -99
+        focus = -1
+        meditation = -1
+        calibrating = 0
+
+    msg = "B,{},{},{:.3f},{},{},{},{},{},{},{}\n".format(
         now & 0xFFFFFFFF,
-        state["phase"],
-        state["norm"],
-        state["depth_color"],
+        state.get("phase", 0),
+        state.get("norm", 0.0),
+        state.get("depth_color", 0),
         guided_phase,
+        stress,
+        focus,
+        meditation,
+        calibrating,
+        unworn,
     )
 
     try:
@@ -221,6 +256,25 @@ def parse_message(msg):
                 log("Sensitivity saved: " + str(preset))
             except Exception:
                 pass
+
+        elif setting_type == "M" and len(parts) >= 6:
+            # Mood settings: S,M,calmRatio,calmVar,focusCon,calBreaths
+            try:
+                calm_ratio = float(parts[2])
+                calm_var = float(parts[3])
+                focus_con = float(parts[4])
+                cal_breaths = int(parts[5])
+                
+                detector.mood.set_thresholds(calm_ratio, calm_var, focus_con, cal_breaths)
+                
+                settings["mood_calm_ratio"] = calm_ratio
+                settings["mood_calm_variability"] = calm_var
+                settings["mood_focus_consistency"] = focus_con
+                settings["mood_calibration_breaths"] = cal_breaths
+                save_settings(settings)
+                log("Mood settings saved")
+            except Exception as e:
+                log("Mood set err: " + str(e))
 
     elif cmd == "L" and len(parts) >= 2:
         # LED control: L,{1|0}

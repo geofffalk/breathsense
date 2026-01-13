@@ -21,6 +21,11 @@ DEFAULT_SETTINGS = {
     "hold_out_s": 1.0,
     "led_start": 2,
     "led_end": 9,
+    # Mood detection settings
+    "mood_calm_ratio": 1.5,         # E/I ratio for calm detection
+    "mood_calm_variability": 0.5,   # RMSSD threshold for calm (lower = calmer)
+    "mood_focus_consistency": 0.5,  # Std dev for focus (lower = more focused)
+    "mood_calibration_breaths": 6,  # Breaths before showing scores
 }
 
 
@@ -54,9 +59,9 @@ def save_settings(settings: dict):
 def settings_to_message(settings: dict) -> str:
     """
     Convert settings dict to BLE message for app.
-    Format: R,{very_short},{short},{medium},{long},{sensitivity},{inhale},{hold_in},{exhale},{hold_out},{led_start},{led_end}
+    Format: R,{very_short},{short},{medium},{long},{sensitivity},{inhale},{hold_in},{exhale},{hold_out},{led_start},{led_end},{calm_ratio},{calm_var},{focus_con},{cal_breaths}
     """
-    return "R,{},{},{},{},{},{},{},{},{},{},{}\n".format(
+    return "R,{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
         settings.get("very_short_max", 2.0),
         settings.get("short_max", 3.5),
         settings.get("medium_max", 5.0),
@@ -68,4 +73,8 @@ def settings_to_message(settings: dict) -> str:
         settings.get("hold_out_s", 1.0),
         settings.get("led_start", 2),
         settings.get("led_end", 9),
+        settings.get("mood_calm_ratio", 1.5),
+        settings.get("mood_calm_variability", 0.5),
+        settings.get("mood_focus_consistency", 0.5),
+        settings.get("mood_calibration_breaths", 6),
     )

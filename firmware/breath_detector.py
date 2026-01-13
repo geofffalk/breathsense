@@ -16,6 +16,7 @@ from config import (
     DEFAULT_MEDIUM_MAX, DEFAULT_LONG_MAX,
     SENSITIVITY_PRESETS,
 )
+from mood_analyzer import MoodAnalyzer
 
 # Phase constants
 PH_IDLE = 0
@@ -69,6 +70,13 @@ class BreathDetector:
         # Exhale duration tracking for color selection
         self.last_exhale_duration = 2.0
         self.exhale_start_time = None
+
+        # Inhale duration tracking for stress analysis
+        self.last_inhale_duration = 2.0
+        self.inhale_start_time = None
+
+        # Stress analyzer
+        self.mood = MoodAnalyzer()
 
         # Off-head (unworn) detection
         # Detects when headset is not being worn based on short/artifact exhales
@@ -192,6 +200,10 @@ class BreathDetector:
             self.prev_norm = norm
             self.norm = norm
 
+            # Feed samples to stress analyzer during exhale phase
+            if self.phase == PH_EXH:
+                self.mood.record_sample(self.flow_lp)
+
             # Update peak
             self.peak_val = max(self.peak_val, abs(norm))
 
@@ -226,8 +238,23 @@ class BreathDetector:
                     if self.phase == PH_EXH and self.exhale_start_time is not None:
                         self.last_exhale_duration = now - self.exhale_start_time
                         self._record_exhale(self.last_exhale_duration, now)
+                        # Feed stress analyzer with completed breath
+                        self.mood.end_exhale(
+                            self.last_exhale_duration,
+                            self.last_inhale_duration,
+                            now
+                        )
+                        # Debug: log breath count
+                        if self.mood.breath_count <= 10:
+                            print("[BD] Breath #{} ex={:.1f}s in={:.1f}s cal={}".format(
+                                self.mood.breath_count,
+                                self.last_exhale_duration,
+                                self.last_inhale_duration,
+                                self.mood.is_calibrating
+                            ))
                     self.phase = PH_INH
                     self.t_phase_start = now
+                    self.inhale_start_time = now  # Track inhale start
                     self.peak_val = 0.0
                     self.idle_hold_start = None
                     self.refrac_until = now + MIN_PHASE_S * 0.5
@@ -236,12 +263,17 @@ class BreathDetector:
             # Detect exhale start
             elif self.phase != PH_EXH and norm < -self.th_start:
                 if phase_age >= MIN_PHASE_S or self.phase == PH_IDLE:
+                    # Record inhale duration before transitioning
+                    if self.phase == PH_INH and self.inhale_start_time is not None:
+                        self.last_inhale_duration = now - self.inhale_start_time
                     self.phase = PH_EXH
                     self.t_phase_start = now
                     self.exhale_start_time = now
                     self.peak_val = 0.0
                     self.idle_hold_start = None
                     self.refrac_until = now + MIN_PHASE_S * 0.5
+                    # Start collecting exhale samples for stress analysis
+                    self.mood.start_exhale()
                     transition = True
 
         return transition
@@ -273,10 +305,17 @@ class BreathDetector:
 
     def get_state(self):
         """Get current breath state as a dict."""
+        stress_score = self.mood.get_stress_score()
+        focus_score = self.mood.get_focus_score()
+        meditation_score = self.mood.get_meditation_score()
         return {
             "phase": self.phase,
             "norm": self.norm,
             "depth_color": self.get_depth_color(),
             "exhale_duration": self.last_exhale_duration,
             "unworn": self.unworn,
+            "stress_score": stress_score if stress_score is not None else -99,
+            "focus_score": focus_score if focus_score is not None else -1,
+            "meditation_score": meditation_score if meditation_score is not None else -1,
+            "calibrating": self.mood.get_calibrating(),
         }

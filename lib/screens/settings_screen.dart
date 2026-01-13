@@ -20,6 +20,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Guided Breathing settings
   late GuidedBreathingSettings _guidedSettings;
   
+  // Mood Detection settings
+  late MoodDetectionSettings _moodSettings;
+  
   bool _initialized = false;
 
   @override
@@ -27,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _openSettings = OpenBreathingSettings();
     _guidedSettings = GuidedBreathingSettings();
+    _moodSettings = MoodDetectionSettings();
     
     // Load settings from BLE service after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -42,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _openSettings = bleService.openSettings.copyWith();
         _guidedSettings = bleService.guidedSettings.copyWith();
+        _moodSettings = bleService.moodSettings.copyWith();
         _initialized = true;
       });
     } else if (bleService.isConnected) {
@@ -59,6 +64,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _openSettings = bleService.openSettings.copyWith();
         _guidedSettings = bleService.guidedSettings.copyWith();
+        _moodSettings = bleService.moodSettings.copyWith();
         _initialized = true;
       });
     }
@@ -111,6 +117,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionHeader('Sensor Sensitivity', Icons.tune),
             const SizedBox(height: 8),
             _buildSensitivitySettings(bleService),
+
+            const SizedBox(height: 32),
+
+            // Mood Detection
+            _buildSectionHeader('Mood Detection', Icons.psychology),
+            const SizedBox(height: 8),
+            _buildMoodSettings(bleService),
 
             const SizedBox(height: 48),
           ],
@@ -444,5 +457,207 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-}
 
+  Widget _buildMoodSettings(BleService bleService) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Fine-tune how your breathing patterns are interpreted.',
+            style: TextStyle(color: Colors.grey[700], fontSize: 12),
+          ),
+          const SizedBox(height: 20),
+          
+          // Calm Ratio
+          _buildMoodSliderWithDesc(
+            label: 'Calm Threshold (E/I Ratio)',
+            description: 'Higher values require longer exhales relative to inhales to show as calm.',
+            value: _moodSettings.calmRatio,
+            min: 0.5,
+            max: 3.0,
+            unit: 'x',
+            activeColor: Colors.teal,
+            onChanged: (v) => setState(() {
+              _moodSettings = _moodSettings.copyWith(calmRatio: v);
+            }),
+          ),
+          
+          // Calm Variability (RMSSD)
+          _buildMoodSliderWithDesc(
+            label: 'Calm Variability',
+            description: 'Lower values require more consistent breath-to-breath timing to show as calm.',
+            value: _moodSettings.calmVariability,
+            min: 0.1,
+            max: 2.0,
+            unit: 's',
+            activeColor: Colors.teal,
+            onChanged: (v) => setState(() {
+              _moodSettings = _moodSettings.copyWith(calmVariability: v);
+            }),
+          ),
+          
+          // Focus Consistency
+          _buildMoodSliderWithDesc(
+            label: 'Focus Threshold',
+            description: 'Lower values require more rhythmic breathing to show as focused.',
+            value: _moodSettings.focusConsistency,
+            min: 0.1,
+            max: 1.5,
+            unit: 's',
+            activeColor: Colors.purple,
+            onChanged: (v) => setState(() {
+              _moodSettings = _moodSettings.copyWith(focusConsistency: v);
+            }),
+          ),
+          
+          // Calibration Breaths
+          Text('Calibration Breaths', style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
+          const SizedBox(height: 4),
+          Text(
+            'Number of breaths before mood readings start. More breaths = more accurate baseline.',
+            style: TextStyle(color: Colors.grey[600], fontSize: 11),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Slider(
+                  value: _moodSettings.calibrationBreaths.toDouble(),
+                  min: 3,
+                  max: 15,
+                  divisions: 12,
+                  activeColor: Colors.orange[700],
+                  inactiveColor: Colors.grey[200],
+                  onChanged: (v) => setState(() {
+                    _moodSettings = _moodSettings.copyWith(calibrationBreaths: v.round());
+                  }),
+                ),
+              ),
+              Text(
+                '${_moodSettings.calibrationBreaths}',
+                style: TextStyle(color: Colors.orange[700], fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: bleService.isConnected
+                  ? () => bleService.sendMoodSettings(_moodSettings)
+                  : null,
+              icon: const Icon(Icons.send),
+              label: const Text('Send to Headset'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyan,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildMoodSlider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required String unit,
+    required Color activeColor,
+    required ValueChanged<double> onChanged,
+  }) {
+    final displayValue = value.toStringAsFixed(2);
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(label, style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
+              ),
+              Text(
+                '$displayValue$unit',
+                style: TextStyle(color: activeColor, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            activeColor: activeColor,
+            inactiveColor: Colors.grey[200],
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildMoodSliderWithDesc({
+    required String label,
+    required String description,
+    required double value,
+    required double min,
+    required double max,
+    required String unit,
+    required Color activeColor,
+    required ValueChanged<double> onChanged,
+  }) {
+    final displayValue = value.toStringAsFixed(2);
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(label, style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
+              ),
+              Text(
+                '$displayValue$unit',
+                style: TextStyle(color: activeColor, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: TextStyle(color: Colors.grey[600], fontSize: 11),
+          ),
+          Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            activeColor: activeColor,
+            inactiveColor: Colors.grey[200],
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -8,6 +8,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../models/breath_data.dart';
+import '../models/session_data.dart';
 import '../models/settings.dart';
 
 /// Nordic UART Service UUIDs
@@ -52,6 +53,7 @@ class BleService extends ChangeNotifier {
   // Current settings from firmware
   OpenBreathingSettings _openSettings = OpenBreathingSettings();
   GuidedBreathingSettings _guidedSettings = GuidedBreathingSettings();
+  MoodDetectionSettings _moodSettings = MoodDetectionSettings();
   bool _settingsReceived = false;
 
   // Ring buffer for breath data (for graph)
@@ -63,6 +65,17 @@ class BleService extends ChangeNotifier {
   int _sampleCount = 0;
   int _currentGuidedPhase = -1; // -1=none, 0=inhale, 1=hold_out, 2=exhale, 3=hold_in (matches firmware)
 
+  // Mood tracking (Open Breathing mode)
+  int _currentStressScore = 0;
+  int _currentFocusScore = 0;
+  int _currentMeditationScore = 0;
+  bool _isMoodCalibrating = true;
+  bool _isUnworn = false; // Headset not detecting breath
+  
+  // Session tracking for report generation
+  SessionData? _currentSession;
+  double _lastBreathCycleLength = 4.0; // Track breath cycle length
+
   final _breathDataController = StreamController<BreathData>.broadcast();
 
   BleConnectionState get connectionState => _connectionState;
@@ -73,15 +86,37 @@ class BleService extends ChangeNotifier {
   int get currentGuidedPhase => _currentGuidedPhase;
   bool get isConnected => _isBleConnected;
   bool get isBluetoothOff => _connectionState == BleConnectionState.bluetoothOff;
+  int get currentStressScore => _currentStressScore;
+  int get currentFocusScore => _currentFocusScore;
+  int get currentMeditationScore => _currentMeditationScore;
+  bool get isMoodCalibrating => _isMoodCalibrating;
+  bool get isUnworn => _isUnworn;
+  SessionData? get currentSession => _currentSession;
+  bool get hasSessionData => _currentSession != null && _currentSession!.snapshots.isNotEmpty;
   
   OpenBreathingSettings get openSettings => _openSettings;
   GuidedBreathingSettings get guidedSettings => _guidedSettings;
+  MoodDetectionSettings get moodSettings => _moodSettings;
   bool get settingsReceived => _settingsReceived;
 
   BleService() {
     debugPrint('[BLE] Service created');
     _startBleStateMonitoring();
     _startAudioBluetoothMonitoring();
+    _startNewSession(); // Start tracking immediately
+  }
+
+  /// Start a new session for tracking
+  void _startNewSession() {
+    _currentSession = SessionData();
+    debugPrint('[BLE] New session started');
+  }
+
+  /// Reset session and start fresh (call when generating report or on new connect)
+  void resetSession() {
+    _currentSession?.endSession();
+    _startNewSession();
+    notifyListeners();
   }
 
   /// Request Bluetooth permissions
@@ -465,18 +500,72 @@ class BleService extends ChangeNotifier {
         if (line.isEmpty) continue;
 
         if (line.startsWith('B,')) {
+          // Debug: log occasionally to see what's coming
+          if (_sampleCount % 100 == 0) {
+            debugPrint('[BLE] Data: $line');
+          }
           final breathData = BreathData.fromMessage(line);
-          _flowBuffer[_writeIndex] = breathData.flowValue;
-          _phaseBuffer[_writeIndex] = breathData.guidedPhase;
-          _depthBuffer[_writeIndex] = breathData.depthColor;
           
+          // Debug: log calibrating state changes
+          if (_isMoodCalibrating != breathData.isCalibrating) {
+            debugPrint('[BLE] Calibrating: ${breathData.isCalibrating} (stress=${breathData.stressScore})');
+          }
+          
+          // Track unworn state changes
+          if (_isUnworn != breathData.isUnworn) {
+            _isUnworn = breathData.isUnworn;
+            notifyListeners();
+          }
+          
+          // Skip graph data when unworn (don't chart non-breath data)
+          if (!breathData.isUnworn) {
+            _flowBuffer[_writeIndex] = breathData.flowValue;
+            _phaseBuffer[_writeIndex] = breathData.guidedPhase;
+            _depthBuffer[_writeIndex] = breathData.depthColor;
+            _writeIndex = (_writeIndex + 1) % bufferSize;
+            _sampleCount++;
+          }
+          
+          // Track guided phase changes
           if (_currentGuidedPhase != breathData.guidedPhase) {
             _currentGuidedPhase = breathData.guidedPhase;
             notifyListeners();
           }
           
-          _writeIndex = (_writeIndex + 1) % bufferSize;
-          _sampleCount++;
+          // Track mood score changes (stress, focus, meditation)
+          if (_currentStressScore != breathData.stressScore || 
+              _currentFocusScore != breathData.focusScore ||
+              _currentMeditationScore != breathData.meditationScore ||
+              _isMoodCalibrating != breathData.isCalibrating) {
+            _currentStressScore = breathData.stressScore;
+            _currentFocusScore = breathData.focusScore;
+            _currentMeditationScore = breathData.meditationScore;
+            _isMoodCalibrating = breathData.isCalibrating;
+            
+            // Record snapshot for session report (only in Open mode, when worn, and not calibrating)
+            if (!breathData.isCalibrating && 
+                !breathData.isUnworn &&
+                _currentSession != null && 
+                _currentMode == BreathingMode.open) {
+              _currentSession!.addSnapshot(
+                stressScore: breathData.stressScore,
+                focusScore: breathData.focusScore,
+                meditationScore: breathData.meditationScore,
+                breathLength: _lastBreathCycleLength,
+              );
+            }
+            
+            notifyListeners();
+          }
+          
+          // Track breath phase transitions for cycle length estimation (only when worn)
+          if (!breathData.isUnworn &&
+              breathData.phase == 1 && _phaseBuffer[(_writeIndex - 1 + bufferSize) % bufferSize] != 1) {
+            // Inhale started - estimate breath cycle from time between inhales
+            // This is a simplification; firmware could send actual duration
+            _lastBreathCycleLength = 4.0 + (_currentMeditationScore * 0.5); // rough estimate
+          }
+          
           _breathDataController.add(breathData);
         } else if (line.startsWith('R,')) {
           _parseSettingsResponse(line);
@@ -508,6 +597,15 @@ class BleService extends ChangeNotifier {
           ledStart: int.parse(parts[10]),
           ledEnd: int.parse(parts[11]),
         );
+        // Mood settings (parts 12-15 if present)
+        if (parts.length >= 16) {
+          _moodSettings = MoodDetectionSettings(
+            calmRatio: double.parse(parts[12]),
+            calmVariability: double.parse(parts[13]),
+            focusConsistency: double.parse(parts[14]),
+            calibrationBreaths: int.parse(parts[15]),
+          );
+        }
         _settingsReceived = true;
         debugPrint('[BLE] Settings received');
         notifyListeners();
@@ -563,8 +661,19 @@ class BleService extends ChangeNotifier {
   }
 
   Future<void> setMode(BreathingMode mode) async {
+    final previousMode = _currentMode;
     await _sendMessage(mode.toMessage());
     _currentMode = mode;
+    
+    // Track Guided mode periods for session report
+    if (_currentSession != null) {
+      if (previousMode != BreathingMode.guided && mode == BreathingMode.guided) {
+        _currentSession!.startGuidedPeriod();
+      } else if (previousMode == BreathingMode.guided && mode != BreathingMode.guided) {
+        _currentSession!.endGuidedPeriod();
+      }
+    }
+    
     notifyListeners();
   }
 
@@ -588,6 +697,12 @@ class BleService extends ChangeNotifier {
 
   Future<void> sendSensitivity(int preset) async {
     await _sendMessage('S,C,$preset\n');
+  }
+
+  Future<void> sendMoodSettings(MoodDetectionSettings settings) async {
+    _moodSettings = settings;
+    await _sendMessage(settings.toMessage());
+    notifyListeners();
   }
 
   void startManualScan() {

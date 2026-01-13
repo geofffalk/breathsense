@@ -5,6 +5,9 @@ import '../models/settings.dart';
 import '../services/ble_service.dart';
 import '../widgets/breath_graph.dart';
 import '../widgets/mode_selector.dart';
+import '../widgets/mood_indicators.dart';
+import '../widgets/stress_indicator.dart';
+import 'report_screen.dart';
 import 'settings_screen.dart';
 
 /// Main screen with breath graph, mode selector, and connection status
@@ -72,17 +75,14 @@ class MainScreen extends StatelessWidget {
               // Connection status
               _ConnectionStatus(),
 
-              const SizedBox(height: 12), // Reduced from 16
+              const SizedBox(height: 12),
 
-              // Breath graph
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: BreathGraph(height: 240), // Slightly reduced from 250
-              ),
+              // Mode selector - moved above graph for better flow
+              const ModeSelector(),
 
               const SizedBox(height: 8),
 
-              // Show Lights toggle - standard switch, right justified
+              // Show Lights toggle - right justified
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<BleService>(
@@ -91,14 +91,14 @@ class MainScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          'Show lights',
+                          'Show lights on headset',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: bleService.isConnected ? Colors.black87 : Colors.grey[400],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Switch(
                           value: bleService.ledEnabled,
                           onChanged: bleService.isConnected ? (value) {
@@ -112,14 +112,33 @@ class MainScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
-              // Mode selector
-              const ModeSelector(),
+              // Unified dark section: Graph + Mood indicators
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A2E),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    // Breath graph
+                    const BreathGraph(height: 220),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Mode-specific mood indicators
+                    _BreathingModeIndicator(),
+                  ],
+                ),
+              ),
 
-              // Guided Phase Indicator (only in Guided mode)
-              // Moved here to prevent mode buttons from jumping
-              _GuidedPhaseDisplay(),
+              const SizedBox(height: 16),
+              
+              // Generate Session Report button
+              _GenerateReportButton(),
 
               const SizedBox(height: 24), // Replaced Spacer with fixed spacing for scroll view
 
@@ -153,17 +172,25 @@ class _ConnectionStatus extends StatelessWidget {
           );
         }
 
-        // Connected: show compact status bar
+        // Connected: show compact status bar (with unworn warning if needed)
+        final isUnworn = bleService.isUnworn;
+        
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE1F5FE), // Light Cyan background
+            color: isUnworn 
+                ? const Color(0xFFFFF3E0) // Orange tint when unworn
+                : const Color(0xFFE1F5FE), // Light Cyan background
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF81D4FA)), // Brand blue border
+            border: Border.all(
+              color: isUnworn 
+                  ? const Color(0xFFFFB74D) // Orange border when unworn
+                  : const Color(0xFF81D4FA), // Brand blue border
+            ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF01579B).withOpacity(0.05),
+                color: const Color(0xFF01579B).withAlpha(13),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -172,11 +199,24 @@ class _ConnectionStatus extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.bluetooth_connected, color: Color(0xFF0288D1), size: 20),
+              Icon(
+                isUnworn ? Icons.warning_amber_rounded : Icons.bluetooth_connected, 
+                color: isUnworn ? const Color(0xFFE65100) : const Color(0xFF0288D1), 
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text(
-                status,
-                style: const TextStyle(color: Color(0xFF01579B), fontSize: 14, fontWeight: FontWeight.bold),
+              Flexible(
+                child: Text(
+                  isUnworn 
+                      ? 'Not detecting breath — position thermistor'
+                      : status,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isUnworn ? const Color(0xFFE65100) : const Color(0xFF01579B), 
+                    fontSize: 14, 
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -360,74 +400,107 @@ class _CurrentModeIndicator extends StatelessWidget {
   }
 }
 
-class _GuidedPhaseDisplay extends StatelessWidget {
+/// Displays either mood indicators (Open mode) or phase indicator (Guided mode)
+class _BreathingModeIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<BleService>(
       builder: (context, bleService, child) {
-        if (!bleService.isConnected || bleService.currentMode != BreathingMode.guided) {
+        if (!bleService.isConnected) {
           return const SizedBox.shrink();
         }
 
-        final phase = bleService.currentGuidedPhase;
-        String text;
-        Color color;
-        
-        switch (phase) {
-          case 0: // INHALE
-            text = 'INHALE';
-            color = Colors.green;
-            break;
-          case 1: // HOLD (In)
-            text = 'HOLD';
-            color = Colors.red;
-            break;
-          case 2: // EXHALE
-            text = 'EXHALE';
-            color = Colors.cyan;
-            break;
-          case 3: // HOLD (Out)
-            text = 'HOLD';
-            color = Colors.red;
-            break;
-          default:
-            text = 'SYNCING...';
-            color = Colors.grey;
-        }
-
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          decoration: BoxDecoration(
-            color: color, // Solid brand color fill
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
+        // In Open mode: show calm and focus indicators (meditation in report only)
+        if (bleService.currentMode == BreathingMode.open) {
+          return Column(
+            children: [
+              StressIndicator(
+                stressScore: bleService.currentStressScore,
+                isCalibrating: bleService.isMoodCalibrating,
+              ),
+              FocusIndicator(
+                focusScore: bleService.currentFocusScore,
+                isCalibrating: bleService.isMoodCalibrating,
               ),
             ],
+          );
+        }
+
+        // In Guided mode: show phase indicator
+        if (bleService.currentMode == BreathingMode.guided) {
+          return _GuidedPhaseIndicator(phase: bleService.currentGuidedPhase);
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+/// Guided breathing phase indicator (INHALE/HOLD/EXHALE)
+class _GuidedPhaseIndicator extends StatelessWidget {
+  final int phase;
+  
+  const _GuidedPhaseIndicator({required this.phase});
+
+  @override
+  Widget build(BuildContext context) {
+    String text;
+    Color color;
+    
+    switch (phase) {
+      case 0: // INHALE
+        text = 'INHALE';
+        color = Colors.green;
+        break;
+      case 1: // HOLD (In)
+        text = 'HOLD';
+        color = Colors.red;
+        break;
+      case 2: // EXHALE
+        text = 'EXHALE';
+        color = Colors.cyan;
+        break;
+      case 3: // HOLD (Out)
+        text = 'HOLD';
+        color = Colors.red;
+        break;
+      default:
+        text = 'SYNCING...';
+        color = Colors.grey;
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
-          child: Center(
-            child: SizedBox(
-              height: 50,
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: Text(
-                  text,
-                  style: const TextStyle(
-                    color: Colors.white, // High contrast white text
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 4,
-                  ),
-                ),
+        ],
+      ),
+      child: Center(
+        child: SizedBox(
+          height: 50,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -471,6 +544,58 @@ class _SimpleBoldLogo extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Button to generate and view session report
+class _GenerateReportButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BleService>(
+      builder: (context, bleService, child) {
+        // Only show when connected and has session data
+        if (!bleService.isConnected) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              final session = bleService.currentSession;
+              if (session != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReportScreen(sessionData: session),
+                  ),
+                ).then((_) {
+                  // Optionally reset session after viewing report
+                  // bleService.resetSession();
+                });
+              }
+            },
+            icon: const Icon(Icons.analytics_outlined, size: 20),
+            label: Text(
+              bleService.hasSessionData 
+                  ? 'View Session Report' 
+                  : 'Session Report (collecting data...)',
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: bleService.hasSessionData 
+                  ? const Color(0xFF4A6572) 
+                  : Colors.grey[400],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: bleService.hasSessionData ? 2 : 0,
+            ),
+          ),
+        );
+      },
     );
   }
 }
