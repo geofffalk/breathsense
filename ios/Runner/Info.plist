@@ -49,5 +49,7 @@
 	<string>BreathSense uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>BreathSense uses Bluetooth to connect to your breathing sensor headset and display real-time breath data.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BreathSense may use the microphone for acoustic breath detection as an alternative sensing method.</string>
 </dict>
 </plist>
