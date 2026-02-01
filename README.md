@@ -1,4 +1,4 @@
-# breathing_app
+# BreathSense
 
 A new Flutter project.
 
