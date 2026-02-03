@@ -6,6 +6,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/breath_data.dart';
 import '../models/session_data.dart';
@@ -469,6 +470,10 @@ class BleService extends ChangeNotifier {
       _incomingBuffer = '';
       _connectionReadyTime = DateTime.now();
       
+      // Enable wakelock to prevent screen from sleeping while connected
+      WakelockPlus.enable();
+      debugPrint('[BLE] Wakelock enabled');
+      
       notifyListeners();
       
       // Auto-start Open Breathing mode so LEDs work immediately
@@ -643,6 +648,10 @@ class BleService extends ChangeNotifier {
     // Reset mood analyzer so "Calibrating..." shows on reconnect
     _moodAnalyzer.reset();
     _isUnworn = false;
+    
+    // Disable wakelock when disconnected
+    WakelockPlus.disable();
+    debugPrint('[BLE] Wakelock disabled');
 
     _updateConnectionState(BleConnectionState.disconnected);
     

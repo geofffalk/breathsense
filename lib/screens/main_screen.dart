@@ -601,8 +601,10 @@ class _GenerateReportButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BleService>(
       builder: (context, bleService, child) {
-        // Only show when connected, in Open mode, and has session data
-        if (!bleService.isConnected || bleService.currentMode != BreathingMode.open) {
+        // Show button if we have session data, even when disconnected
+        // Hide when in Guided mode (no mood data collected in Guided)
+        if (!bleService.hasSessionData || 
+            (bleService.isConnected && bleService.currentMode != BreathingMode.open)) {
           return const SizedBox.shrink();
         }
 
