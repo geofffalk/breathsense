@@ -10,10 +10,11 @@ from adafruit_ble import BLERadio
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 from adafruit_ble.services.nordic import UARTService
 
-from config import BLE_TX_INTERVAL_MS, BLE_LIVE_HZ
+from config import BLE_TX_INTERVAL_MS, BLE_LIVE_HZ, HEART_LIVE_HZ, STANDALONE_MODE
 from breath_detector import BreathDetector, PH_IDLE, PH_INH, PH_EXH
+from pulse_detector import PulseDetector
 from led_control import (
-    OpenBreathingLED, GuidedBreathingLED, hide_all,
+    OpenBreathingLED, GuidedBreathingLED, HeartbeatLED, hide_all,
     play_startup_animation, play_ble_connected_animation,
 )
 from settings_storage import load_settings, save_settings, settings_to_message
@@ -22,6 +23,9 @@ from settings_storage import load_settings, save_settings, settings_to_message
 MODE_STANDBY = 0  # BLE connected, LEDs off, just sending data
 MODE_OPEN = 1     # Open Breathing mode
 MODE_GUIDED = 2   # Guided Breathing mode
+MODE_HEART = 3    # Heart monitor mode (pulse sensor; breath output paused)
+
+STANDALONE_LED_MODE = MODE_HEART if STANDALONE_MODE == "heart" else MODE_OPEN
 
 
 def log(msg):
@@ -63,9 +67,13 @@ detector.apply_color_thresholds(
 )
 detector.apply_sensitivity(settings["sensitivity"])
 
+# ========== Pulse Detection ==========
+pulse = PulseDetector()
+
 # ========== LED Controllers ==========
 open_led = OpenBreathingLED(detector)
 guided_led = GuidedBreathingLED(detector)
+heart_led = HeartbeatLED(pulse)
 
 # Apply loaded settings to guided LED
 guided_led.set_durations(
@@ -96,6 +104,9 @@ detector.mood.set_thresholds(
 current_mode = MODE_OPEN  # Default to open breathing when standalone
 last_tx_ms = 0
 live_interval_ms = int(1000 / BLE_LIVE_HZ)
+last_heart_tx_ms = 0
+heart_interval_ms = int(1000 / HEART_LIVE_HZ)
+last_logged_beat = 0
 gc_counter = 0
 
 
@@ -153,6 +164,47 @@ def send_breath_data():
         log("TX err: " + str(e))
 
 
+def send_heart_data():
+    """Send: H,{ts},{wave},{bpm},{signal},{beats},{strength}"""
+    global last_heart_tx_ms
+
+    now = now_ms()
+    if now - last_heart_tx_ms < heart_interval_ms:
+        return
+    last_heart_tx_ms = now
+
+    msg = "H,{},{:.3f},{},{},{},{}\n".format(
+        now & 0xFFFFFFFF,
+        pulse.normalized(),
+        int(pulse.bpm + 0.5),
+        1 if pulse.has_signal() else 0,
+        pulse.beat_count & 0xFFFF,
+        int(pulse.beat_strength * 100),
+    )
+
+    try:
+        uart.write(msg.encode("utf-8"))
+    except Exception as e:
+        log("TX err: " + str(e))
+
+
+def log_beats():
+    """Log each detected beat (USB console only)."""
+    global last_logged_beat
+    if pulse.beat_count != last_logged_beat:
+        last_logged_beat = pulse.beat_count
+        log("Beat: {:.0f} BPM, strength {:.2f}".format(pulse.bpm, pulse.beat_strength))
+
+
+def tick_standalone_leds():
+    if not settings.get("led_on", True):
+        hide_all()
+    elif STANDALONE_LED_MODE == MODE_HEART:
+        heart_led.tick()
+    else:
+        open_led.tick()
+
+
 def send_settings():
     """Send current settings to app."""
     try:
@@ -189,12 +241,16 @@ def parse_message(msg):
         mode_char = parts[1].upper()
         if mode_char == "F":
             current_mode = MODE_OPEN
-            det.mood.reset()  # Reset calibration when switching back to Open
+            detector.mood.reset()  # Reset calibration when switching back to Open
             log("Mode: OPEN")
         elif mode_char == "G":
             current_mode = MODE_GUIDED
             guided_led.reset()
             log("Mode: GUIDED")
+        elif mode_char == "H":
+            current_mode = MODE_HEART
+            heart_led.reset()
+            log("Mode: HEART")
         elif mode_char == "O":
             current_mode = MODE_STANDBY
             hide_all()
@@ -358,8 +414,10 @@ try:
         is_advertising = False
 
         while True:
-            # Breath detection always runs
+            # Breath and pulse detection always run
             detector.tick()
+            pulse.tick()
+            log_beats()
 
             if ble.connected:
                 if not was_connected:
@@ -379,10 +437,12 @@ try:
                 # Handle incoming commands
                 handle_rx()
 
-                # Send breath data to app
-                send_breath_data()
+                # Send live data to app: heartbeat in Heart mode, breath otherwise
+                if current_mode == MODE_HEART:
+                    send_heart_data()
+                else:
+                    send_breath_data()
 
-                # Update LEDs based on mode and LED toggle
                 # Update LEDs based on mode and LED toggle
                 leds_enabled = settings.get("led_on", True)
 
@@ -394,6 +454,8 @@ try:
                 elif leds_enabled:
                     if current_mode == MODE_OPEN:
                         open_led.tick()
+                    elif current_mode == MODE_HEART:
+                        heart_led.tick()
                 else:
                     hide_all()
 
@@ -414,11 +476,8 @@ try:
                     except Exception:
                         pass
 
-                # Standalone: always run open breathing if LEDs on
-                if settings.get("led_on", True):
-                    open_led.tick()
-                else:
-                    hide_all()
+                # Standalone: run the configured LED mode if LEDs on
+                tick_standalone_leds()
 
             garbage_collect()
             time.sleep(0.01)  # ~100Hz loop

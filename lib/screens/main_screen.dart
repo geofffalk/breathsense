@@ -129,8 +129,8 @@ class MainScreen extends StatelessWidget {
                     
                     const SizedBox(height: 12),
                     
-                    // Mode-specific mood indicators
-                    _BreathingModeIndicator(),
+                    // Mode-specific readout: mood, guided phase or heart rate
+                    _ModeReadout(),
                   ],
                 ),
               ),
@@ -363,6 +363,11 @@ class _CurrentModeIndicator extends StatelessWidget {
             icon = Icons.timeline;
             color = Colors.cyan[700]!; // Darker for light theme
             break;
+          case BreathingMode.heart:
+            message = 'Heart Monitor active on headset';
+            icon = Icons.favorite;
+            color = Colors.red[700]!;
+            break;
           default:
             message = 'Headset LEDs off (standby)';
             icon = Icons.power_settings_new;
@@ -400,14 +405,23 @@ class _CurrentModeIndicator extends StatelessWidget {
   }
 }
 
-/// Displays either mood indicators (Open mode) or phase indicator (Guided mode)
-class _BreathingModeIndicator extends StatelessWidget {
+/// Displays mood indicators (Open), phase indicator (Guided) or heart rate (Heart)
+class _ModeReadout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<BleService>(
       builder: (context, bleService, child) {
         if (!bleService.isConnected) {
           return const SizedBox.shrink();
+        }
+
+        // Heart mode doesn't depend on the breath sensor being worn
+        if (bleService.currentMode == BreathingMode.heart) {
+          return _HeartRateIndicator(
+            bpm: bleService.heartBpm,
+            hasSignal: bleService.hasPulseSignal,
+            beatCount: bleService.heartBeatCount,
+          );
         }
 
         // Hide mood indicators when not detecting breath (unworn)
@@ -438,6 +452,92 @@ class _BreathingModeIndicator extends StatelessWidget {
 
         return const SizedBox.shrink();
       },
+    );
+  }
+}
+
+/// Heart rate readout; the heart icon pulses on every detected beat
+class _HeartRateIndicator extends StatelessWidget {
+  final int bpm;
+  final bool hasSignal;
+  final int beatCount;
+
+  const _HeartRateIndicator({
+    required this.bpm,
+    required this.hasSignal,
+    required this.beatCount,
+  });
+
+  static const Color _heartColor = Color(0xFFFF5252);
+
+  @override
+  Widget build(BuildContext context) {
+    final showBpm = hasSignal && bpm > 0;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _heartColor.withOpacity(showBpm ? 0.6 : 0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Keyed on beatCount so the pulse animation restarts on each beat
+          TweenAnimationBuilder<double>(
+            key: ValueKey(beatCount),
+            tween: Tween(begin: showBpm ? 1.35 : 1.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+            child: Icon(
+              showBpm ? Icons.favorite : Icons.favorite_border,
+              color: showBpm ? _heartColor : Colors.grey[500],
+              size: 40,
+            ),
+          ),
+          const SizedBox(width: 16),
+          if (showBpm)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$bpm',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 44,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'BPM',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ],
+            )
+          else
+            Flexible(
+              child: Text(
+                'Place finger on pulse sensor',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -91,3 +91,29 @@ R_REF = 10000.0  # Reference resistor
 R0 = 10000.0     # Thermistor resistance at T0
 BETA = 3435.0    # Beta coefficient
 T0_C = 25.0      # Reference temperature
+
+# ===== Pulse Sensor (Heart mode) =====
+PULSE_PIN = "A1"               # PulseSensor signal wire
+PULSE_INVERT = False           # True if your sensor's beats dip instead of rise
+PULSE_MIN_AMP = 500            # Min peak-to-peak (16-bit ADC units) to count beats; raise if noise triggers beats
+PULSE_MIN_IBI_MS = 300         # Fastest accepted beat interval (200 BPM)
+PULSE_MAX_IBI_MS = 2000        # Slowest accepted beat interval (30 BPM)
+PULSE_SIGNAL_TIMEOUT_MS = 2500 # No beat for this long -> flatline
+HEART_LIVE_HZ = 25.0           # Heart waveform send rate to app
+
+# Standalone LED mode when no app is connected: "open" or "heart"
+STANDALONE_MODE = "open"
+
+# ===== Heart LED Display =====
+HEART_BPM_LOW = 55.0           # BPM mapped to the calmest look
+HEART_BPM_HIGH = 130.0         # BPM mapped to the most intense look
+HEART_RATE_WEIGHT = 0.6        # Colour mix: rate vs. beat strength
+HEART_REACH_CALM = 0.45        # Fraction of the arm a typical beat reaches at HEART_BPM_LOW
+HEART_REACH_FAST = 0.8         # ...and at HEART_BPM_HIGH (stronger-than-usual beats reach further)
+HEART_GLOW_S = 0.3             # Afterglow fade time as the wave falls back (s)
+HEART_COLOR_EASE_S = 0.4       # Colour transition time
+HEART_BASE_AT_INDEX0 = True    # Arm base is pixel 0 (wired end); False to flip
+HEART_CALM_COLOR = (0, 255, 40)    # Monitor green
+HEART_MID_COLOR = (255, 170, 0)    # Amber
+HEART_HOT_COLOR = (255, 0, 0)      # Red
+HEART_FLATLINE_COLOR = (0, 40, 8)  # No pulse

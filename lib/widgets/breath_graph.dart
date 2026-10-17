@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/settings.dart';
 import '../services/ble_service.dart';
 
-/// Real-time breath chart widget showing inhales and exhales
+/// Real-time chart: inhales/exhales, or the live pulse waveform in Heart mode
 class BreathGraph extends StatefulWidget {
   final double height;
 
@@ -21,6 +21,8 @@ class _BreathGraphState extends State<BreathGraph>
   static const int windowSize = 200; // Points to display
   static const double yLimit = 1.2; // Y-axis range
   static const int frameMs = 100; // Update interval
+  static const int heartFrameMs = 40; // Faster updates so the pulse trace scrolls smoothly
+  static const Color heartColor = Color(0xFFFF5252);
 
   late Ticker _ticker;
   DateTime _lastUpdate = DateTime.now();
@@ -37,7 +39,8 @@ class _BreathGraphState extends State<BreathGraph>
 
     _ticker = createTicker((_) {
       final now = DateTime.now();
-      if (now.difference(_lastUpdate).inMilliseconds < frameMs) return;
+      final interval = _mode == BreathingMode.heart ? heartFrameMs : frameMs;
+      if (now.difference(_lastUpdate).inMilliseconds < interval) return;
       _lastUpdate = now;
       _updateGraph();
     });
@@ -48,10 +51,13 @@ class _BreathGraphState extends State<BreathGraph>
     if (!mounted) return; // Prevent context access after unmount
     
     final bleService = context.read<BleService>();
-    final flowValues = bleService.getFlowValues(windowSize);
-    final phases = bleService.getPhaseValues(windowSize);
-    final depths = bleService.getDepthValues(windowSize);
     final mode = bleService.currentMode;
+    final isHeart = mode == BreathingMode.heart;
+    final flowValues = isHeart
+        ? bleService.getHeartValues(windowSize)
+        : bleService.getFlowValues(windowSize);
+    final phases = isHeart ? const <int>[] : bleService.getPhaseValues(windowSize);
+    final depths = isHeart ? const <int>[] : bleService.getDepthValues(windowSize);
     final schemeId = bleService.guidedSettings.colorScheme.clamp(0, 2);
 
     final newSpots = <FlSpot>[];
@@ -115,8 +121,22 @@ class _BreathGraphState extends State<BreathGraph>
     super.dispose();
   }
 
+  LinearGradient _lineGradient() {
+    if (_mode == BreathingMode.heart) {
+      return const LinearGradient(colors: [heartColor, heartColor]);
+    }
+    if (_phases.length > 1) {
+      return LinearGradient(
+        colors: List.generate(_phases.length, (i) => _getColorForPhase(_phases[i], _depths[i])),
+        stops: List.generate(_phases.length, (index) => index / (_phases.length - 1)),
+      );
+    }
+    return const LinearGradient(colors: [Colors.cyan, Colors.cyan]);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isHeart = _mode == BreathingMode.heart;
     final minX = (_xCounter - windowSize).toDouble();
     final maxX = _xCounter.toDouble();
 
@@ -170,6 +190,9 @@ class _BreathGraphState extends State<BreathGraph>
                       fontWeight: FontWeight.bold,
                       color: Colors.grey[400], 
                     );
+                    if (isHeart) {
+                      return const Text('');
+                    }
                     if (value == 1) {
                       return Text('IN', style: style.copyWith(color: Colors.green[800]));
                     }
@@ -193,14 +216,7 @@ class _BreathGraphState extends State<BreathGraph>
                   offset: Offset(0, 2),
                   blurRadius: 3,
                 ),
-                gradient: _phases.length > 1
-                    ? LinearGradient(
-                        colors: List.generate(_phases.length, (i) => _getColorForPhase(_phases[i], _depths[i])),
-                        stops: List.generate(_phases.length, (index) => index / (_phases.length - 1)),
-                      )
-                    : const LinearGradient(
-                        colors: [Colors.cyan, Colors.cyan],
-                      ),
+                gradient: _lineGradient(),
                 barWidth: 1.5,
                 isStrokeCapRound: true,
                 dotData: const FlDotData(show: false),

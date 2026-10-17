@@ -97,6 +97,7 @@ class GuidedBreathingSettings {
 enum BreathingMode {
   open, // Open Breathing mode
   guided, // Guided Breathing mode
+  heart, // Heart monitor mode (pulse sensor; breath output paused)
 }
 
 extension BreathingModeExtension on BreathingMode {
@@ -107,6 +108,8 @@ extension BreathingModeExtension on BreathingMode {
         return 'M,F\n';
       case BreathingMode.guided:
         return 'M,G\n';
+      case BreathingMode.heart:
+        return 'M,H\n';
     }
   }
 
@@ -116,6 +119,8 @@ extension BreathingModeExtension on BreathingMode {
         return 'Open Breathing';
       case BreathingMode.guided:
         return 'Guided Breathing';
+      case BreathingMode.heart:
+        return 'Heart Monitor';
     }
   }
 }

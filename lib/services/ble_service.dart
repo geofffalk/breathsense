@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/breath_data.dart';
+import '../models/heart_data.dart';
 import '../models/session_data.dart';
 import '../models/settings.dart';
 import 'mood_analyzer.dart';
@@ -67,6 +68,14 @@ class BleService extends ChangeNotifier {
   int _sampleCount = 0;
   int _currentGuidedPhase = -1; // -1=none, 0=inhale, 1=hold_out, 2=exhale, 3=hold_in (matches firmware)
 
+  // Ring buffer for heart waveform (Heart mode graph)
+  final List<double> _heartBuffer = List.filled(bufferSize, 0.0);
+  int _heartWriteIndex = 0;
+  int _heartSampleCount = 0;
+  int _heartBpm = 0;
+  bool _hasPulseSignal = false;
+  int _heartBeatCount = 0;
+
   // App-side mood analyzer (calculates scores from raw breath metrics)
   final MoodAnalyzer _moodAnalyzer = MoodAnalyzer();
   
@@ -85,6 +94,9 @@ class BleService extends ChangeNotifier {
   bool get ledEnabled => _ledEnabled;
   Stream<BreathData> get breathDataStream => _breathDataController.stream;
   int get currentGuidedPhase => _currentGuidedPhase;
+  int get heartBpm => _heartBpm;
+  bool get hasPulseSignal => _hasPulseSignal;
+  int get heartBeatCount => _heartBeatCount;
   bool get isConnected => _isBleConnected;
   bool get isBluetoothOff => _connectionState == BleConnectionState.bluetoothOff;
   int get currentStressScore => _moodAnalyzer.stressScore;
@@ -140,7 +152,28 @@ class BleService extends ChangeNotifier {
     _depthBuffer.fillRange(0, bufferSize, 0);
     _writeIndex = 0;
     _sampleCount = 0;
+    _clearHeartBuffer();
     debugPrint('[BLE] Buffer cleared');
+  }
+
+  void _clearHeartBuffer() {
+    _heartBuffer.fillRange(0, bufferSize, 0.0);
+    _heartWriteIndex = 0;
+    _heartSampleCount = 0;
+    _heartBpm = 0;
+    _hasPulseSignal = false;
+  }
+
+  /// Latest [count] heart waveform samples, oldest first (zero-padded)
+  List<double> getHeartValues(int count) {
+    final result = List.filled(count, 0.0);
+    final available = _heartSampleCount < bufferSize ? _heartSampleCount : bufferSize;
+    final n = available < count ? available : count;
+    for (int i = 0; i < n; i++) {
+      final idx = (_heartWriteIndex - n + i + bufferSize) % bufferSize;
+      result[count - n + i] = _heartBuffer[idx];
+    }
+    return result;
   }
 
   List<double> getFlowValues(int count) {
@@ -507,7 +540,12 @@ class BleService extends ChangeNotifier {
 
         if (line.isEmpty) continue;
 
-        if (line.startsWith('B,')) {
+        if (line.startsWith('H,')) {
+          _handleHeartData(HeartData.fromMessage(line));
+        } else if (line.startsWith('B,')) {
+          // Breath output is paused in Heart mode; drop any in-flight lines
+          if (_currentMode == BreathingMode.heart) continue;
+
           // Debug: log occasionally to see what's coming
           if (_sampleCount % 100 == 0) {
             debugPrint('[BLE] Data: $line');
@@ -581,6 +619,24 @@ class BleService extends ChangeNotifier {
       debugPrint('[BLE] Parse error: $e');
       // If decode fails, clear buffer to recover
       _incomingBuffer = '';
+    }
+  }
+
+  void _handleHeartData(HeartData data) {
+    if (_currentMode != BreathingMode.heart) return;
+
+    _heartBuffer[_heartWriteIndex] = data.waveValue;
+    _heartWriteIndex = (_heartWriteIndex + 1) % bufferSize;
+    _heartSampleCount++;
+
+    // Only rebuild listeners when the readout changes (~once per beat), not per sample
+    if (data.bpm != _heartBpm ||
+        data.hasSignal != _hasPulseSignal ||
+        data.beatCount != _heartBeatCount) {
+      _heartBpm = data.bpm;
+      _hasPulseSignal = data.hasSignal;
+      _heartBeatCount = data.beatCount;
+      notifyListeners();
     }
   }
 
@@ -685,6 +741,12 @@ class BleService extends ChangeNotifier {
     final previousMode = _currentMode;
     await _sendMessage(mode.toMessage());
     _currentMode = mode;
+
+    if (mode == BreathingMode.heart && previousMode != BreathingMode.heart) {
+      _clearHeartBuffer();
+    } else if (previousMode == BreathingMode.heart) {
+      _lastBreathPhase = 0; // Breath data was paused; don't count a stale cycle
+    }
     
     // Track Guided mode periods for session report
     if (_currentSession != null) {

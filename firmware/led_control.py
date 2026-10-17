@@ -3,6 +3,7 @@
 # and guided_breath_led.py
 
 import time
+import math
 import board
 import neopixel
 
@@ -10,8 +11,13 @@ from config import (
     COLOR_RED, COLOR_WHITE, COLOR_LIGHT_BLUE, COLOR_PURPLE, COLOR_DEEP_BLUE,
     DEFAULT_INHALE_S, DEFAULT_HOLD_IN_S, DEFAULT_EXHALE_S, DEFAULT_HOLD_OUT_S,
     GUIDED_COLOR_SCHEMES,
+    HEART_BPM_LOW, HEART_BPM_HIGH, HEART_RATE_WEIGHT, HEART_REACH_CALM,
+    HEART_REACH_FAST, HEART_GLOW_S, HEART_COLOR_EASE_S, HEART_BASE_AT_INDEX0,
+    HEART_CALM_COLOR, HEART_MID_COLOR, HEART_HOT_COLOR, HEART_FLATLINE_COLOR,
+    PULSE_SIGNAL_TIMEOUT_MS,
 )
 from breath_detector import PH_IDLE, PH_INH, PH_EXH
+from pulse_detector import ticks_ms, ticks_diff
 
 # LED strips
 _pixels_left = neopixel.NeoPixel(board.D9, 20, brightness=0.1, auto_write=False)
@@ -439,4 +445,94 @@ class GuidedBreathingLED:
         colors = [(0, 0, 0)] * 10
         pos = max(0, min(9, position))
         colors[pos] = self.hold_color
+        _show_pixels(colors)
+
+
+def _lerp_color(a, b, t):
+    return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
+
+
+def _heart_color(k):
+    """Monitor green (calm) -> amber -> red (intense) for k in 0..1."""
+    if k < 0.5:
+        return _lerp_color(HEART_CALM_COLOR, HEART_MID_COLOR, k * 2.0)
+    return _lerp_color(HEART_MID_COLOR, HEART_HOT_COLOR, (k - 0.5) * 2.0)
+
+
+class HeartbeatLED:
+    """
+    Heart monitor mode LED controller, driven by the live analog pulse wave.
+    - Each frame the light extends from the base of each arm in proportion to
+      the current waveform height, so the LEDs trace the sensor's real pulse
+      shape (sharp upstroke, fall, dicrotic bump) rather than an on/off blink
+    - Stronger beats and faster heart rates reach further along the arm
+    - Colour eases from monitor green to red as rate and beat strength rise
+    - A fading afterglow follows the wave as it falls back, like a monitor trace
+    - No pulse: dim flatline along the arm (live signal still shown on top)
+    """
+
+    def __init__(self, pulse_detector):
+        self.pulse = pulse_detector
+        self.strip_len = 10
+        self.glow = [0.0] * self.strip_len
+        self.k = 0.0
+        self.last_ms = ticks_ms()
+
+    def reset(self):
+        self.glow = [0.0] * self.strip_len
+        self.last_ms = ticks_ms()
+
+    def _rate(self):
+        """Heart rate mapped to 0..1 (0.3 until the rate is known)."""
+        bpm = self.pulse.bpm
+        if bpm <= 0:
+            return 0.3
+        r = (bpm - HEART_BPM_LOW) / (HEART_BPM_HIGH - HEART_BPM_LOW)
+        return max(0.0, min(1.0, r))
+
+    def intensity(self):
+        """0..1 from heart rate and relative beat strength (drives colour)."""
+        k = HEART_RATE_WEIGHT * self._rate() + (1.0 - HEART_RATE_WEIGHT) * self.pulse.beat_strength
+        return max(0.0, min(1.0, k))
+
+    def tick(self):
+        """Update heart monitor LEDs."""
+        now = ticks_ms()
+        dt = max(0.0, ticks_diff(now, self.last_ms) / 1000.0)
+        self.last_ms = now
+        p = self.pulse
+        n = self.strip_len
+
+        self.k += min(1.0, dt / HEART_COLOR_EASE_S) * (self.intensity() - self.k)
+        color = _heart_color(self.k)
+
+        rate = self._rate()
+        reach = n * (HEART_REACH_CALM + rate * (HEART_REACH_FAST - HEART_REACH_CALM))
+        head = p.level() * reach  # Wavefront position, in LEDs from the base
+
+        decay = math.exp(-dt / HEART_GLOW_S)
+        for i in range(n):
+            if i + 1 <= head:
+                # Lit body, brightening toward the crest
+                v = 0.2 + 0.8 * ((i + 1) / head) ** 2
+            elif i < head:
+                v = head - i  # Partially lit crest LED
+            else:
+                v = 0.0
+            g = self.glow[i] * decay
+            self.glow[i] = v if v > g else g
+
+        no_pulse = p.last_beat_ms is None or ticks_diff(now, p.last_beat_ms) > PULSE_SIGNAL_TIMEOUT_MS
+        colors = []
+        for i in range(n):
+            v = self.glow[i]
+            c = (int(color[0] * v), int(color[1] * v), int(color[2] * v))
+            if no_pulse:
+                c = (max(c[0], HEART_FLATLINE_COLOR[0]),
+                     max(c[1], HEART_FLATLINE_COLOR[1]),
+                     max(c[2], HEART_FLATLINE_COLOR[2]))
+            colors.append(c)
+
+        if not HEART_BASE_AT_INDEX0:
+            colors.reverse()
         _show_pixels(colors)
