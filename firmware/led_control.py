@@ -3,7 +3,6 @@
 # and guided_breath_led.py
 
 import time
-import math
 import board
 import neopixel
 
@@ -11,10 +10,9 @@ from config import (
     COLOR_RED, COLOR_WHITE, COLOR_LIGHT_BLUE, COLOR_PURPLE, COLOR_DEEP_BLUE,
     DEFAULT_INHALE_S, DEFAULT_HOLD_IN_S, DEFAULT_EXHALE_S, DEFAULT_HOLD_OUT_S,
     GUIDED_COLOR_SCHEMES,
-    HEART_BPM_LOW, HEART_BPM_HIGH, HEART_RATE_WEIGHT, HEART_REACH_CALM,
-    HEART_REACH_FAST, HEART_GLOW_S, HEART_COLOR_EASE_S, HEART_BASE_AT_INDEX0,
-    HEART_CALM_COLOR, HEART_MID_COLOR, HEART_HOT_COLOR, HEART_FLATLINE_COLOR,
-    PULSE_SIGNAL_TIMEOUT_MS,
+    HEART_BPM_LOW, HEART_BPM_HIGH, HEART_RATE_WEIGHT, HEART_MIN_FILL,
+    HEART_COUNTER_BEAT, HEART_BASE_AT_INDEX0,
+    HEART_CALM_COLOR, HEART_MID_COLOR, HEART_HOT_COLOR,
 )
 from breath_detector import PH_IDLE, PH_INH, PH_EXH
 from pulse_detector import ticks_ms, ticks_diff
@@ -459,79 +457,94 @@ def _heart_color(k):
     return _lerp_color(HEART_MID_COLOR, HEART_HOT_COLOR, (k - 0.5) * 2.0)
 
 
+# Beat animation at 60 BPM (s): (start, rise, hold, fall, height)
+# Main beat, then a smaller counter-beat, like the lub-dub of a heartbeat.
+# Timings shrink at faster rates so each beat finishes before the next.
+_BEAT_PULSES = (
+    (0.00, 0.08, 0.06, 0.18, 1.0),
+    (0.36, 0.07, 0.04, 0.17, HEART_COUNTER_BEAT),
+)
+
+
+def _pulse_fill(t, start, rise, hold, fall, height):
+    """Fill (0..height) of one pulse at time t: ease up, hold, ease down."""
+    t -= start
+    if t < 0:
+        return 0.0
+    if t < rise:
+        u = t / rise
+        return height * (1.0 - (1.0 - u) * (1.0 - u))
+    t -= rise
+    if t < hold:
+        return height
+    t -= hold
+    if t < fall:
+        u = t / fall
+        return height * (1.0 - u * u)
+    return 0.0
+
+
 class HeartbeatLED:
     """
-    Heart monitor mode LED controller, driven by the live analog pulse wave.
-    - Each frame the light extends from the base of each arm in proportion to
-      the current waveform height, so the LEDs trace the sensor's real pulse
-      shape (sharp upstroke, fall, dicrotic bump) rather than an on/off blink
-    - Stronger beats and faster heart rates reach further along the arm
-    - Colour eases from monitor green to red as rate and beat strength rise
-    - A fading afterglow follows the wave as it falls back, like a monitor trace
-    - No pulse: dim flatline along the arm (live signal still shown on top)
+    Heart monitor mode LED controller, triggered by detected beats.
+    - Each confirmed beat fills the arms from the base, empties, then gives a
+      smaller counter-beat fill (lub-dub)
+    - Faster/stronger beats fill further along the arm and shift green -> red
+    - Nothing is shown until beats arrive in a regular rhythm
     """
 
     def __init__(self, pulse_detector):
         self.pulse = pulse_detector
         self.strip_len = 10
-        self.glow = [0.0] * self.strip_len
-        self.k = 0.0
-        self.last_ms = ticks_ms()
+        self.seen_beats = pulse_detector.beat_count
+        self.beat_ms = None
+        self.reach = 0.0
+        self.color = (0, 0, 0)
+        self.time_scale = 1.0
 
     def reset(self):
-        self.glow = [0.0] * self.strip_len
-        self.last_ms = ticks_ms()
-
-    def _rate(self):
-        """Heart rate mapped to 0..1 (0.3 until the rate is known)."""
-        bpm = self.pulse.bpm
-        if bpm <= 0:
-            return 0.3
-        r = (bpm - HEART_BPM_LOW) / (HEART_BPM_HIGH - HEART_BPM_LOW)
-        return max(0.0, min(1.0, r))
+        self.seen_beats = self.pulse.beat_count
+        self.beat_ms = None
 
     def intensity(self):
-        """0..1 from heart rate and relative beat strength (drives colour)."""
-        k = HEART_RATE_WEIGHT * self._rate() + (1.0 - HEART_RATE_WEIGHT) * self.pulse.beat_strength
+        """0..1 from heart rate and relative beat strength."""
+        p = self.pulse
+        rate = (p.bpm - HEART_BPM_LOW) / (HEART_BPM_HIGH - HEART_BPM_LOW)
+        rate = max(0.0, min(1.0, rate))
+        k = HEART_RATE_WEIGHT * rate + (1.0 - HEART_RATE_WEIGHT) * p.beat_strength
         return max(0.0, min(1.0, k))
 
     def tick(self):
         """Update heart monitor LEDs."""
         now = ticks_ms()
-        dt = max(0.0, ticks_diff(now, self.last_ms) / 1000.0)
-        self.last_ms = now
         p = self.pulse
-        n = self.strip_len
 
-        self.k += min(1.0, dt / HEART_COLOR_EASE_S) * (self.intensity() - self.k)
-        color = _heart_color(self.k)
+        if p.beat_count != self.seen_beats:
+            self.seen_beats = p.beat_count
+            if p.beat_confirmed:
+                k = self.intensity()
+                self.reach = HEART_MIN_FILL + k * (self.strip_len - HEART_MIN_FILL)
+                self.color = _heart_color(k)
+                self.time_scale = min(1.0, 60.0 / p.bpm)
+                self.beat_ms = now
 
-        rate = self._rate()
-        reach = n * (HEART_REACH_CALM + rate * (HEART_REACH_FAST - HEART_REACH_CALM))
-        head = p.level() * reach  # Wavefront position, in LEDs from the base
+        fill = 0.0
+        if self.beat_ms is not None:
+            t = ticks_diff(now, self.beat_ms) / 1000.0 / self.time_scale
+            for pulse in _BEAT_PULSES:
+                f = _pulse_fill(t, *pulse)
+                if f > fill:
+                    fill = f
+            last = _BEAT_PULSES[-1]
+            if t > last[0] + last[1] + last[2] + last[3]:
+                self.beat_ms = None
 
-        decay = math.exp(-dt / HEART_GLOW_S)
-        for i in range(n):
-            if i + 1 <= head:
-                # Lit body, brightening toward the crest
-                v = 0.2 + 0.8 * ((i + 1) / head) ** 2
-            elif i < head:
-                v = head - i  # Partially lit crest LED
-            else:
-                v = 0.0
-            g = self.glow[i] * decay
-            self.glow[i] = v if v > g else g
-
-        no_pulse = p.last_beat_ms is None or ticks_diff(now, p.last_beat_ms) > PULSE_SIGNAL_TIMEOUT_MS
+        # Solid bar from the base; the end LED fades in for a smooth fill
+        pos = fill * self.reach
         colors = []
-        for i in range(n):
-            v = self.glow[i]
-            c = (int(color[0] * v), int(color[1] * v), int(color[2] * v))
-            if no_pulse:
-                c = (max(c[0], HEART_FLATLINE_COLOR[0]),
-                     max(c[1], HEART_FLATLINE_COLOR[1]),
-                     max(c[2], HEART_FLATLINE_COLOR[2]))
-            colors.append(c)
+        for i in range(self.strip_len):
+            v = 1.0 if i + 1 <= pos else max(0.0, pos - i)
+            colors.append((int(self.color[0] * v), int(self.color[1] * v), int(self.color[2] * v)))
 
         if not HEART_BASE_AT_INDEX0:
             colors.reverse()

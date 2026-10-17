@@ -69,6 +69,7 @@ detector.apply_sensitivity(settings["sensitivity"])
 
 # ========== Pulse Detection ==========
 pulse = PulseDetector()
+log("Pulse sensor: " + pulse.source_name)
 
 # ========== LED Controllers ==========
 open_led = OpenBreathingLED(detector)
@@ -193,7 +194,8 @@ def log_beats():
     global last_logged_beat
     if pulse.beat_count != last_logged_beat:
         last_logged_beat = pulse.beat_count
-        log("Beat: {:.0f} BPM, strength {:.2f}".format(pulse.bpm, pulse.beat_strength))
+        log("Beat: {:.0f} BPM, strength {:.2f}{}".format(
+            pulse.bpm, pulse.beat_strength, "" if pulse.beat_confirmed else " (unconfirmed)"))
 
 
 def tick_standalone_leds():

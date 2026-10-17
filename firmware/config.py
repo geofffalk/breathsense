@@ -93,27 +93,38 @@ BETA = 3435.0    # Beta coefficient
 T0_C = 25.0      # Reference temperature
 
 # ===== Pulse Sensor (Heart mode) =====
-PULSE_PIN = "A1"               # PulseSensor signal wire
-PULSE_INVERT = False           # True if your sensor's beats dip instead of rise
-PULSE_MIN_AMP = 500            # Min peak-to-peak (16-bit ADC units) to count beats; raise if noise triggers beats
-PULSE_MIN_IBI_MS = 300         # Fastest accepted beat interval (200 BPM)
+# "auto": MAX3010x on I2C if one answers, else the analog sensor on PULSE_PIN
+# "max3010x": MAX30102/30101/30105 on SDA/SCL only; "analog": PulseSensor only
+PULSE_SENSOR = "auto"
+MAX3010X_IR_CURRENT = 0x1F     # IR LED drive in 0.2 mA steps (0x1F = 6.2 mA); raise if the pulse is weak, lower if CLIPPING
+MAX3010X_RED_CURRENT = 0x01    # Red LED isn't used for heart rate; nearly off saves power and glow
+MAX3010X_FINGER_LEVEL = 50000  # IR reading above this means skin is on the sensor
+MAX3010X_MIN_AMP = 40          # MAX3010x: min wave p-p (sensor counts) to look for beats
+PULSE_PIN = "A1"               # Analog sensor signal wire
+PULSE_INVERT = False           # True if beats dip instead of rise (applied on top of the sensor's own setting)
+PULSE_MIN_AMP = 300            # Analog: min wave p-p (16-bit ADC units) to look for beats: above no-finger noise, below your pulse
+PULSE_FILTER_HZ = 3.0          # Low-pass cutoff; the pulse itself is 0.7-2.5 Hz
+PULSE_MIN_IBI_MS = 400        # Fastest accepted beat interval (150 BPM); faster detections are noise
 PULSE_MAX_IBI_MS = 2000        # Slowest accepted beat interval (30 BPM)
-PULSE_SIGNAL_TIMEOUT_MS = 2500 # No beat for this long -> flatline
+PULSE_SIGNAL_TIMEOUT_MS = 2500 # No beat for this long -> pulse lost
+PULSE_REGULARITY = 0.2         # Beat intervals must be within 20% of the recent median
+PULSE_MIN_RHYTHM = 3           # Beat intervals in rhythm before beats are shown (filters noise)
+PULSE_AMP_CONSISTENCY = 0.35   # Beat heights must be within 35% of the recent median
+PULSE_LOCK_WINDOW = 0.25       # Once locked, a beat must land within 25% of when it's due
+PULSE_DEBUG_PLOT = False       # True: print (signal, threshold, beat) for the Mu/Thonny plotter
+PULSE_DEBUG_STATS = True       # Print a once-a-second signal summary to the serial console
 HEART_LIVE_HZ = 25.0           # Heart waveform send rate to app
 
 # Standalone LED mode when no app is connected: "open" or "heart"
-STANDALONE_MODE = "open"
+STANDALONE_MODE = "heart"
 
 # ===== Heart LED Display =====
 HEART_BPM_LOW = 55.0           # BPM mapped to the calmest look
 HEART_BPM_HIGH = 130.0         # BPM mapped to the most intense look
-HEART_RATE_WEIGHT = 0.6        # Colour mix: rate vs. beat strength
-HEART_REACH_CALM = 0.45        # Fraction of the arm a typical beat reaches at HEART_BPM_LOW
-HEART_REACH_FAST = 0.8         # ...and at HEART_BPM_HIGH (stronger-than-usual beats reach further)
-HEART_GLOW_S = 0.3             # Afterglow fade time as the wave falls back (s)
-HEART_COLOR_EASE_S = 0.4       # Colour transition time
+HEART_RATE_WEIGHT = 0.6        # Intensity mix: rate vs. beat strength
+HEART_MIN_FILL = 3.0           # LEDs filled by the calmest beat (most intense fills all 10)
+HEART_COUNTER_BEAT = 0.55      # Counter-beat fill as a fraction of the main beat
 HEART_BASE_AT_INDEX0 = True    # Arm base is pixel 0 (wired end); False to flip
 HEART_CALM_COLOR = (0, 255, 40)    # Monitor green
 HEART_MID_COLOR = (255, 170, 0)    # Amber
 HEART_HOT_COLOR = (255, 0, 0)      # Red
-HEART_FLATLINE_COLOR = (0, 40, 8)  # No pulse
