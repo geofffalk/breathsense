@@ -107,8 +107,8 @@ draws only a few mA, which is well within what the 3V pin can supply.
 - On each detected heartbeat, both arms **fill** smoothly from the base to
   a set position, then **empty**. A smaller **counter-beat** fill follows
   (lub-dub). Then the arms stay dark until the next beat.
-- **Stress fills further and looks redder.** At rest the beat fills about
-  3 LEDs in monitor green. Full stress fills all 10 in red. See
+- **Stress fills further and looks redder.** At rest the beat fills half
+  the arm (5 LEDs) in monitor green. Full stress fills all 10 in red. See
   [Stress](#stress) below.
 - **No beat detected: the LEDs stay off.** Beats appear only after about 4
   beats in a steady rhythm, so random noise doesn't flash the LEDs. Expect
@@ -140,8 +140,11 @@ there is no calibration step.
 - **Heart rate above your resting rate (70%).** The resting baseline follows
   a lower rate quickly (about 30 beats) and a higher rate slowly (about 15
   minutes). So it settles on your calm rate, and a stressful stretch stays
-  visible rather than being absorbed. 20 BPM above baseline
-  (`HEART_STRESS_BPM`) is full stress.
+  visible rather than being absorbed. How big a rise counts as full stress
+  is learned too: 4× the wearer's typical rise above baseline
+  (`HEART_STRESS_SD`), kept between 10 and 30 BPM. It starts at 20 BPM
+  and narrows to a steady pulse over about 8 minutes. It widens much more
+  slowly, so a stressful stretch isn't learned as normal.
 - **HRV below its average (30%).** HRV is RMSSD, the typical change in the
   gap between consecutive beats, over the last ~30 beats. A relaxed body
   varies the gap, and under stress it becomes more even. Half the long-run
@@ -150,7 +153,7 @@ there is no calibration step.
 
 Baselines start fresh at power-on, so put the headset on while calm. The
 summary line shows them, e.g.
-`SHOWING 71 BPM (base 65) HRV 20 ms (avg 18) stress 0.21`.
+`SHOWING 71 BPM (base 65, full +18) HRV 20 ms (avg 18) stress 0.21`.
 
 Beat times for HRV are taken at the steepest point of each upstroke on the
 sensor's own sample clock, and interpolated between samples. Only
@@ -226,7 +229,8 @@ Work through these in order:
 | `PULSE_FILTER_HZ`       | Lower it (e.g. 2.5) for a noisier signal, raise it if beats look smeared. |
 | `PULSE_REGULARITY`, `PULSE_MIN_RHYTHM`, `PULSE_AMP_CONSISTENCY` | Make the rhythm check looser if real beats are rejected (very irregular pulse), or stricter if noise still flashes the LEDs. |
 | `HEART_BASE_AT_INDEX0`  | The fill grows from the tip instead of the base.             |
-| `HEART_STRESS_BPM`      | BPM above your resting rate that shows full stress.          |
+| `HEART_STRESS_SD`       | Full stress at this many times the wearer's typical rise; lower is more sensitive. |
+| `HEART_STRESS_BPM_MIN/MAX` | Limits on the learned full-stress rise (BPM).             |
 | `HEART_HRV_WEIGHT`      | Share of stress from HRV (the rest is heart rate).           |
 | `HEART_BASELINE_UP/DOWN`, `HEART_HRV_BASELINE` | How quickly the baselines follow you. |
 | `HEART_MIN_FILL`        | Change how many LEDs a beat fills at rest.                   |

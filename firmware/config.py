@@ -120,7 +120,7 @@ HEART_LIVE_HZ = 25.0           # Heart waveform send rate to app
 STANDALONE_MODE = "heart"
 
 # ===== Heart LED Display =====
-HEART_MIN_FILL = 3.0           # LEDs filled at rest (full stress fills all 10)
+HEART_MIN_FILL = 5.0           # LEDs filled at rest (full stress fills all 10)
 # The LEDs beat on their own steady rhythm, started by a confirmed pulse and
 # steered gently by detected beats, so odd beats can't make the display jump.
 HEART_PHASE_WINDOW = 0.25      # A detected beat within 25% of an interval of a shown beat nudges its timing; others are ignored
@@ -133,7 +133,14 @@ HEART_COAST_S = 8.0            # Keep beating this long without supporting beats
 # ===== Stress (LED colour and reach) =====
 # Stress = heart rate above your resting baseline, plus HRV below its average.
 # Baselines are learned from the start of each power-on, so start calm.
-HEART_STRESS_BPM = 20.0        # BPM above baseline that shows full stress (all LEDs, red)
+# How far above baseline counts as full stress is learned per person too: a
+# multiple of how much their rate normally rises above it, within limits.
+HEART_STRESS_SD = 4.0          # Rise of this many times the wearer's typical rise = full stress (all LEDs, red)
+HEART_STRESS_BPM_START = 20.0  # Full-stress rise (BPM) until the wearer's own range is learned
+HEART_STRESS_BPM_MIN = 10.0    # Learned range limits (BPM), so a very steady or very
+HEART_STRESS_BPM_MAX = 30.0    # jumpy pulse still gives a sensible scale
+HEART_SCALE_DOWN = 0.002       # Range narrows to a steadier pulse over ~500 beats (~8 min)...
+HEART_SCALE_UP = 0.0002        # ...and widens slowly (~5000 beats), so stress isn't learned as normal
 HEART_STRESS_SMOOTH = 0.1      # Rate smoothing per beat (evens out the rise and fall with each breath)
 HEART_BASELINE_DOWN = 0.03     # Baseline follows a lower rate quickly (~30 beats)...
 HEART_BASELINE_UP = 0.001      # ...and a higher one slowly (~1000 beats, ~15 min), so stress stays visible

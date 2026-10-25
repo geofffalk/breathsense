@@ -20,7 +20,9 @@ from config import (
     HEART_PHASE_WINDOW, HEART_PHASE_GAIN, HEART_RATE_EASE, HEART_MAX_RATE_STEP,
     HEART_COAST_S, HEART_RATE_GAIN,
     HRV_BEATS, HRV_MIN_BEATS, HRV_MAX_DEV,
-    HEART_STRESS_SMOOTH, HEART_STRESS_BPM, HEART_BASELINE_UP, HEART_BASELINE_DOWN,
+    HEART_STRESS_SMOOTH, HEART_BASELINE_UP, HEART_BASELINE_DOWN,
+    HEART_STRESS_SD, HEART_STRESS_BPM_START, HEART_STRESS_BPM_MIN, HEART_STRESS_BPM_MAX,
+    HEART_SCALE_DOWN, HEART_SCALE_UP,
     HEART_HRV_WEIGHT, HEART_HRV_BASELINE, HEART_STRESS_HRV_DROP,
 )
 
@@ -192,6 +194,9 @@ class PulseDetector:
         self._hr_avg = 0.0        # Smoothed shown rate (evens out breathing swings)
         self.baseline_bpm = 0.0   # Resting rate: follows drops quickly, rises slowly
         self.baseline_hrv = 0.0   # Long-run average HRV
+        # Typical rise above baseline: sets this wearer's stress scale
+        self._rise_avg = HEART_STRESS_BPM_START / HEART_STRESS_SD
+        self.stress_bpm = HEART_STRESS_BPM_START  # Rise above baseline that shows full stress
         self.stress = 0.0         # 0 (at baseline) .. 1 (stressed)
 
     def tick(self):
@@ -323,8 +328,8 @@ class PulseDetector:
         if self.locked_ibi:
             flags += "  LOCKED"
         if self._r_ibi:
-            flags += "  SHOWING {:.0f} BPM (base {:.0f}) HRV {:.0f} ms (avg {:.0f}) stress {:.2f}".format(
-                self.rhythm_bpm, self.baseline_bpm, self.hrv_ms, self.baseline_hrv, self.stress)
+            flags += "  SHOWING {:.0f} BPM (base {:.0f}, full +{:.0f}) HRV {:.0f} ms (avg {:.0f}) stress {:.2f}".format(
+                self.rhythm_bpm, self.baseline_bpm, self.stress_bpm, self.hrv_ms, self.baseline_hrv, self.stress)
         if src.finger_present is False:
             flags += "  NO FINGER"
         elif self._st_n and (self._st_max > 0.985 * src.full_scale or
@@ -521,7 +526,12 @@ class PulseDetector:
         self._hr_avg += HEART_STRESS_SMOOTH * (bpm - self._hr_avg)
         rate = HEART_BASELINE_DOWN if self._hr_avg < self.baseline_bpm else HEART_BASELINE_UP
         self.baseline_bpm += rate * (self._hr_avg - self.baseline_bpm)
-        k = max(0.0, min(1.0, (self._hr_avg - self.baseline_bpm) / HEART_STRESS_BPM))
+        rise = self._hr_avg - self.baseline_bpm
+        rate = HEART_SCALE_DOWN if rise < self._rise_avg else HEART_SCALE_UP
+        self._rise_avg += rate * (max(0.0, rise) - self._rise_avg)
+        self.stress_bpm = max(HEART_STRESS_BPM_MIN, min(HEART_STRESS_BPM_MAX,
+                              HEART_STRESS_SD * self._rise_avg))
+        k = max(0.0, min(1.0, rise / self.stress_bpm))
 
         if self.hrv_ms:
             if not self.baseline_hrv:
