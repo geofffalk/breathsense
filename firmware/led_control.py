@@ -492,7 +492,7 @@ class HeartbeatLED:
     - Stress (rate above resting baseline, low HRV) fills further along the
       arm and shifts green -> red
     - Nothing is shown until beats arrive in a regular rhythm; after that the
-      beat carries on steadily, easing to rate changes, until the finger is lifted
+      beat carries on steadily, easing to rate changes, until the sensor is removed
     """
 
     def __init__(self, pulse_detector):

@@ -98,11 +98,11 @@ T0_C = 25.0      # Reference temperature
 PULSE_SENSOR = "auto"
 MAX3010X_IR_CURRENT = 0x2F     # IR LED drive in 0.2 mA steps (0x2F = 9.4 mA); raise if the pulse is weak, lower if CLIPPING
 MAX3010X_RED_CURRENT = 0x01    # Red LED isn't used for heart rate; nearly off saves power and glow
-MAX3010X_FINGER_LEVEL = 50000  # IR reading above this means skin is on the sensor
+MAX3010X_SKIN_LEVEL = 50000    # IR reading above this means skin is on the sensor (set from earlobe readings)
 MAX3010X_MIN_AMP = 40          # MAX3010x: min wave p-p (sensor counts) to look for beats
 PULSE_PIN = "A1"               # Analog sensor signal wire
 PULSE_INVERT = False           # True if beats dip instead of rise (applied on top of the sensor's own setting)
-PULSE_MIN_AMP = 300            # Analog: min wave p-p (16-bit ADC units) to look for beats: above no-finger noise, below your pulse
+PULSE_MIN_AMP = 300            # Analog: min wave p-p (16-bit ADC units) to look for beats: above not-worn noise, below your pulse
 PULSE_FILTER_HZ = 3.0          # Low-pass cutoff; the pulse itself is 0.7-2.5 Hz
 PULSE_MIN_IBI_MS = 400        # Fastest accepted beat interval (150 BPM); faster detections are noise
 PULSE_MAX_IBI_MS = 2000        # Slowest accepted beat interval (30 BPM)
@@ -128,7 +128,7 @@ HEART_PHASE_GAIN = 0.2         # Fraction of that timing error corrected per bea
 HEART_RATE_EASE = 0.15         # Fraction of the gap to the detected rate closed per beat
 HEART_RATE_GAIN = 0.05         # Fraction of a beat's timing error added to the shown interval (stops lag)
 HEART_MAX_RATE_STEP = 0.03     # Most the shown beat interval can change per beat (~2 BPM at 65 BPM)
-HEART_COAST_S = 8.0            # Keep beating this long without supporting beats (finger still on)
+HEART_COAST_S = 8.0            # Keep beating this long without supporting beats (sensor still on)
 
 # ===== Stress (LED colour and reach) =====
 # Stress = heart rate above your resting baseline, plus HRV below its average.

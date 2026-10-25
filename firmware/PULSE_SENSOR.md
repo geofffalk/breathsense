@@ -15,7 +15,7 @@ startup, e.g. `Pulse sensor: MAX3010x on I2C`.
 | Chips | MAX30102, MAX30101, MAX30105 | Generic 3-wire "PulseSensor" boards |
 | Connection | I2C (SDA/SCL) | A1 |
 | Signal | 18-bit, ambient light cancelled | Weak at 3.3 V, picks up room light |
-| Finger detection | Yes: LEDs stay dark with no finger | No |
+| Wear detection | Yes: LEDs stay dark when not worn | No |
 
 ## Option 1: MAX3010x on I2C (recommended)
 
@@ -60,10 +60,10 @@ sensor.
 
 | Setting                  | Default | Change it when…                                        |
 |--------------------------|---------|--------------------------------------------------------|
-| `MAX3010X_IR_CURRENT`    | `0x1F` (6.2 mA) | Raise it (e.g. `0x3F`) if the pulse is weak; lower it if the summary shows `CLIPPING`. |
+| `MAX3010X_IR_CURRENT`    | `0x2F` (9.4 mA) | Raise it (e.g. `0x3F`) if the pulse is weak, as is likely on an earlobe; lower it if the summary shows `CLIPPING`. |
 | `MAX3010X_RED_CURRENT`   | `0x01` (0.2 mA) | Leave it. Only IR is used for heart rate, so red is kept nearly off. |
-| `MAX3010X_FINGER_LEVEL`  | `50000` | The IR reading above which skin counts as present. Check the `raw` value in the summary with and without a finger, and set it between them. |
-| `MAX3010X_MIN_AMP`       | `40`    | Lower it if a steady finger shows no beats, raise it if noise gets through. |
+| `MAX3010X_SKIN_LEVEL`    | `50000` | The IR reading above which skin counts as present. Check the `raw` value in the summary with the sensor on and off, and set it between them. Set this from earlobe readings: they differ from a fingertip's. |
+| `MAX3010X_MIN_AMP`       | `40`    | Lower it if the sensor is on and still but shows no beats, raise it if noise gets through. |
 
 ## Option 2: Analog PulseSensor on A1
 
@@ -91,16 +91,26 @@ draws only a few mA, which is well within what the 3V pin can supply.
 
 ## Placement
 
-- Rest the sensor window (MAX3010x) or the heart-logo side (analog) lightly
-  against a fingertip or earlobe.
-- Don't press. Pressing squeezes the blood out and flattens the signal. A
-  velcro strap or ear clip that just holds it in contact works well. For
-  the Pimoroni breakout, Pimoroni suggest looping a rubber band or a piece
-  of wire through its mounting holes and around the fleshy side of your
-  fingertip. That keeps the pressure even, which matters because the
-  sensor is very sensitive to small movements.
-- Shade it from bright light, and keep still. The LEDs start after about 4
-  steady beats.
+The sensor is meant to be clipped to the earlobe. A fingertip also works
+and is handy for bench testing.
+
+- **Earlobe:** clip the sensor window against the fleshy lower part of the
+  lobe. The clip should hold it in steady contact without pinching.
+  Pressing squeezes the blood out and flattens the signal.
+- **Fingertip (testing):** rest the window lightly against the pad of a
+  finger. Pimoroni suggest looping a rubber band or a piece of wire through
+  the breakout's mounting holes and around the fingertip, which keeps the
+  pressure even.
+- The earlobe gives a weaker pulse than a fingertip, especially when cold.
+  If beats aren't found, raise `MAX3010X_IR_CURRENT` and check
+  `MAX3010X_SKIN_LEVEL` (see Settings above).
+- The sensor is very sensitive to movement. Head turns, talking and chewing
+  move the earlobe; the steady LED rhythm rides through short movements.
+- Shade the sensor from bright light; the clip housing should cover it.
+- On a cable to an ear clip, twist SDA and SCL together with GND (or run a
+  ribbon with GND between them). If readings drop out, lower the I2C speed
+  in `pulse_detector.py` from 400 kHz to 100 kHz.
+- The LEDs start after about 4 steady beats.
 
 ## What the LEDs show
 
@@ -112,11 +122,11 @@ draws only a few mA, which is well within what the 3V pin can supply.
   [Stress](#stress) below.
 - **No beat detected: the LEDs stay off.** Beats appear only after about 4
   beats in a steady rhythm, so random noise doesn't flash the LEDs. Expect
-  about 3 to 4 seconds after placing a finger.
+  about 3 to 4 seconds after putting the sensor on.
 - **Once started, the beat stays steady.** The LEDs keep their own rhythm.
   Detected beats nudge its timing slightly, and beats that don't fit are
   ignored. A real change in heart rate is followed gradually, about 2 BPM
-  per beat at most. The beat stops when the finger is lifted, or after
+  per beat at most. The beat stops when the sensor is removed, or after
   `HEART_COAST_S` (8 s) with no beats that fit.
 
 ## Using it
@@ -166,9 +176,9 @@ reports 0.
 Work through these in order:
 
 1. **Check the waveform in the app.** Tap **Heart** and look at the main
-   graph. A working sensor with a finger on it shows a regular wave that
-   repeats once per heartbeat. A flat line or random fuzz means the sensor
-   isn't giving a usable signal. Check the wiring and finger placement.
+   graph. A working sensor on skin shows a regular wave that repeats once
+   per heartbeat. A flat line or random fuzz means the sensor isn't giving
+   a usable signal. Check the wiring and placement.
 2. **Check the serial console** (USB connected; Mu, Thonny, or
    `screen /dev/tty.usbmodem*`). Every detected beat logs a line:
    - `Beat: 72 BPM, strength 0.48`: detection works, and these beats light
@@ -184,20 +194,20 @@ Work through these in order:
    ```
 
    - `raw … p-p`: the sensor's reading range over that second. Analog:
-     0–65535 = 0–3.3 V. MAX3010x: 0–262143, about 100,000 with a finger.
+     0–65535 = 0–3.3 V. MAX3010x: 0–262143, roughly 100,000–200,000 on skin.
    - `samples`: readings per second. Analog: the loop rate, about 60–100.
      MAX3010x: 100.
-   - `NO FINGER` (MAX3010x): the IR reading is below
-     `MAX3010X_FINGER_LEVEL`, so beat detection is paused.
+   - `NOT WORN` (MAX3010x): the IR reading is below
+     `MAX3010X_SKIN_LEVEL`, so beat detection is paused.
    - `LOCKED`: a steady rhythm has been found, and beats are being shown.
    - `CLIPPING`: the signal is hitting 0 V or 3.3 V. Usually this means too
      much pressure, a wiring fault, or the sensor powered from the wrong
      supply.
 
-   Compare about 10 seconds with no finger against 10 seconds with a
-   finger. Set the minimum amplitude between the two `wave p-p` values
+   Compare about 10 seconds with the sensor off against 10 seconds with it
+   on. Set the minimum amplitude between the two `wave p-p` values
    (`PULSE_MIN_AMP` for analog, `MAX3010X_MIN_AMP` for MAX3010x): above the
-   no-finger value, below the with-finger value.
+   off value, below the on value.
 
 4. **Plot the raw signal.** Set `PULSE_DEBUG_PLOT = True` in `config.py`
    and open the plotter in Mu or Thonny. It shows three lines:
@@ -207,15 +217,15 @@ Work through these in order:
 
    Each heartbeat should cross the threshold once. Then:
    - If the peaks point **down**, set `PULSE_INVERT = True`.
-   - If the threshold stays at 0 with a finger on, the waveform is smaller
-     than `PULSE_MIN_AMP`. Lower it, or adjust the finger pressure.
-   - If beats are found with no finger, raise `PULSE_MIN_AMP`.
+   - If the threshold stays at 0 with the sensor on, the waveform is
+     smaller than `PULSE_MIN_AMP`. Lower it, or adjust the clip pressure.
+   - If beats are found with the sensor off, raise `PULSE_MIN_AMP`.
 
    Set it back to `False` afterwards. Printing slows the main loop.
 
 5. **Record the raw signal.** Set `PULSE_DEBUG_RAW = True` to print every
    sensor sample as `R,{ms},{raw},…`. Save about 2 minutes of console output
-   with a finger on the sensor. The recording can be replayed offline
+   with the sensor on. The recording can be replayed offline
    through `pulse_detector.py` to tune detection against your real signal.
 
 ## Tuning (`config.py`)
@@ -223,7 +233,7 @@ Work through these in order:
 | Setting                 | Change it when…                                              |
 |-------------------------|--------------------------------------------------------------|
 | `PULSE_SENSOR`          | Force `"max3010x"` or `"analog"` instead of auto-detecting. |
-| `PULSE_MIN_AMP`         | Analog only. Raise it if beats are detected with no finger on the sensor. Lower it if real beats are missed. |
+| `PULSE_MIN_AMP`         | Analog only. Raise it if beats are detected with the sensor off. Lower it if real beats are missed. |
 | `PULSE_INVERT`          | The plotted beats point down instead of up. The MAX3010x is already corrected, so this is mainly for analog clones. |
 | `PULSE_LOCK_WINDOW`     | Once 3 steady beats lock the rhythm, beats are only accepted when due (±25%). Widen it for a very irregular pulse. |
 | `PULSE_FILTER_HZ`       | Lower it (e.g. 2.5) for a noisier signal, raise it if beats look smeared. |

@@ -639,7 +639,7 @@ class _HeartRateIndicatorState extends State<_HeartRateIndicator>
           else
             Flexible(
               child: Text(
-                'Place finger on pulse sensor',
+                'Clip sensor to earlobe',
                 style: TextStyle(
                   color: Colors.grey[400],
                   fontSize: 16,

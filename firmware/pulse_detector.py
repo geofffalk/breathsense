@@ -13,7 +13,7 @@ import supervisor
 
 from config import (
     PULSE_SENSOR, PULSE_PIN, PULSE_INVERT, PULSE_MIN_AMP,
-    MAX3010X_IR_CURRENT, MAX3010X_RED_CURRENT, MAX3010X_FINGER_LEVEL, MAX3010X_MIN_AMP,
+    MAX3010X_IR_CURRENT, MAX3010X_RED_CURRENT, MAX3010X_SKIN_LEVEL, MAX3010X_MIN_AMP,
     PULSE_MIN_IBI_MS, PULSE_MAX_IBI_MS, PULSE_SIGNAL_TIMEOUT_MS,
     PULSE_REGULARITY, PULSE_MIN_RHYTHM, PULSE_AMP_CONSISTENCY, PULSE_LOCK_WINDOW,
     PULSE_FILTER_HZ, PULSE_DEBUG_PLOT, PULSE_DEBUG_STATS, PULSE_DEBUG_RAW,
@@ -68,7 +68,7 @@ class AnalogSource:
     full_scale = 65535
     clips_low = True        # 0 V is also a rail the signal can stick to
     min_amp = PULSE_MIN_AMP
-    finger_present = None   # Not detectable
+    skin_present = None   # Not detectable
     drift_filter = False    # Output is already AC-coupled by the sensor's circuit
 
     def __init__(self):
@@ -82,7 +82,7 @@ class Max3010xSource:
     """MAX30102 / MAX30101 / MAX30105 on I2C, IR channel at 100 samples/s."""
 
     inverted = True         # More blood absorbs more light: IR dips on each beat
-    clips_low = False       # A low reading just means no finger
+    clips_low = False       # A low reading just means no skin on the sensor
     min_amp = MAX3010X_MIN_AMP
     drift_filter = True     # Raw light level drifts with pressure and temperature
 
@@ -98,7 +98,7 @@ class Max3010xSource:
         self.name = "MAX3010x on I2C"
         self.sample_ms = max3010x.SAMPLE_MS
         self.full_scale = max3010x.FULL_SCALE
-        self.finger_present = False
+        self.skin_present = False
 
     def read(self, out):
         start = len(out)
@@ -106,10 +106,10 @@ class Max3010xSource:
         if len(out) > start:
             # Reflected IR jumps when skin covers the sensor (with hysteresis)
             ir = out[-1]
-            if self.finger_present:
-                self.finger_present = ir > MAX3010X_FINGER_LEVEL * 0.8
+            if self.skin_present:
+                self.skin_present = ir > MAX3010X_SKIN_LEVEL * 0.8
             else:
-                self.finger_present = ir > MAX3010X_FINGER_LEVEL
+                self.skin_present = ir > MAX3010X_SKIN_LEVEL
 
 
 def _open_source():
@@ -142,7 +142,7 @@ class PulseDetector:
         self._stats_reset(self._last_tick)
 
         self._primed = False  # Filters start from the first sample
-        self._finger = True   # Last known finger state (always True if not detectable)
+        self._worn = True     # Last known skin contact (always True if not detectable)
         self._offset = 0      # Large constant removed so floats keep their precision
         self.lp = 0.0         # Low-passed signal
         self.dc = 0.0         # Slow baseline
@@ -220,17 +220,17 @@ class PulseDetector:
                 self._st_sum += raw
             self._st_n += n
 
-        finger = src.finger_present is not False
-        if finger != self._finger:
-            self._finger = finger
+        worn = src.skin_present is not False
+        if worn != self._worn:
+            self._worn = worn
             self._primed = False  # Restart filters from the new light level
-            if not finger:
+            if not worn:
                 self._lose_signal()
                 self.value = self.env_hi = self.env_lo = 0.0
                 self._sq_diffs = []
                 self.hrv_ms = 0.0
 
-        if finger and n:
+        if worn and n:
             if src.sample_ms:
                 # Sensor-timed samples: spread their timestamps back from now
                 dt = src.sample_ms / 1000.0
@@ -330,8 +330,8 @@ class PulseDetector:
         if self._r_ibi:
             flags += "  SHOWING {:.0f} BPM (base {:.0f}, full +{:.0f}) HRV {:.0f} ms (avg {:.0f}) stress {:.2f}".format(
                 self.rhythm_bpm, self.baseline_bpm, self.stress_bpm, self.hrv_ms, self.baseline_hrv, self.stress)
-        if src.finger_present is False:
-            flags += "  NO FINGER"
+        if src.skin_present is False:
+            flags += "  NOT WORN"
         elif self._st_n and (self._st_max > 0.985 * src.full_scale or
                              (src.clips_low and self._st_min < 0.015 * src.full_scale)):
             flags += "  CLIPPING"
@@ -403,7 +403,7 @@ class PulseDetector:
         if len(self.amps) > IBI_HISTORY:
             self.amps.pop(0)
         rel = beat_amp / max(1.0, self.amp_ref)
-        # Settle quickly after a finger is placed, then follow slowly
+        # Settle quickly after the sensor is put on, then follow slowly
         self.amp_beats += 1
         self.amp_ref += max(0.08, 1.0 / self.amp_beats) * (beat_amp - self.amp_ref)
         self.beat_strength = max(0.0, min(1.0, (rel - 0.6) / 0.8))
@@ -505,10 +505,10 @@ class PulseDetector:
             self._r_ibi = ibi + max(-limit, min(limit, step))
 
     def _tick_rhythm(self, now):
-        """Fire shown beats on schedule; stop when the finger is lifted or support runs out."""
+        """Fire shown beats on schedule; stop when the sensor is removed or support runs out."""
         if not self._r_ibi:
             return
-        if not self._finger or ticks_diff(now, self._r_support_ms) > HEART_COAST_S * 1000:
+        if not self._worn or ticks_diff(now, self._r_support_ms) > HEART_COAST_S * 1000:
             self._r_ibi = 0.0
             return
         if ticks_diff(now, self._r_next_ms) >= 0:
@@ -587,7 +587,7 @@ class PulseDetector:
         return max(0.0, min(1.6, (self.value - self.env_lo) / ref))
 
     def normalized(self):
-        """Live waveform for the app graph: trough -1, typical peak +1 (flat 0 with no finger)."""
-        if not self._finger:
+        """Live waveform for the app graph: trough -1, typical peak +1 (flat 0 when not worn)."""
+        if not self._worn:
             return 0.0
         return self.level() * 2.0 - 1.0
