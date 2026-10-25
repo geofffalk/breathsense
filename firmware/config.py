@@ -96,7 +96,7 @@ T0_C = 25.0      # Reference temperature
 # "auto": MAX3010x on I2C if one answers, else the analog sensor on PULSE_PIN
 # "max3010x": MAX30102/30101/30105 on SDA/SCL only; "analog": PulseSensor only
 PULSE_SENSOR = "auto"
-MAX3010X_IR_CURRENT = 0x1F     # IR LED drive in 0.2 mA steps (0x1F = 6.2 mA); raise if the pulse is weak, lower if CLIPPING
+MAX3010X_IR_CURRENT = 0x2F     # IR LED drive in 0.2 mA steps (0x2F = 9.4 mA); raise if the pulse is weak, lower if CLIPPING
 MAX3010X_RED_CURRENT = 0x01    # Red LED isn't used for heart rate; nearly off saves power and glow
 MAX3010X_FINGER_LEVEL = 50000  # IR reading above this means skin is on the sensor
 MAX3010X_MIN_AMP = 40          # MAX3010x: min wave p-p (sensor counts) to look for beats
@@ -109,9 +109,10 @@ PULSE_MAX_IBI_MS = 2000        # Slowest accepted beat interval (30 BPM)
 PULSE_SIGNAL_TIMEOUT_MS = 2500 # No beat for this long -> pulse lost
 PULSE_REGULARITY = 0.2         # Beat intervals must be within 20% of the recent median
 PULSE_MIN_RHYTHM = 3           # Beat intervals in rhythm before beats are shown (filters noise)
-PULSE_AMP_CONSISTENCY = 0.35   # Beat heights must be within 35% of the recent median
+PULSE_AMP_CONSISTENCY = 0.55   # Beat heights must be within 55% of the recent median
 PULSE_LOCK_WINDOW = 0.25       # Once locked, a beat must land within 25% of when it's due
 PULSE_DEBUG_PLOT = False       # True: print (signal, threshold, beat) for the Mu/Thonny plotter
+PULSE_DEBUG_RAW = False        # True: print every raw sample as R,{ms},{raw},... for offline analysis
 PULSE_DEBUG_STATS = True       # Print a once-a-second signal summary to the serial console
 HEART_LIVE_HZ = 25.0           # Heart waveform send rate to app
 
@@ -123,6 +124,15 @@ HEART_BPM_LOW = 55.0           # BPM mapped to the calmest look
 HEART_BPM_HIGH = 130.0         # BPM mapped to the most intense look
 HEART_RATE_WEIGHT = 0.6        # Intensity mix: rate vs. beat strength
 HEART_MIN_FILL = 3.0           # LEDs filled by the calmest beat (most intense fills all 10)
+# The LEDs beat on their own steady rhythm, started by a confirmed pulse and
+# steered gently by detected beats, so odd beats can't make the display jump.
+HEART_PHASE_WINDOW = 0.25      # A detected beat within 25% of an interval of a shown beat nudges its timing; others are ignored
+HEART_PHASE_GAIN = 0.2         # Fraction of that timing error corrected per beat
+HEART_RATE_EASE = 0.15         # Fraction of the gap to the detected rate closed per beat
+HEART_RATE_GAIN = 0.05         # Fraction of a beat's timing error added to the shown interval (stops lag)
+HEART_MAX_RATE_STEP = 0.03     # Most the shown beat interval can change per beat (~2 BPM at 65 BPM)
+HEART_STRENGTH_EASE = 0.25     # Fraction of the gap to a new beat's strength closed per beat
+HEART_COAST_S = 8.0            # Keep beating this long without supporting beats (finger still on)
 HEART_COUNTER_BEAT = 0.55      # Counter-beat fill as a fraction of the main beat
 HEART_BASE_AT_INDEX0 = True    # Arm base is pixel 0 (wired end); False to flip
 HEART_CALM_COLOR = (0, 255, 40)    # Monitor green

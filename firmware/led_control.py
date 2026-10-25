@@ -486,32 +486,33 @@ def _pulse_fill(t, start, rise, hold, fall, height):
 
 class HeartbeatLED:
     """
-    Heart monitor mode LED controller, triggered by detected beats.
-    - Each confirmed beat fills the arms from the base, empties, then gives a
+    Heart monitor mode LED controller, driven by the detector's steady display rhythm.
+    - Each shown beat fills the arms from the base, empties, then gives a
       smaller counter-beat fill (lub-dub)
     - Faster/stronger beats fill further along the arm and shift green -> red
-    - Nothing is shown until beats arrive in a regular rhythm
+    - Nothing is shown until beats arrive in a regular rhythm; after that the
+      beat carries on steadily, easing to rate changes, until the finger is lifted
     """
 
     def __init__(self, pulse_detector):
         self.pulse = pulse_detector
         self.strip_len = 10
-        self.seen_beats = pulse_detector.beat_count
+        self.seen_beats = pulse_detector.rhythm_count
         self.beat_ms = None
         self.reach = 0.0
         self.color = (0, 0, 0)
         self.time_scale = 1.0
 
     def reset(self):
-        self.seen_beats = self.pulse.beat_count
+        self.seen_beats = self.pulse.rhythm_count
         self.beat_ms = None
 
     def intensity(self):
         """0..1 from heart rate and relative beat strength."""
         p = self.pulse
-        rate = (p.bpm - HEART_BPM_LOW) / (HEART_BPM_HIGH - HEART_BPM_LOW)
+        rate = (p.rhythm_bpm - HEART_BPM_LOW) / (HEART_BPM_HIGH - HEART_BPM_LOW)
         rate = max(0.0, min(1.0, rate))
-        k = HEART_RATE_WEIGHT * rate + (1.0 - HEART_RATE_WEIGHT) * p.beat_strength
+        k = HEART_RATE_WEIGHT * rate + (1.0 - HEART_RATE_WEIGHT) * p.rhythm_strength
         return max(0.0, min(1.0, k))
 
     def tick(self):
@@ -519,14 +520,13 @@ class HeartbeatLED:
         now = ticks_ms()
         p = self.pulse
 
-        if p.beat_count != self.seen_beats:
-            self.seen_beats = p.beat_count
-            if p.beat_confirmed:
-                k = self.intensity()
-                self.reach = HEART_MIN_FILL + k * (self.strip_len - HEART_MIN_FILL)
-                self.color = _heart_color(k)
-                self.time_scale = min(1.0, 60.0 / p.bpm)
-                self.beat_ms = now
+        if p.rhythm_count != self.seen_beats:
+            self.seen_beats = p.rhythm_count
+            k = self.intensity()
+            self.reach = HEART_MIN_FILL + k * (self.strip_len - HEART_MIN_FILL)
+            self.color = _heart_color(k)
+            self.time_scale = min(1.0, 60.0 / p.rhythm_bpm) if p.rhythm_bpm else 1.0
+            self.beat_ms = now
 
         fill = 0.0
         if self.beat_ms is not None:

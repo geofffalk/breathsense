@@ -16,7 +16,9 @@ from config import (
     MAX3010X_IR_CURRENT, MAX3010X_RED_CURRENT, MAX3010X_FINGER_LEVEL, MAX3010X_MIN_AMP,
     PULSE_MIN_IBI_MS, PULSE_MAX_IBI_MS, PULSE_SIGNAL_TIMEOUT_MS,
     PULSE_REGULARITY, PULSE_MIN_RHYTHM, PULSE_AMP_CONSISTENCY, PULSE_LOCK_WINDOW,
-    PULSE_FILTER_HZ, PULSE_DEBUG_PLOT, PULSE_DEBUG_STATS,
+    PULSE_FILTER_HZ, PULSE_DEBUG_PLOT, PULSE_DEBUG_STATS, PULSE_DEBUG_RAW,
+    HEART_PHASE_WINDOW, HEART_PHASE_GAIN, HEART_RATE_EASE, HEART_MAX_RATE_STEP,
+    HEART_STRENGTH_EASE, HEART_COAST_S, HEART_RATE_GAIN,
 )
 
 # Low-pass time constant: keeps the 0.7-2.5 Hz pulse, drops faster noise
@@ -40,6 +42,10 @@ def ticks_diff(a, b):
     if d >= _TICKS_HALF:
         d -= _TICKS_PERIOD
     return d
+
+
+def ticks_add(a, ms):
+    return (a + int(ms)) & (_TICKS_PERIOD - 1)
 
 
 def _alpha(dt, tau):
@@ -160,6 +166,13 @@ class PulseDetector:
         self.beat_strength = 0.5  # 0..1, last beat vs. recent average (0.5 = typical)
         self.beat_amp = 0.0       # Peak-to-peak of the last beat (sensor units)
 
+        # Display rhythm: a steady beat for the LEDs, steered by detected beats
+        self._r_ibi = 0.0         # Shown beat interval (ms); 0 = stopped
+        self._r_next_ms = 0       # When the next shown beat is due
+        self._r_support_ms = 0    # Last detected beat that fitted the rhythm
+        self.rhythm_count = 0     # Increments on every shown beat
+        self.rhythm_strength = 0.5  # Smoothed beat strength for the display
+
     def tick(self):
         """Read new sensor samples. Call every main-loop iteration."""
         src = self._source
@@ -170,6 +183,8 @@ class PulseDetector:
         samples = []
         src.read(samples)
         n = len(samples)
+        if PULSE_DEBUG_RAW and n:
+            print("R,{},{}".format(now, ",".join(str(x) for x in samples)))
         if PULSE_DEBUG_STATS:
             for raw in samples:
                 if raw < self._st_min:
@@ -205,6 +220,8 @@ class PulseDetector:
                 self._lose_signal()
             elif self.locked_ibi and since > 2.5 * self.locked_ibi:
                 self._unlock()  # Two beats missed: rhythm lost
+
+        self._tick_rhythm(now)
 
         amp = self.env_hi - self.env_lo
         if PULSE_DEBUG_PLOT:
@@ -280,6 +297,8 @@ class PulseDetector:
         flags = ""
         if self.locked_ibi:
             flags += "  LOCKED"
+        if self._r_ibi:
+            flags += "  SHOWING {:.0f} BPM".format(self.rhythm_bpm)
         if src.finger_present is False:
             flags += "  NO FINGER"
         elif self._st_n and (self._st_max > 0.985 * src.full_scale or
@@ -374,6 +393,57 @@ class PulseDetector:
         if PULSE_DEBUG_STATS:
             self._st_beats += 1
             self._st_confirmed += 1 if self.beat_confirmed else 0
+        self._rhythm_on_beat(now)
+
+    def _rhythm_on_beat(self, now):
+        """Steer the display rhythm with a detected beat; beats off the rhythm are ignored."""
+        if not self._r_ibi:
+            if self.beat_confirmed and self.locked_ibi:
+                # Start on the first confirmed beat, at the locked rate
+                self._r_ibi = float(self.locked_ibi)
+                self._r_next_ms = now
+                self._r_support_ms = now
+                self.rhythm_strength = self.beat_strength
+            return
+
+        # Timing error against the nearest shown beat (last one or next one)
+        ibi = self._r_ibi
+        err = ticks_diff(now, self._r_next_ms) + ibi
+        if err > ibi / 2:
+            err -= ibi
+        if abs(err) > HEART_PHASE_WINDOW * ibi and not self.beat_confirmed:
+            return  # Anomaly: doesn't fit the rhythm
+        # Confirmed beats have passed the detector's own rhythm checks, so they
+        # always steer (gradually), letting the display re-sync if it drifts
+        self._r_next_ms = ticks_add(self._r_next_ms, HEART_PHASE_GAIN * err)
+        self._r_support_ms = now
+        self.rhythm_strength += HEART_STRENGTH_EASE * (self.beat_strength - self.rhythm_strength)
+
+        # Ease the rate toward the detector's rate, but only while it's locked
+        # onto a steady rhythm (so a burst of noise can't drag it). Beats that
+        # keep landing early or late also pull the rate, so it can't lag behind.
+        if self.locked_ibi:
+            step = HEART_RATE_EASE * (self.locked_ibi - ibi) + HEART_RATE_GAIN * err
+            limit = HEART_MAX_RATE_STEP * ibi
+            self._r_ibi = ibi + max(-limit, min(limit, step))
+
+    def _tick_rhythm(self, now):
+        """Fire shown beats on schedule; stop when the finger is lifted or support runs out."""
+        if not self._r_ibi:
+            return
+        if not self._finger or ticks_diff(now, self._r_support_ms) > HEART_COAST_S * 1000:
+            self._r_ibi = 0.0
+            return
+        if ticks_diff(now, self._r_next_ms) >= 0:
+            self.rhythm_count += 1
+            self._r_next_ms = ticks_add(self._r_next_ms, self._r_ibi)
+            if ticks_diff(now, self._r_next_ms) >= 0:
+                self._r_next_ms = ticks_add(now, self._r_ibi)  # Fell behind (slow loop)
+
+    @property
+    def rhythm_bpm(self):
+        """Rate of the shown beat (0 when stopped)."""
+        return 60000.0 / self._r_ibi if self._r_ibi else 0.0
 
     def _amps_consistent(self):
         """Real beats have similar heights; noise peaks vary widely."""

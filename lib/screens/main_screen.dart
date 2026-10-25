@@ -421,6 +421,7 @@ class _ModeReadout extends StatelessWidget {
             bpm: bleService.heartBpm,
             hasSignal: bleService.hasPulseSignal,
             beatCount: bleService.heartBeatCount,
+            strength: bleService.heartStrength,
           );
         }
 
@@ -456,23 +457,116 @@ class _ModeReadout extends StatelessWidget {
   }
 }
 
-/// Heart rate readout; the heart icon pulses on every detected beat
-class _HeartRateIndicator extends StatelessWidget {
+/// Heart rate readout; the heart icon beats in time with the headset LEDs,
+/// with the same lub-dub animation and green -> amber -> red colour
+class _HeartRateIndicator extends StatefulWidget {
   final int bpm;
   final bool hasSignal;
   final int beatCount;
+  final int strength; // 0-100, smoothed beat strength (50 = typical)
 
   const _HeartRateIndicator({
     required this.bpm,
     required this.hasSignal,
     required this.beatCount,
+    required this.strength,
   });
 
-  static const Color _heartColor = Color(0xFFFF5252);
+  @override
+  State<_HeartRateIndicator> createState() => _HeartRateIndicatorState();
+}
+
+class _HeartRateIndicatorState extends State<_HeartRateIndicator>
+    with SingleTickerProviderStateMixin {
+  // Matching firmware config.py (Heart LED Display)
+  static const double _bpmLow = 55.0;
+  static const double _bpmHigh = 130.0;
+  static const double _rateWeight = 0.6;
+  static const double _counterBeat = 0.55;
+  static const Color _calmColor = Color(0xFF00FF28);
+  static const Color _midColor = Color(0xFFFFAA00);
+  static const Color _hotColor = Color(0xFFFF0000);
+
+  // Beat animation at 60 BPM (s): (start, rise, hold, fall, height), as in
+  // firmware led_control.py: main beat, then a smaller counter-beat
+  static const List<List<double>> _pulses = [
+    [0.00, 0.08, 0.06, 0.18, 1.0],
+    [0.36, 0.07, 0.04, 0.17, _counterBeat],
+  ];
+  static const double _beatSeconds = 0.64; // End of the counter-beat
+
+  late final AnimationController _controller;
+  double _timeScale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(_HeartRateIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.beatCount != oldWidget.beatCount && _showBpm) {
+      // Faster rates shorten the beat so it finishes before the next one
+      _timeScale = widget.bpm > 60 ? 60.0 / widget.bpm : 1.0;
+      _controller.duration =
+          Duration(milliseconds: (_beatSeconds * _timeScale * 1000).round());
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _showBpm => widget.hasSignal && widget.bpm > 0;
+
+  /// 0..1 from heart rate and beat strength, as on the LEDs
+  double get _intensity {
+    final rate = ((widget.bpm - _bpmLow) / (_bpmHigh - _bpmLow)).clamp(0.0, 1.0);
+    final k = _rateWeight * rate + (1.0 - _rateWeight) * widget.strength / 100.0;
+    return k.clamp(0.0, 1.0);
+  }
+
+  Color get _beatColor {
+    final k = _intensity;
+    return k < 0.5
+        ? Color.lerp(_calmColor, _midColor, k * 2.0)!
+        : Color.lerp(_midColor, _hotColor, (k - 0.5) * 2.0)!;
+  }
+
+  /// Fill 0..1 at [t] seconds into the (60 BPM) beat animation
+  static double _fill(double t) {
+    var fill = 0.0;
+    for (final p in _pulses) {
+      var u = t - p[0];
+      final rise = p[1], hold = p[2], fall = p[3], height = p[4];
+      double f;
+      if (u < 0) {
+        f = 0.0;
+      } else if (u < rise) {
+        final x = u / rise;
+        f = height * (1.0 - (1.0 - x) * (1.0 - x));
+      } else if ((u -= rise) < hold) {
+        f = height;
+      } else if ((u -= hold) < fall) {
+        final x = u / fall;
+        f = height * (1.0 - x * x);
+      } else {
+        f = 0.0;
+      }
+      if (f > fill) fill = f;
+    }
+    return fill;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final showBpm = hasSignal && bpm > 0;
+    final showBpm = _showBpm;
+    final color = showBpm ? _beatColor : Colors.grey[500]!;
 
     return Container(
       width: double.infinity,
@@ -481,21 +575,21 @@ class _HeartRateIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _heartColor.withOpacity(showBpm ? 0.6 : 0.2)),
+        border: Border.all(color: color.withOpacity(showBpm ? 0.6 : 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Keyed on beatCount so the pulse animation restarts on each beat
-          TweenAnimationBuilder<double>(
-            key: ValueKey(beatCount),
-            tween: Tween(begin: showBpm ? 1.35 : 1.0, end: 1.0),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final t = _controller.value * _beatSeconds;
+              final fill = showBpm ? _fill(t) : 0.0;
+              return Transform.scale(scale: 1.0 + 0.35 * fill, child: child);
+            },
             child: Icon(
               showBpm ? Icons.favorite : Icons.favorite_border,
-              color: showBpm ? _heartColor : Colors.grey[500],
+              color: color,
               size: 40,
             ),
           ),
@@ -506,7 +600,7 @@ class _HeartRateIndicator extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '$bpm',
+                  '${widget.bpm}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 44,

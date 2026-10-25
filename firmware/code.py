@@ -174,13 +174,14 @@ def send_heart_data():
         return
     last_heart_tx_ms = now
 
+    # Rate, beats and strength follow the LEDs' steady rhythm, not raw detections
     msg = "H,{},{:.3f},{},{},{},{}\n".format(
         now & 0xFFFFFFFF,
         pulse.normalized(),
-        int(pulse.bpm + 0.5),
-        1 if pulse.has_signal() else 0,
-        pulse.beat_count & 0xFFFF,
-        int(pulse.beat_strength * 100),
+        int(pulse.rhythm_bpm + 0.5),
+        1 if pulse.rhythm_bpm > 0 else 0,
+        pulse.rhythm_count & 0xFFFF,
+        int(pulse.rhythm_strength * 100),
     )
 
     try:

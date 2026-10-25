@@ -114,6 +114,11 @@ draws only a few mA, which is well within what the 3V pin can supply.
 - **No beat detected: the LEDs stay off.** Beats appear only after about 4
   beats in a steady rhythm, so random noise doesn't flash the LEDs. Expect
   about 3 to 4 seconds after placing a finger.
+- **Once started, the beat stays steady.** The LEDs keep their own rhythm.
+  Detected beats nudge its timing slightly, and beats that don't fit are
+  ignored. A real change in heart rate is followed gradually, about 2 BPM
+  per beat at most. The beat stops when the finger is lifted, or after
+  `HEART_COAST_S` (8 s) with no beats that fit.
 
 ## Using it
 
@@ -122,7 +127,10 @@ draws only a few mA, which is well within what the 3V pin can supply.
 - **Without the app:** set `STANDALONE_MODE = "heart"` in `config.py`.
 - BLE command: `M,H` enters Heart mode. The headset then streams
   `H,{ts},{wave},{bpm},{signal},{beats},{strength}` at 25 Hz instead of
-  `B,…` breath lines.
+  `B,…` breath lines. `wave` is the live sensor trace. `bpm`, `beats` and
+  `strength` follow the same steady rhythm as the LEDs, and `signal` is 1
+  while that rhythm is running, so the app's heart beats in time with the
+  headset.
 
 ## Troubleshooting: is it the sensor or the code?
 
@@ -175,6 +183,11 @@ Work through these in order:
    - If beats are found with no finger, raise `PULSE_MIN_AMP`.
 
    Set it back to `False` afterwards. Printing slows the main loop.
+
+5. **Record the raw signal.** Set `PULSE_DEBUG_RAW = True` to print every
+   sensor sample as `R,{ms},{raw},…`. Save about 2 minutes of console output
+   with a finger on the sensor. The recording can be replayed offline
+   through `pulse_detector.py` to tune detection against your real signal.
 
 ## Tuning (`config.py`)
 

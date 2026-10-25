@@ -75,6 +75,7 @@ class BleService extends ChangeNotifier {
   int _heartBpm = 0;
   bool _hasPulseSignal = false;
   int _heartBeatCount = 0;
+  int _heartStrength = 50;
 
   // App-side mood analyzer (calculates scores from raw breath metrics)
   final MoodAnalyzer _moodAnalyzer = MoodAnalyzer();
@@ -97,6 +98,7 @@ class BleService extends ChangeNotifier {
   int get heartBpm => _heartBpm;
   bool get hasPulseSignal => _hasPulseSignal;
   int get heartBeatCount => _heartBeatCount;
+  int get heartStrength => _heartStrength;
   bool get isConnected => _isBleConnected;
   bool get isBluetoothOff => _connectionState == BleConnectionState.bluetoothOff;
   int get currentStressScore => _moodAnalyzer.stressScore;
@@ -162,6 +164,7 @@ class BleService extends ChangeNotifier {
     _heartSampleCount = 0;
     _heartBpm = 0;
     _hasPulseSignal = false;
+    _heartStrength = 50;
   }
 
   /// Latest [count] heart waveform samples, oldest first (zero-padded)
@@ -636,6 +639,7 @@ class BleService extends ChangeNotifier {
       _heartBpm = data.bpm;
       _hasPulseSignal = data.hasSignal;
       _heartBeatCount = data.beatCount;
+      _heartStrength = data.strength;
       notifyListeners();
     }
   }
