@@ -120,10 +120,7 @@ HEART_LIVE_HZ = 25.0           # Heart waveform send rate to app
 STANDALONE_MODE = "heart"
 
 # ===== Heart LED Display =====
-HEART_BPM_LOW = 55.0           # BPM mapped to the calmest look
-HEART_BPM_HIGH = 130.0         # BPM mapped to the most intense look
-HEART_RATE_WEIGHT = 0.6        # Intensity mix: rate vs. beat strength
-HEART_MIN_FILL = 3.0           # LEDs filled by the calmest beat (most intense fills all 10)
+HEART_MIN_FILL = 3.0           # LEDs filled at rest (full stress fills all 10)
 # The LEDs beat on their own steady rhythm, started by a confirmed pulse and
 # steered gently by detected beats, so odd beats can't make the display jump.
 HEART_PHASE_WINDOW = 0.25      # A detected beat within 25% of an interval of a shown beat nudges its timing; others are ignored
@@ -131,8 +128,21 @@ HEART_PHASE_GAIN = 0.2         # Fraction of that timing error corrected per bea
 HEART_RATE_EASE = 0.15         # Fraction of the gap to the detected rate closed per beat
 HEART_RATE_GAIN = 0.05         # Fraction of a beat's timing error added to the shown interval (stops lag)
 HEART_MAX_RATE_STEP = 0.03     # Most the shown beat interval can change per beat (~2 BPM at 65 BPM)
-HEART_STRENGTH_EASE = 0.25     # Fraction of the gap to a new beat's strength closed per beat
 HEART_COAST_S = 8.0            # Keep beating this long without supporting beats (finger still on)
+
+# ===== Stress (LED colour and reach) =====
+# Stress = heart rate above your resting baseline, plus HRV below its average.
+# Baselines are learned from the start of each power-on, so start calm.
+HEART_STRESS_BPM = 20.0        # BPM above baseline that shows full stress (all LEDs, red)
+HEART_STRESS_SMOOTH = 0.1      # Rate smoothing per beat (evens out the rise and fall with each breath)
+HEART_BASELINE_DOWN = 0.03     # Baseline follows a lower rate quickly (~30 beats)...
+HEART_BASELINE_UP = 0.001      # ...and a higher one slowly (~1000 beats, ~15 min), so stress stays visible
+HRV_BEATS = 30                 # Beat-to-beat differences in the HRV (RMSSD) window (~30 s)
+HRV_MIN_BEATS = 15             # Differences needed before HRV is reported
+HRV_MAX_DEV = 0.2              # Intervals more than 20% off the rhythm are artifacts, not HRV
+HEART_HRV_WEIGHT = 0.3         # Share of stress from HRV (the rest is heart rate)
+HEART_HRV_BASELINE = 0.002     # HRV average follows over ~500 beats (~8 min)
+HEART_STRESS_HRV_DROP = 0.5    # HRV this far below its average (50%) counts as full stress
 HEART_COUNTER_BEAT = 0.55      # Counter-beat fill as a fraction of the main beat
 HEART_BASE_AT_INDEX0 = True    # Arm base is pixel 0 (wired end); False to flip
 HEART_CALM_COLOR = (0, 255, 40)    # Monitor green

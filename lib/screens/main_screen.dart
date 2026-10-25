@@ -421,7 +421,8 @@ class _ModeReadout extends StatelessWidget {
             bpm: bleService.heartBpm,
             hasSignal: bleService.hasPulseSignal,
             beatCount: bleService.heartBeatCount,
-            strength: bleService.heartStrength,
+            stress: bleService.heartStress,
+            hrvMs: bleService.heartHrv,
           );
         }
 
@@ -457,19 +458,21 @@ class _ModeReadout extends StatelessWidget {
   }
 }
 
-/// Heart rate readout; the heart icon beats in time with the headset LEDs,
-/// with the same lub-dub animation and green -> amber -> red colour
+/// Heart rate and HRV readout; the heart icon beats in time with the headset
+/// LEDs, with the same lub-dub animation and stress colour (green -> amber -> red)
 class _HeartRateIndicator extends StatefulWidget {
   final int bpm;
   final bool hasSignal;
   final int beatCount;
-  final int strength; // 0-100, smoothed beat strength (50 = typical)
+  final int stress; // 0-100 from the headset
+  final int hrvMs; // HRV (RMSSD); 0 until measured
 
   const _HeartRateIndicator({
     required this.bpm,
     required this.hasSignal,
     required this.beatCount,
-    required this.strength,
+    required this.stress,
+    required this.hrvMs,
   });
 
   @override
@@ -479,9 +482,6 @@ class _HeartRateIndicator extends StatefulWidget {
 class _HeartRateIndicatorState extends State<_HeartRateIndicator>
     with SingleTickerProviderStateMixin {
   // Matching firmware config.py (Heart LED Display)
-  static const double _bpmLow = 55.0;
-  static const double _bpmHigh = 130.0;
-  static const double _rateWeight = 0.6;
   static const double _counterBeat = 0.55;
   static const Color _calmColor = Color(0xFF00FF28);
   static const Color _midColor = Color(0xFFFFAA00);
@@ -524,15 +524,8 @@ class _HeartRateIndicatorState extends State<_HeartRateIndicator>
 
   bool get _showBpm => widget.hasSignal && widget.bpm > 0;
 
-  /// 0..1 from heart rate and beat strength, as on the LEDs
-  double get _intensity {
-    final rate = ((widget.bpm - _bpmLow) / (_bpmHigh - _bpmLow)).clamp(0.0, 1.0);
-    final k = _rateWeight * rate + (1.0 - _rateWeight) * widget.strength / 100.0;
-    return k.clamp(0.0, 1.0);
-  }
-
   Color get _beatColor {
-    final k = _intensity;
+    final k = (widget.stress / 100.0).clamp(0.0, 1.0);
     return k < 0.5
         ? Color.lerp(_calmColor, _midColor, k * 2.0)!
         : Color.lerp(_midColor, _hotColor, (k - 0.5) * 2.0)!;
@@ -595,29 +588,53 @@ class _HeartRateIndicatorState extends State<_HeartRateIndicator>
           ),
           const SizedBox(width: 16),
           if (showBpm)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '${widget.bpm}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 44,
-                    fontWeight: FontWeight.w900,
-                  ),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '${widget.bpm}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 44,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'BPM',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Text(
+                      widget.hrvMs > 0 ? '${widget.hrvMs}' : '--',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'HRV ms',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'BPM',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ],
+              ),
             )
           else
             Flexible(

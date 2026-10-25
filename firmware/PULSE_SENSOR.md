@@ -107,10 +107,9 @@ draws only a few mA, which is well within what the 3V pin can supply.
 - On each detected heartbeat, both arms **fill** smoothly from the base to
   a set position, then **empty**. A smaller **counter-beat** fill follows
   (lub-dub). Then the arms stay dark until the next beat.
-- **Faster or stronger beats fill further and look redder.** A calm beat
-  fills about 3 LEDs in monitor green. An intense beat fills all 10 in red.
-  Intensity mixes heart rate (55 → 130 BPM) with how strong the beat is
-  compared with your recent beats.
+- **Stress fills further and looks redder.** At rest the beat fills about
+  3 LEDs in monitor green. Full stress fills all 10 in red. See
+  [Stress](#stress) below.
 - **No beat detected: the LEDs stay off.** Beats appear only after about 4
   beats in a steady rhythm, so random noise doesn't flash the LEDs. Expect
   about 3 to 4 seconds after placing a finger.
@@ -126,11 +125,38 @@ draws only a few mA, which is well within what the 3V pin can supply.
   breathing.
 - **Without the app:** set `STANDALONE_MODE = "heart"` in `config.py`.
 - BLE command: `M,H` enters Heart mode. The headset then streams
-  `H,{ts},{wave},{bpm},{signal},{beats},{strength}` at 25 Hz instead of
-  `B,…` breath lines. `wave` is the live sensor trace. `bpm`, `beats` and
-  `strength` follow the same steady rhythm as the LEDs, and `signal` is 1
-  while that rhythm is running, so the app's heart beats in time with the
-  headset.
+  `H,{ts},{wave},{bpm},{signal},{beats},{stress},{hrv}` at 25 Hz instead
+  of `B,…` breath lines. `wave` is the live sensor trace. `bpm` and `beats`
+  follow the same steady rhythm as the LEDs, and `signal` is 1 while that
+  rhythm is running, so the app's heart beats in time with the headset.
+  `stress` is 0–100 and `hrv` is in ms (0 until measured).
+
+## Stress
+
+The LEDs and the app's heart show stress, worked out from two signals. Both
+are compared with baselines learned continuously while you wear it, so
+there is no calibration step.
+
+- **Heart rate above your resting rate (70%).** The resting baseline follows
+  a lower rate quickly (about 30 beats) and a higher rate slowly (about 15
+  minutes). So it settles on your calm rate, and a stressful stretch stays
+  visible rather than being absorbed. 20 BPM above baseline
+  (`HEART_STRESS_BPM`) is full stress.
+- **HRV below its average (30%).** HRV is RMSSD, the typical change in the
+  gap between consecutive beats, over the last ~30 beats. A relaxed body
+  varies the gap, and under stress it becomes more even. Half the long-run
+  average (`HEART_STRESS_HRV_DROP`) is full stress. HRV appears after about
+  15 clean beats.
+
+Baselines start fresh at power-on, so put the headset on while calm. The
+summary line shows them, e.g.
+`SHOWING 71 BPM (base 65) HRV 20 ms (avg 18) stress 0.21`.
+
+Beat times for HRV are taken at the steepest point of each upstroke on the
+sensor's own sample clock, and interpolated between samples. Only
+consecutive confirmed beats count, and intervals more than 20% off the
+rhythm are skipped as artifacts. HRV needs the MAX3010x; the analog sensor
+reports 0.
 
 ## Troubleshooting: is it the sensor or the code?
 
@@ -200,6 +226,8 @@ Work through these in order:
 | `PULSE_FILTER_HZ`       | Lower it (e.g. 2.5) for a noisier signal, raise it if beats look smeared. |
 | `PULSE_REGULARITY`, `PULSE_MIN_RHYTHM`, `PULSE_AMP_CONSISTENCY` | Make the rhythm check looser if real beats are rejected (very irregular pulse), or stricter if noise still flashes the LEDs. |
 | `HEART_BASE_AT_INDEX0`  | The fill grows from the tip instead of the base.             |
-| `HEART_BPM_LOW/HIGH`    | Change which heart rates count as calm and as intense.        |
-| `HEART_MIN_FILL`        | Change how many LEDs the calmest beat fills.                 |
+| `HEART_STRESS_BPM`      | BPM above your resting rate that shows full stress.          |
+| `HEART_HRV_WEIGHT`      | Share of stress from HRV (the rest is heart rate).           |
+| `HEART_BASELINE_UP/DOWN`, `HEART_HRV_BASELINE` | How quickly the baselines follow you. |
+| `HEART_MIN_FILL`        | Change how many LEDs a beat fills at rest.                   |
 | `HEART_COUNTER_BEAT`    | Make the counter-beat fill bigger or smaller (0 turns it off). |

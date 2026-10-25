@@ -10,7 +10,7 @@ from config import (
     COLOR_RED, COLOR_WHITE, COLOR_LIGHT_BLUE, COLOR_PURPLE, COLOR_DEEP_BLUE,
     DEFAULT_INHALE_S, DEFAULT_HOLD_IN_S, DEFAULT_EXHALE_S, DEFAULT_HOLD_OUT_S,
     GUIDED_COLOR_SCHEMES,
-    HEART_BPM_LOW, HEART_BPM_HIGH, HEART_RATE_WEIGHT, HEART_MIN_FILL,
+    HEART_MIN_FILL,
     HEART_COUNTER_BEAT, HEART_BASE_AT_INDEX0,
     HEART_CALM_COLOR, HEART_MID_COLOR, HEART_HOT_COLOR,
 )
@@ -489,7 +489,8 @@ class HeartbeatLED:
     Heart monitor mode LED controller, driven by the detector's steady display rhythm.
     - Each shown beat fills the arms from the base, empties, then gives a
       smaller counter-beat fill (lub-dub)
-    - Faster/stronger beats fill further along the arm and shift green -> red
+    - Stress (rate above resting baseline, low HRV) fills further along the
+      arm and shifts green -> red
     - Nothing is shown until beats arrive in a regular rhythm; after that the
       beat carries on steadily, easing to rate changes, until the finger is lifted
     """
@@ -508,12 +509,8 @@ class HeartbeatLED:
         self.beat_ms = None
 
     def intensity(self):
-        """0..1 from heart rate and relative beat strength."""
-        p = self.pulse
-        rate = (p.rhythm_bpm - HEART_BPM_LOW) / (HEART_BPM_HIGH - HEART_BPM_LOW)
-        rate = max(0.0, min(1.0, rate))
-        k = HEART_RATE_WEIGHT * rate + (1.0 - HEART_RATE_WEIGHT) * p.rhythm_strength
-        return max(0.0, min(1.0, k))
+        """0..1 stress level from the pulse detector."""
+        return self.pulse.stress
 
     def tick(self):
         """Update heart monitor LEDs."""

@@ -18,7 +18,10 @@ from config import (
     PULSE_REGULARITY, PULSE_MIN_RHYTHM, PULSE_AMP_CONSISTENCY, PULSE_LOCK_WINDOW,
     PULSE_FILTER_HZ, PULSE_DEBUG_PLOT, PULSE_DEBUG_STATS, PULSE_DEBUG_RAW,
     HEART_PHASE_WINDOW, HEART_PHASE_GAIN, HEART_RATE_EASE, HEART_MAX_RATE_STEP,
-    HEART_STRENGTH_EASE, HEART_COAST_S, HEART_RATE_GAIN,
+    HEART_COAST_S, HEART_RATE_GAIN,
+    HRV_BEATS, HRV_MIN_BEATS, HRV_MAX_DEV,
+    HEART_STRESS_SMOOTH, HEART_STRESS_BPM, HEART_BASELINE_UP, HEART_BASELINE_DOWN,
+    HEART_HRV_WEIGHT, HEART_HRV_BASELINE, HEART_STRESS_HRV_DROP,
 )
 
 # Low-pass time constant: keeps the 0.7-2.5 Hz pulse, drops faster noise
@@ -30,6 +33,7 @@ _TICKS_PERIOD = 1 << 29
 _TICKS_HALF = _TICKS_PERIOD // 2
 
 IBI_HISTORY = 5  # Beats in the BPM median
+_HIST = 64       # Recent filtered samples kept for beat timing (640 ms at 100/s)
 
 
 def ticks_ms():
@@ -171,7 +175,24 @@ class PulseDetector:
         self._r_next_ms = 0       # When the next shown beat is due
         self._r_support_ms = 0    # Last detected beat that fitted the rhythm
         self.rhythm_count = 0     # Increments on every shown beat
-        self.rhythm_strength = 0.5  # Smoothed beat strength for the display
+
+        # Beat timing for HRV, on the sensor's own sample clock (exact 10 ms
+        # steps, unlike main-loop time). Positions are (sample count, fraction)
+        # so float precision doesn't run out on long sessions.
+        self._sample_ms = src.sample_ms if src else None
+        self._n = 0               # Samples processed
+        self._hist = [0.0] * _HIST  # Recent filtered samples, indexed by sample count
+        self._rise_n = 0          # Sample count at the last beat's rise
+        self._fid = None          # Last confirmed beat's position
+        self._last_iv = None      # Last clean beat interval (ms)
+        self._sq_diffs = []       # Squared successive interval differences
+        self.hrv_ms = 0.0         # RMSSD over recent beats; 0 until enough clean beats
+
+        # Stress: heart rate above the resting baseline, plus HRV below its average
+        self._hr_avg = 0.0        # Smoothed shown rate (evens out breathing swings)
+        self.baseline_bpm = 0.0   # Resting rate: follows drops quickly, rises slowly
+        self.baseline_hrv = 0.0   # Long-run average HRV
+        self.stress = 0.0         # 0 (at baseline) .. 1 (stressed)
 
     def tick(self):
         """Read new sensor samples. Call every main-loop iteration."""
@@ -201,6 +222,8 @@ class PulseDetector:
             if not finger:
                 self._lose_signal()
                 self.value = self.env_hi = self.env_lo = 0.0
+                self._sq_diffs = []
+                self.hrv_ms = 0.0
 
         if finger and n:
             if src.sample_ms:
@@ -258,6 +281,8 @@ class PulseDetector:
             self.dc += _alpha(dt, 1.5) * (self.lp - self.dc)      # Wander removal
             x = self.lp - self.dc
         self.value = x
+        self._n += 1
+        self._hist[self._n % _HIST] = x
 
         # Envelope jumps to new extremes and relaxes back toward the baseline
         decay = _alpha(dt, 2.0)
@@ -298,7 +323,8 @@ class PulseDetector:
         if self.locked_ibi:
             flags += "  LOCKED"
         if self._r_ibi:
-            flags += "  SHOWING {:.0f} BPM".format(self.rhythm_bpm)
+            flags += "  SHOWING {:.0f} BPM (base {:.0f}) HRV {:.0f} ms (avg {:.0f}) stress {:.2f}".format(
+                self.rhythm_bpm, self.baseline_bpm, self.hrv_ms, self.baseline_hrv, self.stress)
         if src.finger_present is False:
             flags += "  NO FINGER"
         elif self._st_n and (self._st_max > 0.985 * src.full_scale or
@@ -355,6 +381,7 @@ class PulseDetector:
                 self.rise_regular = len(recent) >= PULSE_MIN_RHYTHM and all(
                     abs(i - med) <= PULSE_REGULARITY * med for i in recent)
         self.last_rise_ms = now
+        self._rise_n = self._n
         self.in_beat = True
         self.beat_max = self.value
 
@@ -393,7 +420,54 @@ class PulseDetector:
         if PULSE_DEBUG_STATS:
             self._st_beats += 1
             self._st_confirmed += 1 if self.beat_confirmed else 0
+        if self._sample_ms:
+            self._hrv_beat()
         self._rhythm_on_beat(now)
+
+    def _fiducial(self):
+        """Position of the steepest upstroke: a precise, amplitude-independent beat time."""
+        h = self._hist
+        lo = max(self._rise_n - 20, self._n - _HIST + 3)
+        best = None
+        bk = lo
+        for k in range(lo, self._n + 1):
+            d = h[k % _HIST] - h[(k - 1) % _HIST]
+            if best is None or d > best:
+                best = d
+                bk = k
+        # Parabola through the neighbouring slopes places the peak between samples
+        frac = 0.0
+        if lo < bk < self._n:
+            d0 = h[(bk - 1) % _HIST] - h[(bk - 2) % _HIST]
+            d2 = h[(bk + 1) % _HIST] - h[bk % _HIST]
+            den = d0 - 2.0 * best + d2
+            if den < 0:
+                frac = 0.5 * (d0 - d2) / den
+        return bk, frac
+
+    def _hrv_beat(self):
+        """Add a beat to the HRV (RMSSD) window; only consecutive confirmed beats count."""
+        prev = self._fid
+        if not self.beat_confirmed:
+            self._fid = self._last_iv = None
+            return
+        fid = self._fiducial()
+        self._fid = fid
+        if prev is None:
+            return
+        iv = ((fid[0] - prev[0]) + (fid[1] - prev[1])) * self._sample_ms
+        ref = self.locked_ibi or iv
+        if abs(iv - ref) > HRV_MAX_DEV * ref:
+            self._last_iv = None  # Missed or extra beat: don't count this gap
+            return
+        if self._last_iv is not None:
+            d = iv - self._last_iv
+            self._sq_diffs.append(d * d)
+            if len(self._sq_diffs) > HRV_BEATS:
+                self._sq_diffs.pop(0)
+            if len(self._sq_diffs) >= HRV_MIN_BEATS:
+                self.hrv_ms = math.sqrt(sum(self._sq_diffs) / len(self._sq_diffs))
+        self._last_iv = iv
 
     def _rhythm_on_beat(self, now):
         """Steer the display rhythm with a detected beat; beats off the rhythm are ignored."""
@@ -403,7 +477,6 @@ class PulseDetector:
                 self._r_ibi = float(self.locked_ibi)
                 self._r_next_ms = now
                 self._r_support_ms = now
-                self.rhythm_strength = self.beat_strength
             return
 
         # Timing error against the nearest shown beat (last one or next one)
@@ -417,7 +490,6 @@ class PulseDetector:
         # always steer (gradually), letting the display re-sync if it drifts
         self._r_next_ms = ticks_add(self._r_next_ms, HEART_PHASE_GAIN * err)
         self._r_support_ms = now
-        self.rhythm_strength += HEART_STRENGTH_EASE * (self.beat_strength - self.rhythm_strength)
 
         # Ease the rate toward the detector's rate, but only while it's locked
         # onto a steady rhythm (so a burst of noise can't drag it). Beats that
@@ -436,9 +508,28 @@ class PulseDetector:
             return
         if ticks_diff(now, self._r_next_ms) >= 0:
             self.rhythm_count += 1
+            self._update_stress()
             self._r_next_ms = ticks_add(self._r_next_ms, self._r_ibi)
             if ticks_diff(now, self._r_next_ms) >= 0:
                 self._r_next_ms = ticks_add(now, self._r_ibi)  # Fell behind (slow loop)
+
+    def _update_stress(self):
+        """Once per shown beat: compare rate and HRV with this session's baselines."""
+        bpm = self.rhythm_bpm
+        if not self._hr_avg:
+            self._hr_avg = self.baseline_bpm = bpm
+        self._hr_avg += HEART_STRESS_SMOOTH * (bpm - self._hr_avg)
+        rate = HEART_BASELINE_DOWN if self._hr_avg < self.baseline_bpm else HEART_BASELINE_UP
+        self.baseline_bpm += rate * (self._hr_avg - self.baseline_bpm)
+        k = max(0.0, min(1.0, (self._hr_avg - self.baseline_bpm) / HEART_STRESS_BPM))
+
+        if self.hrv_ms:
+            if not self.baseline_hrv:
+                self.baseline_hrv = self.hrv_ms
+            self.baseline_hrv += HEART_HRV_BASELINE * (self.hrv_ms - self.baseline_hrv)
+            drop = (1.0 - self.hrv_ms / self.baseline_hrv) / HEART_STRESS_HRV_DROP
+            k = (1.0 - HEART_HRV_WEIGHT) * k + HEART_HRV_WEIGHT * max(0.0, min(1.0, drop))
+        self.stress = k
 
     @property
     def rhythm_bpm(self):
@@ -470,6 +561,7 @@ class PulseDetector:
         self.beat_strength = 0.5
         self.rise_regular = False
         self.beat_confirmed = False
+        self._fid = self._last_iv = None
 
     def has_signal(self):
         """True while beats are arriving regularly."""

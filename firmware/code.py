@@ -166,7 +166,7 @@ def send_breath_data():
 
 
 def send_heart_data():
-    """Send: H,{ts},{wave},{bpm},{signal},{beats},{strength}"""
+    """Send: H,{ts},{wave},{bpm},{signal},{beats},{stress},{hrv}"""
     global last_heart_tx_ms
 
     now = now_ms()
@@ -174,14 +174,15 @@ def send_heart_data():
         return
     last_heart_tx_ms = now
 
-    # Rate, beats and strength follow the LEDs' steady rhythm, not raw detections
-    msg = "H,{},{:.3f},{},{},{},{}\n".format(
+    # Rate, beats and stress follow the LEDs' steady rhythm, not raw detections
+    msg = "H,{},{:.3f},{},{},{},{},{}\n".format(
         now & 0xFFFFFFFF,
         pulse.normalized(),
         int(pulse.rhythm_bpm + 0.5),
         1 if pulse.rhythm_bpm > 0 else 0,
         pulse.rhythm_count & 0xFFFF,
-        int(pulse.rhythm_strength * 100),
+        int(pulse.stress * 100),
+        int(pulse.hrv_ms + 0.5),
     )
 
     try:
