@@ -81,8 +81,9 @@ sensor.
 
 ## Shared pins
 
-Pins already in use: **A0** (thermistor), **D7** (right LED strip) and
-**D9** (left LED strip).
+Pins already in use: **A0** (thermistor), **A2** (battery voltage divider,
+see `hardware/glasses/README.md`), **D7** (right LED strip) and **D9**
+(left LED strip).
 
 The 3V pin also powers the thermistor divider. Solder both power wires
 into the same hole, or join the sensor's power wire to the 3V end of the

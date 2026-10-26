@@ -1,0 +1,10 @@
+{
+	"autodeskProduct": "Fusion360",
+	"type": "script",
+	"author": "BreathSense",
+	"description": {
+		"": "Builds the BreathSense glasses mount from user parameters. Run again after changing parameters to rebuild."
+	},
+	"supportedOS": "windows|mac",
+	"editEnabled": true
+}
