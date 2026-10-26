@@ -10,9 +10,12 @@ from adafruit_ble import BLERadio
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 from adafruit_ble.services.nordic import UARTService
 
-from config import BLE_TX_INTERVAL_MS, BLE_LIVE_HZ, HEART_LIVE_HZ, STANDALONE_MODE
+from config import (
+    BLE_TX_INTERVAL_MS, BLE_LIVE_HZ, HEART_LIVE_HZ, STANDALONE_MODE, BATTERY_TX_S, BATTERY_LOW_PCT,
+)
 from breath_detector import BreathDetector, PH_IDLE, PH_INH, PH_EXH
 from pulse_detector import PulseDetector
+from battery import Battery
 from led_control import (
     OpenBreathingLED, GuidedBreathingLED, HeartbeatLED, hide_all,
     play_startup_animation, play_ble_connected_animation,
@@ -71,6 +74,11 @@ detector.apply_sensitivity(settings["sensitivity"])
 pulse = PulseDetector()
 log("Pulse sensor: " + pulse.source_name)
 
+# ========== Battery ==========
+battery = Battery()
+if battery.enabled:
+    log("Battery: {:.2f} V, {}%".format(battery.volts, battery.percent))
+
 # ========== LED Controllers ==========
 open_led = OpenBreathingLED(detector)
 guided_led = GuidedBreathingLED(detector)
@@ -108,6 +116,8 @@ live_interval_ms = int(1000 / BLE_LIVE_HZ)
 last_heart_tx_ms = 0
 heart_interval_ms = int(1000 / HEART_LIVE_HZ)
 last_logged_beat = 0
+last_battery_tx_ms = 0
+last_battery_log_pct = None
 gc_counter = 0
 
 
@@ -189,6 +199,39 @@ def send_heart_data():
         uart.write(msg.encode("utf-8"))
     except Exception as e:
         log("TX err: " + str(e))
+
+
+def send_battery(force=False):
+    """Send: P,{mv},{percent},{usb}  percent is -1 when no battery is seen"""
+    global last_battery_tx_ms
+
+    if not battery.enabled:
+        return
+    now = now_ms()
+    if not force and now - last_battery_tx_ms < BATTERY_TX_S * 1000:
+        return
+    last_battery_tx_ms = now
+
+    msg = "P,{},{},{}\n".format(int(battery.volts * 1000), battery.percent, 1 if battery.usb else 0)
+    try:
+        uart.write(msg.encode("utf-8"))
+    except Exception as e:
+        log("TX err: " + str(e))
+
+
+def log_battery():
+    """Log the charge level when it moves by 5% (USB console only)."""
+    global last_battery_log_pct
+    if not battery.enabled:
+        return
+    pct = battery.percent
+    if last_battery_log_pct is None or abs(pct - last_battery_log_pct) >= 5:
+        last_battery_log_pct = pct
+        if pct < 0:
+            log("Battery: none seen ({:.2f} V)".format(battery.volts))
+        else:
+            log("Battery: {:.2f} V, {}%{}".format(
+                battery.volts, pct, " LOW" if pct <= BATTERY_LOW_PCT else ""))
 
 
 def log_beats():
@@ -421,7 +464,9 @@ try:
             # Breath and pulse detection always run
             detector.tick()
             pulse.tick()
+            battery.tick()
             log_beats()
+            log_battery()
 
             if ble.connected:
                 if not was_connected:
@@ -437,6 +482,7 @@ try:
                     play_ble_connected_animation()
                     # Send settings to app on connect
                     send_settings()
+                    send_battery(force=True)
 
                 # Handle incoming commands
                 handle_rx()
@@ -446,6 +492,7 @@ try:
                     send_heart_data()
                 else:
                     send_breath_data()
+                send_battery()
 
                 # Update LEDs based on mode and LED toggle
                 leds_enabled = settings.get("led_on", True)

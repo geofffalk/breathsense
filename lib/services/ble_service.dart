@@ -78,6 +78,12 @@ class BleService extends ChangeNotifier {
   int _heartStress = 0;
   int _heartHrv = 0;
 
+  // Headset battery, from "P,{mv},{percent},{usb}" lines (every ~10 s)
+  bool _hasBatteryReading = false;
+  int _batteryMv = 0;
+  int _batteryPercent = -1; // -1 = no battery seen (switch off or not fitted)
+  bool _batteryOnUsb = false;
+
   // App-side mood analyzer (calculates scores from raw breath metrics)
   final MoodAnalyzer _moodAnalyzer = MoodAnalyzer();
   
@@ -101,6 +107,10 @@ class BleService extends ChangeNotifier {
   int get heartBeatCount => _heartBeatCount;
   int get heartStress => _heartStress;
   int get heartHrv => _heartHrv;
+  bool get hasBatteryReading => _hasBatteryReading;
+  int get batteryMv => _batteryMv;
+  int get batteryPercent => _batteryPercent;
+  bool get batteryOnUsb => _batteryOnUsb;
   bool get isConnected => _isBleConnected;
   bool get isBluetoothOff => _connectionState == BleConnectionState.bluetoothOff;
   int get currentStressScore => _moodAnalyzer.stressScore;
@@ -619,6 +629,8 @@ class BleService extends ChangeNotifier {
           _breathDataController.add(breathData);
         } else if (line.startsWith('R,')) {
           _parseSettingsResponse(line);
+        } else if (line.startsWith('P,')) {
+          _parseBattery(line);
         }
       }
     } catch (e) {
@@ -647,6 +659,24 @@ class BleService extends ChangeNotifier {
       _heartHrv = data.hrvMs;
       notifyListeners();
     }
+  }
+
+  void _parseBattery(String message) {
+    final parts = message.split(',');
+    if (parts.length < 4) return;
+    final mv = int.tryParse(parts[1]);
+    final percent = int.tryParse(parts[2]);
+    if (mv == null || percent == null) return;
+    final onUsb = parts[3] == '1';
+    if (_hasBatteryReading && percent == _batteryPercent && onUsb == _batteryOnUsb) {
+      _batteryMv = mv;
+      return;
+    }
+    _hasBatteryReading = true;
+    _batteryMv = mv;
+    _batteryPercent = percent;
+    _batteryOnUsb = onUsb;
+    notifyListeners();
   }
 
   void _parseSettingsResponse(String message) {
@@ -709,6 +739,8 @@ class BleService extends ChangeNotifier {
     _connectionReadyTime = null;
     _incomingBuffer = '';
     _currentGuidedPhase = -1;
+    _hasBatteryReading = false;
+    _batteryPercent = -1;
     
     // Reset mood analyzer so "Calibrating..." shows on reconnect
     _moodAnalyzer.reset();

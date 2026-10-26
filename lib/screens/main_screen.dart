@@ -56,6 +56,7 @@ class MainScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          _BatteryIndicator(),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -150,6 +151,50 @@ class MainScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Headset battery level; hidden until the headset reports one
+class _BatteryIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BleService>(
+      builder: (context, bleService, _) {
+        if (!bleService.isConnected || !bleService.hasBatteryReading) {
+          return const SizedBox.shrink();
+        }
+        final percent = bleService.batteryPercent;
+        final noBattery = percent < 0;
+        final IconData icon;
+        final Color color;
+        if (noBattery) {
+          icon = Icons.battery_unknown;
+          color = Colors.grey;
+        } else if (bleService.batteryOnUsb) {
+          icon = Icons.battery_charging_full;
+          color = Colors.green[700]!;
+        } else if (percent <= 10) {
+          icon = Icons.battery_alert;
+          color = Colors.red[700]!;
+        } else {
+          icon = percent >= 80 ? Icons.battery_full : percent >= 40 ? Icons.battery_5_bar : Icons.battery_2_bar;
+          color = Colors.black87;
+        }
+        return Tooltip(
+          message: noBattery
+              ? 'No battery seen (switch off?)'
+              : 'Headset battery ${(bleService.batteryMv / 1000).toStringAsFixed(2)} V',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 22),
+              if (!noBattery)
+                Text('$percent%', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -84,6 +84,16 @@ LED_PIN_RIGHT = "D7"
 NUM_LEDS = 20
 THERMISTOR_PIN = "A0"
 
+# ===== Battery =====
+# LiPo voltage via two 100k resistors from BAT to G, midpoint to this pin.
+# Set to None if the divider isn't fitted (a floating pin reads noise).
+BATTERY_PIN = "A2"
+BATTERY_DIVIDER = 2.0          # Battery volts per volt at the pin
+BATTERY_SAMPLE_S = 2.0         # Seconds between readings
+BATTERY_MIN_V = 2.8            # Below this, no battery is connected (or the switch is off)
+BATTERY_TX_S = 10.0            # Seconds between battery lines to the app
+BATTERY_LOW_PCT = 10           # Log a warning on the console at or below this
+
 # Thermistor circuit values
 ADC_MAX = 65535.0
 VSUP = 3.3
