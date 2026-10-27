@@ -1,0 +1,190 @@
+"""
+Render the proposed v2 hardware on the stand-in head and glasses from ../glasses/render_worn.py.
+
+Shows the PETG rails (size M, from mount_v2.py) and soft-flex corners on the temples, and a
+frozen moment of a breath wave: the front LEDs (corner and the first 15 mm of temple) light as
+a travelling crest, the rest of the temple glows dimly. The pods, cord and thermistor are
+rough blocks for layout only; they are not modelled yet.
+
+Run:  python render_v2.py   -> renders/v2_*.png
+"""
+
+import math
+import sys
+from pathlib import Path
+
+import numpy as np
+import pyvista as pv
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "glasses"))
+sys.path.insert(0, str(Path(__file__).parent))
+import glasses_mount as gm   # noqa: E402
+import render_worn as rw     # noqa: E402
+import mount_v2 as mv        # noqa: E402
+
+OUT = Path(__file__).parent / "renders"
+
+FRONT_X = -15.0                    # LEDs in front of this are in direct view
+RAIL_SIZE = "M"                    # The reference glasses' temples (4.0 and 3.5 mm) take the M rail
+PETG = "#7d93a8"
+LIT = np.array([0.75, 1.00, 1.00])
+GLOW = np.array([0.10, 0.35, 0.45])
+OFF = np.array([0.20, 0.22, 0.25])
+POD = "#2b2e33"
+BOARD = "#1565c0"
+BATTERY = "#9e9e9e"
+CORD = "#444444"
+THERM = "#ff7043"
+LED_Y = mv.CH_Y0 + mv.LIP_T - 0.2       # LED faces, just inside the channel mouth
+LED_Z = (mv.CH_Z0 + mv.CH_Z1) / 2
+
+
+def world(p, right):
+    """Rail coordinates (y outward from the temple's inner face) to world."""
+    p = np.array(p, float)
+    p[..., 1] = -(rw.WT + p[..., 1]) if right else rw.WT + p[..., 1]
+    return p
+
+
+def led_positions():
+    """(x along the strip, rail-coordinate point) for the 10 LEDs: 8 on the rail, then 2 in the
+    corner piece (one just before its bend, one on its flap), fitted at 90 degrees."""
+    out = [(x, (x, LED_Y, LED_Z)) for x in gm.LED_X[:gm.LEDS_ON_TEMPLE]]
+    xc = mv.RAIL_X1 + mv.TONGUE["l"]
+    r = LED_Y - ((mv.CH_Y0 + mv.CH_D / 2) - mv.CORNER_R)
+    yc = LED_Y - r
+    s0 = gm.LED_X[gm.LEDS_ON_TEMPLE - 1]
+    for k in (1, 2):
+        s = s0 + k * gm.LED_PITCH - mv.RAIL_X1                  # Path length from the rail's front face
+        if s <= mv.TONGUE["l"]:
+            p = (mv.RAIL_X1 + s, LED_Y, LED_Z)
+        elif s <= mv.TONGUE["l"] + r * math.pi / 2:
+            th = (s - mv.TONGUE["l"]) / r
+            p = (xc + r * math.sin(th), yc + r * math.cos(th), LED_Z)
+        else:
+            p = (xc + r, yc - (s - mv.TONGUE["l"] - r * math.pi / 2), LED_Z)
+        out.append((s0 + k * gm.LED_PITCH, p))
+    return out
+
+
+def led_levels(xs, crest_x=0.0, width=6.0):
+    """Wave crest on the front LEDs (0..1), None for the temple's dim glow."""
+    return [max(math.exp(-((x - crest_x) / width) ** 2), 0.15) if x > FRONT_X else None for x in xs]
+
+
+def strip_meshes(right):
+    """Rail, corner piece and LEDs on one side."""
+    rail = mv.rail(RAIL_SIZE)
+    corner = mv.corner(angle=90.0)
+    out = []
+    for shape, colour in ((rail, PETG), (corner, rw.TPU)):
+        mesh = rw.to_mesh(shape)
+        mesh.points = world(mesh.points, right)       # world() mirrors the left side
+        out.append((mesh, colour, 1.0))
+    leds = led_positions()
+    for (x, p), a in zip(leds, led_levels([x for x, _ in leds])):
+        c = GLOW if a is None else OFF + (LIT - OFF) * a
+        out.append((pv.Cube(center=world(p, right), x_length=1.6, y_length=0.8, z_length=1.6), c, 1.0))
+        if a is not None and a > 0.3:
+            out.append((pv.Sphere(radius=2 + 4 * a, center=world(p, right)), LIT, 0.35 * a))
+    return out
+
+
+def tip_end(right):
+    """World position of the temple tip's end (behind the ear)."""
+    p = rw.bend_points(np.array([[rw.BEND_X - gm.TIP_LEN, gm.REF_TIP[0] / 2, -gm.REF_TIP[1] / 2]]), False)[0]
+    return np.array([p[0], -(rw.WT + p[1]) if right else rw.WT + p[1], p[2]])
+
+
+def pod_meshes():
+    out = []
+    # Right: XIAO nRF52840 Plus pod + button, with the earlobe arm and MAX30101
+    r = tip_end(True) + np.array([0, 2.0, -6.0])
+    out.append((pv.Box(bounds=(r[0] - 13, r[0] + 13, r[1] - 4.5, r[1] + 4.5, r[2] - 11, r[2] + 11)), POD, 1.0))
+    out.append((pv.Box(bounds=(r[0] - 10.5, r[0] + 10.5, r[1] - 5.0, r[1] - 4.4, r[2] - 8.5, r[2] + 8.5)), BOARD, 1.0))
+    lobe = np.array([rw.EAR["x"] - 8, -(rw.EAR["y"] - 3), rw.EAR["z"] - 22])
+    arm = pv.Spline(np.array([r + [8, 0, -10], r + [12, 0, -18], lobe + [-4, 0, 2]]), 30).tube(radius=1.2)
+    out.append((arm, POD, 1.0))
+    out.append((pv.Box(bounds=(lobe[0] - 6, lobe[0] + 6, lobe[1] - 1.5, lobe[1] + 1.5, lobe[2] - 5, lobe[2] + 5)),
+                rw.SENSOR, 1.0))
+    # Left: battery pod
+    l = tip_end(False) + np.array([0, -2.0, -6.0])
+    out.append((pv.Box(bounds=(l[0] - 17, l[0] + 17, l[1] - 4.5, l[1] + 4.5, l[2] - 12, l[2] + 12)), POD, 1.0))
+    out.append((pv.Box(bounds=(l[0] - 15, l[0] + 15, l[1] + 4.4, l[1] + 5.0, l[2] - 10, l[2] + 10)), BATTERY, 1.0))
+    # Cord round the back of the head
+    hx = rw.HEAD["center"][0] - rw.HEAD["radii"][0]
+    cord = np.array([r + [-10, 0, -4], (-165, -62, -55), (hx - 4, 0, -62), (-165, 62, -55), l + [-14, 0, -4]])
+    out.append((pv.Spline(cord, 120).tube(radius=1.2), CORD, 1.0))
+    return out, r, l, lobe
+
+
+def thermistor_meshes():
+    """Bead on the right nose pad, its wire along the lower rim to the right hinge."""
+    bead = np.array([8.0, -9.0, -20.0])
+    t = np.linspace(math.radians(215), math.radians(345), 30)
+    rim = np.stack([np.full(len(t), 6.0), -33 + 26 * np.cos(t), -4 + 20 * np.sin(t)], axis=1)
+    rim = rim[::-1] * [1, 1, 1]
+    wire = np.vstack([bead, rim, [(2.0, -rw.WT + 1, -2.0), (0.0, -rw.WT - 0.5, -3.0)]])
+    return [(pv.Sphere(radius=1.6, center=bead), THERM, 1.0),
+            (pv.Spline(wire, 120).tube(radius=0.5), THERM, 1.0)], bead
+
+
+def scene(head=True):
+    meshes = (rw.head_meshes() if head else []) + rw.glasses_meshes()
+    for right in (True, False):
+        meshes.append((rw.to_world(rw.temple(), right), rw.FRAME, 1.0))
+        meshes += strip_meshes(right)
+    pods, r, l, lobe = pod_meshes()
+    therm, bead = thermistor_meshes()
+    return meshes + pods + therm, dict(r=r, l=l, lobe=lobe, bead=bead)
+
+
+def add(p, meshes):
+    for m, colour, opacity in meshes:
+        lit = not isinstance(colour, str)
+        p.add_mesh(m, color=colour, opacity=opacity, smooth_shading=True, specular=0.2,
+                   ambient=0.9 if lit else 0.15, diffuse=0.3 if lit else 1.0)
+
+
+def label(p, pts, texts):
+    p.add_point_labels(np.array(pts), texts, font_size=22, point_size=1, shape_opacity=0.85,
+                       shape_color="white", text_color="black", always_visible=True, margin=4)
+
+
+def main():
+    OUT.mkdir(exist_ok=True)
+    right_front = world((mv.RAIL_X1 + 6, LED_Y, LED_Z), True)
+    right_temple = world((-55.0, LED_Y, LED_Z), True)
+
+    # Outside, rear three-quarter: pods, cord, earlobe sensor
+    meshes, at = scene()
+    p = pv.Plotter(off_screen=True, window_size=(1800, 1300))
+    p.set_background("white")
+    add(p, meshes)
+    label(p, [at["r"] + [0, -8, 14], at["lobe"] + [0, -6, -8], (-200, -10, -70), right_temple + [0, -6, 8]],
+          ["XIAO nRF52840 Plus pod + button", "MAX30101 on the earlobe", "Cord to the battery pod",
+           "PETG rail, size M"])
+    p.camera_position = [(-430, -360, 70), (-110, 0, -40), (0, 0, 1)]
+    p.camera.view_angle = 30
+    p.enable_anti_aliasing("ssaa")
+    p.screenshot(str(OUT / "v2_rear_three_quarter.png"))
+    p.close()
+
+    # Inside, head hidden: what faces the wearer at the right hinge
+    meshes, at = scene(head=False)
+    p = pv.Plotter(off_screen=True, window_size=(1800, 1300))
+    p.set_background("#20242a")
+    add(p, meshes)
+    label(p, [right_front + [4, 10, 10], right_temple + [0, 8, 10], at["bead"] + [0, 6, -8]],
+          ["Front LEDs: travelling wave (in direct view)", "Temple LEDs: glow only (out of direct view)",
+           "Thermistor on the nose pad"])
+    p.camera_position = [(-120, 30, 40), (-10, -60, -5), (0, 0, 1)]
+    p.camera.view_angle = 40
+    p.enable_anti_aliasing("ssaa")
+    p.screenshot(str(OUT / "v2_inside_right.png"))
+    p.close()
+    print("wrote", OUT)
+
+
+if __name__ == "__main__":
+    main()
