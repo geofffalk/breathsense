@@ -47,29 +47,16 @@ def world(p, right):
 
 
 def led_positions():
-    """(x along the strip, rail-coordinate point) for the 10 LEDs: 8 on the rail, then 2 in the
-    corner piece (one just before its bend, one on its flap), fitted at 90 degrees."""
-    out = [(x, (x, LED_Y, LED_Z)) for x in gm.LED_X[:gm.LEDS_ON_TEMPLE]]
-    xc = mv.RAIL_X1 + mv.TONGUE["l"]
-    r = LED_Y - ((mv.CH_Y0 + mv.CH_D / 2) - mv.CORNER_R)
-    yc = LED_Y - r
-    s0 = gm.LED_X[gm.LEDS_ON_TEMPLE - 1]
-    for k in (1, 2):
-        s = s0 + k * gm.LED_PITCH - mv.RAIL_X1                  # Path length from the rail's front face
-        if s <= mv.TONGUE["l"]:
-            p = (mv.RAIL_X1 + s, LED_Y, LED_Z)
-        elif s <= mv.TONGUE["l"] + r * math.pi / 2:
-            th = (s - mv.TONGUE["l"]) / r
-            p = (xc + r * math.sin(th), yc + r * math.cos(th), LED_Z)
-        else:
-            p = (xc + r, yc - (s - mv.TONGUE["l"] - r * math.pi / 2), LED_Z)
-        out.append((s0 + k * gm.LED_PITCH, p))
-    return out
+    """(path length along the strip, rail-coordinate point) for the 10 LEDs on the strip's centre
+    line, corner at 90 degrees."""
+    return [(p, (x, y, LED_Z)) for p, (x, y) in zip(mv.led_path(), mv.led_points(90.0))]
 
 
-def led_levels(xs, crest_x=0.0, width=6.0):
-    """Wave crest on the front LEDs (0..1), None for the temple's dim glow."""
-    return [max(math.exp(-((x - crest_x) / width) ** 2), 0.15) if x > FRONT_X else None for x in xs]
+def led_levels(leds, crest_s=None, width=6.0):
+    """Wave crest on the LEDs in direct view (0..1), None for the temple's dim glow."""
+    if crest_s is None:
+        crest_s = mv.led_path()[-2]
+    return [max(math.exp(-((s - crest_s) / width) ** 2), 0.15) if p[0] > FRONT_X else None for s, p in leds]
 
 
 def strip_meshes(right):
@@ -82,7 +69,7 @@ def strip_meshes(right):
         mesh.points = world(mesh.points, right)       # world() mirrors the left side
         out.append((mesh, colour, 1.0))
     leds = led_positions()
-    for (x, p), a in zip(leds, led_levels([x for x, _ in leds])):
+    for (_, p), a in zip(leds, led_levels(leds)):
         c = GLOW if a is None else OFF + (LIT - OFF) * a
         out.append((pv.Cube(center=world(p, right), x_length=1.6, y_length=0.8, z_length=1.6), c, 1.0))
         if a is not None and a > 0.3:
@@ -146,9 +133,10 @@ def scene(head=True):
     for right in (True, False):
         meshes.append((rw.to_world(rw.temple(), right), rw.FRAME, 1.0))
         meshes += strip_meshes(right)
-        dfu = rw.to_mesh(mv.diffuser())
-        dfu.points = world(dfu.points, right)
-        meshes.append((dfu, "#eef4ff", 0.45))
+        for shape in (mv.diffuser(),) + mv.corner_caps(90.0):
+            dfu = rw.to_mesh(shape)
+            dfu.points = world(dfu.points, right)
+            meshes.append((dfu, "#eef4ff", 0.45))
     pods, r, l, lobe = pod_meshes()
     therm, bead = thermistor_meshes()
     return meshes + pods + therm, dict(r=r, l=l, lobe=lobe, bead=bead)

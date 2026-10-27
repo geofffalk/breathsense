@@ -34,7 +34,8 @@ These angles are estimated from typical frame geometry. The LED sweep test
 
 - **Hinge and front flap (about 75–95° from straight ahead):** in direct view.
   Position and direction can be told apart, so the travelling cues go here.
-  With 6.7 mm spacing, about 3–4 LEDs per side fall in this zone.
+  With 6.8 mm spacing, 5 LEDs per side fall in this zone: 3 on the corner's
+  flap, 1 at the hinge and the front LED on the rail.
 - **Temple, 15–30 mm behind the hinge (about 95–110°):** at the edge of the
   field. Only bright changes are noticed.
 - **Rest of the temple:** out of direct view. Its light reaches the eye only as
@@ -46,7 +47,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Part | Notes | Cost |
 |---|---|---|
 | Seeed XIAO nRF52840 **Plus** (on hand) | Same chip as the ItsyBitsy, but 21×17.5 mm. Built-in LiPo charger (no backpack), extra pads. No IMU or microphone | $0 |
-| Adafruit Ultra Skinny NeoPixel 1515 strip, 4 mm, 150 LEDs/m (on hand, as 10-LED pieces) | SK6805-EC15 LEDs. One 10-LED piece per side: 2 on the front flap, 8 on the temple, the same layout as v1 | $0 |
+| Adafruit Ultra Skinny NeoPixel 1515 strip, 4 mm, 150 LEDs/m (on hand, as 10-LED pieces) | SK6805-EC15 LEDs. One 10-LED piece per side: 3 on the corner's flap against the frame front, 1 at the hinge, 6 along the temple | $0 |
 | MAX30101 earlobe sensor, 502030 250 mAh LiPo (on hand) | | $0 |
 | Fast 10k bead NTC thermistor | Breath sensor on a nose pad, in the breath stream | ~$2 |
 | P-MOSFET (e.g. AO3401) and 100k gate pull-up | Cuts all LED power when the display is off or the battery is low | ~$0.50 |
@@ -55,7 +56,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
 | **Total** | | **about $8, or $23 with natural PETG** |
 
-About $40 of the budget is left. If 3–4 visible LEDs per side look too coarse,
+About $40 of the budget is left. If 5 visible LEDs per side look too coarse,
 the best use is a custom flex PCB with about 12–14 tiny LEDs for the front
 section only.
 
@@ -72,8 +73,8 @@ Strip sources:
 - **Behind the head:** a thin cord with four wires joins the pods: battery +,
   ground, the switched LED supply and the left strip's data. There is no neck
   band.
-- **LEDs:** a 10-LED piece on each side: 8 in the rail's channel, 2 in the
-  corner piece. Nothing touches the lens rim, so it fits any frames. Each strip
+- **LEDs:** a 10-LED piece on each side: 6 in the rail's channel, 4 in the
+  corner piece (1 at the hinge, 3 on the flap). Nothing touches the lens rim, so it fits any frames. Each strip
   has its own data pin, as in v1.
 - **Thermistor:** on the right nose pad. Its two wires run along the frame
   front to the right hinge, then along the right rail's channel to the board
@@ -161,8 +162,9 @@ only where it helps (grip and the corner).
 | `test_clip_S`, `_M`, `_L` | PETG | One clip on a short length of rail. Print these first and try them on your glasses |
 | `rail_right_S/M/L`, `rail_left_S/M/L` | PETG | The full rail for each temple, in three sizes |
 | `liner` | Soft flex | Grip liner. Print 4 (two per rail) |
-| `corner_right`, `corner_left` | Soft flex | Carry the last two LEDs round the hinge |
+| `corner_right`, `corner_left` | Soft flex | Carry the front four LEDs round the hinge and along the frame front |
 | `diffuser` | Natural (translucent) PETG | Snap-on cover over each rail's LED channel. Print 2; it fits either side |
+| `corner_cap_hinge`, `corner_cap_flap` | Natural (translucent) PETG | Covers over the corner's LEDs. Print 2 of each |
 | `pod_board_S/M/L` | PETG | Right pod: XIAO, button, MAX30101 arm root. Sized by the temple tip |
 | `pod_battery_S/M/L` | PETG | Left pod: battery and the cord junction |
 | `lid_board`, `lid_battery` | Soft flex | Press-in lids on the pods' outer faces |
@@ -217,8 +219,14 @@ straighten, which is why the flap flopped. This one holds its flap against the
 frame front at rest, and bends further when the glasses fold.
 
 It slides down onto a tongue on the rail's front end and grips it by a slight
-interference fit. The 9th LED sits just in front of the rail and the 10th on
-the flap.
+interference fit. It carries the front four LEDs:
+- **Hinge:** the 7th LED, on the corner's straight part just before the
+  bend.
+- **Flap:** the 8th, 9th and 10th LEDs, 1.5, 8.3 and 15.1 mm along it. Two
+  snap lips between them hold the strip in.
+
+The flap is 20 mm long, so on most frames it reaches in behind the outer edge
+of the lens.
 
 ### Diffuser
 
@@ -228,11 +236,17 @@ is in: hook the bottom edge on, then press the top hook over. Print it in
 natural PETG. If the LEDs still show as dots, a thicker plate or a bigger gap
 (`DIFF_T`, `DIFF_GAP`) blurs them more.
 
-**It covers only the eight rail LEDs, and most of those are in the glow-only
-zone.** The two corner LEDs, the ones in direct view that carry the travelling
-wave, are bare in black soft flex. Until they get their own cover, the wave
-will show as two bright dots. A small natural-PETG cap over the corner's flap
-is the next part to add.
+**Corner caps.** The corner LEDs are the ones in direct view, the ones that
+carry the travelling wave, so they get covers too:
+- **Hinge cap:** a short cap on the corner's straight part, over the hinge
+  LED.
+- **Flap cap:** a long cap along the flap, over its three LEDs.
+
+The bend between them is left open, so the corner can still bend when the
+glasses fold. Both caps hook over the corner's top and bottom edges like the
+rail diffuser. Both fit either side: turn them over for the left.
+On soft flex, the hooks hold less firmly than on the rigid rail; if a cap
+won't stay, a dot of flexible glue fixes it.
 
 ### Pods
 
@@ -294,7 +308,7 @@ is the next part to add.
 - **Pods:** PETG, head-side face down, no supports. The leaves stand up from
   the bed, and the cavity opens upward. The outer wall bridges 9–11 mm over
   the tip slot.
-- **Diffuser:** natural PETG, plate down.
+- **Diffuser and corner caps:** natural PETG, plate down.
 - **Liners, lids and arm:** soft flex, flat face down. The arm's cradle rims
   overhang 1.5 mm.
 - **Corner:** soft flex, standing on its bottom end.

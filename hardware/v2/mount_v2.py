@@ -15,12 +15,13 @@ neck and corner had almost no stiffness, so it flopped about and slid. Here:
   face. Soft flex is grippy; the PETG gives the clamping force.
 - The corner is a separate soft-flex piece printed already bent (100 degrees, 10 over the
   frame's 90), so at rest it holds its front end against the frame front instead of flopping
-  straight. It slides down onto a tongue on the rail's front end and carries the last two LEDs
-  round the hinge. It bends further when the glasses fold.
+  straight. It slides down onto a tongue on the rail's front end and carries the front four
+  LEDs: one at the hinge and three on the flap against the frame front. It bends further when the glasses fold.
 - There is no neck or ear-end arch: the rail stops before the ear bend. The wires cross the
   bend loose to the pods, which clip onto the temple tips: the XIAO pod on the right, with the
   soft-flex MAX30101 arm, and the battery pod on the left.
-- A snap-on diffuser printed in natural PETG covers each rail's LED channel.
+- A snap-on diffuser printed in natural PETG covers each rail's LED channel, and two caps
+  cover the corner's four LEDs.
 
 Coordinates, as worn on the RIGHT temple (the left parts are mirrored): x forward (glasses
 hinge at x = 0), y outward (temple inner face at y = 0), z up (temple top edge at z = 0).
@@ -87,10 +88,20 @@ LINER_CLEAR = 0.1
 # so it stands on the bed when printed.
 TONGUE = dict(y=(-1.1, -0.3), z=(CH_Z0 - 0.4, CLIP_T), l=6.0)
 
+# ---------------------------------------------------------------- LED layout
+# The 10-LED piece, measured along the strip from the rail's front face (negative: on the rail).
+# Three LEDs sit on the corner's flap against the frame front, one on the corner's straight part
+# at the hinge, and six along the rail. The flap's first LED is FLAP_LED_D along the flap from
+# the bend's end, with the corner fitted at 90 degrees.
+LEDS = 10
+LEDS_ON_FLAP = 3
+FLAP_LED_D = 1.5
+
 # ---------------------------------------------------------------- corner (soft flex)
 CORNER_ANGLE = 100.0     # As printed; the frame front holds it at about 90
 CORNER_R = 3.0           # Bend radius at the strip
-CORNER_FLAP = 10.0       # Straight part after the bend, against the frame front
+CORNER_FLAP = 20.0       # Straight part after the bend, against the frame front (holds 3 LEDs)
+FLAP_LIPS = (FLAP_LED_D + 0.5 * gm.LED_PITCH, FLAP_LED_D + 1.5 * gm.LED_PITCH)   # Between the flap LEDs
 CORNER_Z = (CH_Z0 - 1.0, CH_Z1 + 1.0)
 SLOT_CLEAR = 0.05        # Tongue slot is this much tighter than the tongue, each side (soft, so it grips)
 
@@ -190,6 +201,42 @@ def liner(length):
 
 
 # ================================================================ corner
+def bend_centre():
+    """(x, y) of the corner's bend axis."""
+    return RAIL_X1 + TONGUE["l"], (CH_Y0 + CH_D / 2) - CORNER_R
+
+
+def on_flap(shape, angle=CORNER_ANGLE):
+    """Something modelled straight on past the bend's end (x > the bend's start), carried round
+    onto the flap of a corner bent to angle."""
+    xc, yc = bend_centre()
+    return Pos(xc, yc, 0) * (Rot(0, 0, -angle) * (Pos(-xc, -yc, 0) * shape))
+
+
+def led_path():
+    """Path length of each LED along the strip from the rail's front face, rear LED first."""
+    s_first_flap = TONGUE["l"] + CORNER_R * math.pi / 2 + FLAP_LED_D
+    s0 = s_first_flap - (LEDS - LEDS_ON_FLAP) * gm.LED_PITCH
+    return [s0 + i * gm.LED_PITCH for i in range(LEDS)]
+
+
+def led_points(angle=90.0):
+    """(x, y) of each LED on the strip's centre line, with the corner bent to angle."""
+    xc, yc = bend_centre()
+    a = math.radians(angle)
+    pts = []
+    for s in led_path():
+        if s <= TONGUE["l"]:
+            pts.append((RAIL_X1 + s, yc + CORNER_R))
+        elif s <= TONGUE["l"] + CORNER_R * a:
+            th = (s - TONGUE["l"]) / CORNER_R
+            pts.append((xc + CORNER_R * math.sin(th), yc + CORNER_R * math.cos(th)))
+        else:
+            d = s - TONGUE["l"] - CORNER_R * a
+            pts.append((xc + CORNER_R * math.sin(a) + d * math.cos(a), yc + CORNER_R * math.cos(a) - d * math.sin(a)))
+    return pts
+
+
 def corner(angle=CORNER_ANGLE):
     """Soft-flex corner: a straight sleeve over the rail's tongue, a bend toward the head side
     about a vertical axis, and a straight flap against the frame front. The same section all
@@ -227,13 +274,17 @@ def corner(angle=CORNER_ANGLE):
     for xa in (RAIL_X1 + 1.5,):
         for za, zb in ((CH_Z0 - 0.3, CH_Z0 + LIP), (CH_Z1 - LIP, CH_Z1 + 0.3)):
             part += box(xa, xa + LIP_L, CH_Y0, CH_Y0 + LIP_T, za, zb)
+    for d in FLAP_LIPS:
+        for za, zb in ((CH_Z0 - 0.3, CH_Z0 + LIP), (CH_Z1 - LIP, CH_Z1 + 0.3)):
+            lip = box(xc + d - LIP_L / 2, xc + d + LIP_L / 2, CH_Y0, CH_Y0 + LIP_T, za, zb)
+            part += on_flap(lip, angle)
     return part
 
 
 # ================================================================ diffuser
 DIFF_T = 0.8         # Cover thickness. Print in natural (translucent) PETG
 DIFF_GAP = 1.5       # Air between the channel mouth and the cover, so the LEDs blur into a line
-DIFF_X = (gm.LED_X[0] - 4.0, RAIL_X1 - 0.2)   # Over the eight rail LEDs
+DIFF_X = (RAIL_X1 + min(led_path()) - 4.0, RAIL_X1 - 0.2)   # Over the six rail LEDs
 DIFF_HOOK = 0.8      # How far the hooks reach over the rail's top and bottom edges
 DIFF_CLEAR = 0.05
 
@@ -248,6 +299,38 @@ def diffuser():
     for z0, z1 in ((zt, zt + DIFF_T), (zb - DIFF_T, zb)):
         part += box(x0, x1, yp0, CH_Y0 + DIFF_HOOK, z0, z1)                       # Hooks
     return part
+
+
+# ================================================================ corner caps
+# The corner LEDs are the ones in direct view, so they get diffusers too: a short natural-PETG
+# cap on the corner's straight part (over the hinge LED) and a long one along its flap (over
+# the three flap LEDs), with the bend left open between them so the corner can still bend when
+# the glasses fold. Each hooks over the corner's top and bottom edges like the rail diffuser.
+# Both are symmetric top to bottom, so they fit either side (turned over).
+CAP_HINGE_L = 5.6
+CAP_FLAP_L = CORNER_FLAP - 1.0
+CAP_FLAP_D = 0.2     # Flap cap starts this far along the flap from the bend's end
+
+
+def corner_cap(length, x0=0.0):
+    """A cap, in the corner's straight-part coordinates, from x0 to x0 + length."""
+    x1 = x0 + length
+    z0, z1 = CORNER_Z
+    yp0, yp1 = CH_Y0 - DIFF_GAP - DIFF_T, CH_Y0 - DIFF_GAP
+    zt, zb = z1 + DIFF_CLEAR, z0 - DIFF_CLEAR
+    part = box(x0, x1, yp0, yp1, zb - DIFF_T, zt + DIFF_T)
+    for za, zc in ((zt, zt + DIFF_T), (zb - DIFF_T, zb)):
+        part += box(x0, x1, yp0, CH_Y0 + DIFF_HOOK, za, zc)
+    return part
+
+
+def corner_caps(angle=CORNER_ANGLE):
+    """(hinge cap, flap cap) placed on a corner bent to angle. The hinge cap ends 1 mm into the
+    bend."""
+    xc, _ = bend_centre()
+    hinge = corner_cap(CAP_HINGE_L, xc + 1.0 - CAP_HINGE_L)
+    flap = on_flap(corner_cap(CAP_FLAP_L, xc + CAP_FLAP_D), angle)
+    return hinge, flap
 
 
 # ================================================================ pods
@@ -504,6 +587,9 @@ def build():
     parts["corner_left"] = (cl, print_orient_flat(cl))
     d = diffuser()
     parts["diffuser"] = (d, print_orient_diffuser(d))
+    for name, length in (("hinge", CAP_HINGE_L), ("flap", CAP_FLAP_L)):
+        cc = corner_cap(length)
+        parts[f"corner_cap_{name}"] = (cc, print_orient_diffuser(cc))
     for s in POD_SIZES:
         pod, lid, arm, _ = (worn_pod(x) if not isinstance(x, dict) else x for x in board_pod(s))
         parts[f"pod_board_{s}"] = (pod, print_orient_pod(pod))
