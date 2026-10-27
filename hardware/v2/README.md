@@ -51,9 +51,9 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Fast 10k bead NTC thermistor | Breath sensor on a nose pad, in the breath stream | ~$2 |
 | P-MOSFET (e.g. AO3401) and 100k gate pull-up | Cuts all LED power when the display is off or the battery is low | ~$0.50 |
 | 6×6 mm or smaller tactile button | Wake, sleep and mode | ~$0.50 |
-| Diffuser | Turns the LEDs into one glowing line. Probably a printed translucent PETG cover (see Mount); neon-flex is too big for the open channel | ~$0–5 |
+| Natural (translucent) PETG | For the printed diffuser covers (see Mount); neon-flex is too big for the open channel. A small spool if you don't have one | $0–15 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
-| **Total** | | **about $8** |
+| **Total** | | **about $8, or $23 with natural PETG** |
 
 About $40 of the budget is left. If 3–4 visible LEDs per side look too coarse,
 the best use is a custom flex PCB with about 12–14 tiny LEDs for the front
@@ -66,15 +66,18 @@ Strip sources:
 ## Layout
 
 - **Behind the right ear:** a pod with the XIAO Plus, the button and a reset
-  pinhole. The MAX30101 earlobe arm hangs from it.
+  pinhole. The MAX30101 earlobe arm reaches from it to the back of the
+  earlobe.
 - **Behind the left ear:** a pod with the battery.
-- **Behind the head:** a thin cord with four wires (battery +, ground, left
-  strip data, thermistor) joins the pods. There is no neck band.
+- **Behind the head:** a thin cord with four wires joins the pods: battery +,
+  ground, the switched LED supply and the left strip's data. There is no neck
+  band.
 - **LEDs:** a 10-LED piece on each side: 8 in the rail's channel, 2 in the
   corner piece. Nothing touches the lens rim, so it fits any frames. Each strip
   has its own data pin, as in v1.
-- **Thermistor:** on a nose pad. Its two wires run along the frame front to a
-  hinge, then along that rail's channel.
+- **Thermistor:** on the right nose pad. Its two wires run along the frame
+  front to the right hinge, then along the right rail's channel to the board
+  pod.
 
 ## Power and switching
 
@@ -158,7 +161,13 @@ only where it helps (grip and the corner).
 | `test_clip_S`, `_M`, `_L` | PETG | One clip on a short length of rail. Print these first and try them on your glasses |
 | `rail_right_S/M/L`, `rail_left_S/M/L` | PETG | The full rail for each temple, in three sizes |
 | `liner` | Soft flex | Grip liner. Print 4 (two per rail) |
-| `corner` | Soft flex | Carries the last two LEDs round the hinge. Print 2; the left one is the same part flipped over |
+| `corner_right`, `corner_left` | Soft flex | Carry the last two LEDs round the hinge |
+| `diffuser` | Natural (translucent) PETG | Snap-on cover over each rail's LED channel. Print 2; it fits either side |
+| `pod_board_S/M/L` | PETG | Right pod: XIAO, button, MAX30101 arm root. Sized by the temple tip |
+| `pod_battery_S/M/L` | PETG | Left pod: battery and the cord junction |
+| `lid_board`, `lid_battery` | Soft flex | Press-in lids on the pods' outer faces |
+| `pod_liner` | Soft flex | Grip liner under each pod's tip bar. Print 2 |
+| `max_arm` | Soft flex | MAX30101 arm and cradle |
 
 `out/step/` holds the same parts as fitted, in worn coordinates.
 
@@ -211,24 +220,95 @@ It slides down onto a tongue on the rail's front end and grips it by a slight
 interference fit. The 9th LED sits just in front of the rail and the 10th on
 the flap.
 
+### Diffuser
+
+A thin PETG plate stands 1.5 mm off the channel mouth, so the LEDs blur into a
+line, with hooks over the rail's top and bottom edges. Fit it after the strip
+is in: hook the bottom edge on, then press the top hook over. Print it in
+natural PETG. If the LEDs still show as dots, a thicker plate or a bigger gap
+(`DIFF_T`, `DIFF_GAP`) blurs them more.
+
+**It covers only the eight rail LEDs, and most of those are in the glow-only
+zone.** The two corner LEDs, the ones in direct view that carry the travelling
+wave, are bare in black soft flex. Until they get their own cover, the wave
+will show as two bright dots. A small natural-PETG cap over the corner's flap
+is the next part to add.
+
+### Pods
+
+![Rear view](renders/v2_rear_three_quarter.png)
+
+- **On the tip:** each pod clips onto the temple tip behind the ear. It slides
+  on from the tip's end and sits flat on the bone behind the ear. Only a thin
+  bar runs under the tip, on the ear side.
+- **Grip:** two PETG leaves inside press the tip down onto that bar, which
+  carries a soft-flex liner like the rail's. The liner slides in from the
+  tip-end face. The leaves lie in the pod's own plane, so they add no
+  thickness. They lean toward the tip's
+  end, so sliding the pod on bends them aside, and pulling it off doesn't
+  catch.
+- **Sizes:** sized by the tip. The reference tip (3.5 × 4.5 mm) takes **M**.
+
+  | Size | Tip thickness | Tip height |
+  |---|---|---|
+  | S | 2.5–3.3 mm | 3.0–4.3 mm |
+  | M | 3.3–4.2 mm | 4.3–5.6 mm |
+  | L | 4.2–5.2 mm | 5.6–7.0 mm |
+
+  The pod leaves are shallower (4 mm) than the rail's, so each presses with
+  only about 0.15–0.85 N. That is over 10 times a pod's weight, but the tip
+  slopes down toward its open end, there's no end stop, and the cord tugs on
+  the pods when you turn your head. Pod grip is the weakest in the build:
+  test it first.
+- **Will it fit your tip?** The pod's slot is a straight, rigid 36 mm run,
+  nearly the tip's whole length. Hold a straightedge along your tips: a tip
+  that curves along its length, or ends in a ball, won't slide in. A shorter
+  pod would fit a curved tip; tell me if you need one.
+- **Board pod (right):**
+  - **XIAO:** sits under a soft-flex lid on the outer face, with its USB-C
+    pointing out of the pod's far end (up and back when worn). Check where
+    your board's reset button is: the lid's 1.2 mm reset pinhole assumes it is
+    5 mm to one side of the USB-C.
+  - **Button:** a 6×6 mm tactile button in the front column. Its plunger
+    comes out beside the USB-C.
+  - **Wires:** the rail's wires enter at the front. The cord leaves from the
+    far end.
+- **MAX30101 arm:**
+  - **Fitting:** a soft-flex flange is trapped inside the board pod under the
+    lid.
+  - **Path:** the strap leaves the tip-end face, runs past the end of the
+    tip, then crosses toward the ear.
+  - **Cradle:** at the strap's end, it holds the breakout with its sensor
+    window outward, against the back of the earlobe. The board slides into the
+    cradle from its far end.
+  - **Fit:** it is printed flat as an L, and bends to suit the ear.
+- **Battery pod (left):** holds the 502030 cell under its lid. The cord comes
+  in at the tip end, and the left strip's wires at the front.
+
 ### Printing
 
 - **Rails and test clips:** PETG, top face down on the bed, no supports. The
   leaves and outer legs stand up from the bed. Use at least 2 perimeters (the
   leaves are 0.8 mm thick, two lines with a 0.4 mm nozzle). The only overhangs
   are the 45° lead-in ramps and the 1.4 mm channel and lip ledges.
-- **Liner:** soft flex, pad face down.
+- **Pods:** PETG, head-side face down, no supports. The leaves stand up from
+  the bed, and the cavity opens upward. The outer wall bridges 9–11 mm over
+  the tip slot.
+- **Diffuser:** natural PETG, plate down.
+- **Liners, lids and arm:** soft flex, flat face down. The arm's cradle rims
+  overhang 1.5 mm.
 - **Corner:** soft flex, standing on its bottom end.
 
 ### Not done or not checked yet
 
-- **Pods.** The board pod, battery pod and MAX30101 arm aren't modelled. In
-  the render they are placeholder blocks. They will clip onto the temple tips
-  (about 3.5 × 4.5 mm) with leaves sized like the rail clips. The MAX30101 arm
-  will be soft flex.
-- **Diffuser.** A 6×12 mm neon-flex tube won't fit the open channel or beside
-  the hinge. The likely replacement is a thin cover printed in natural
-  (translucent) PETG that clips over the channel mouth. Not modelled yet.
+- **Pod placement.** The render's head and ears are rough stand-ins. Where
+  the pod sits behind a real ear, and whether the arm reaches the earlobe,
+  needs a test fit.
+- **Pod grip** comes from the same beam estimates as the rail, and is the
+  weakest in the build. Print one pod with its liner and try it, including a
+  tug on the cord.
+- **Diffusion.** How well 0.8 mm of natural PETG, 1.5 mm off the LEDs,
+  smooths them into a line is untested.
 - **Hinge screw.** The rail starts 6 mm behind the hinge, and the corner and
   tongue pass over the hinge area. Both are guesses until the screw head's
   position and size are measured.

@@ -90,32 +90,44 @@ def strip_meshes(right):
     return out
 
 
-def tip_end(right):
-    """World position of the temple tip's end (behind the ear)."""
-    p = rw.bend_points(np.array([[rw.BEND_X - gm.TIP_LEN, gm.REF_TIP[0] / 2, -gm.REF_TIP[1] / 2]]), False)[0]
-    return np.array([p[0], -(rw.WT + p[1]) if right else rw.WT + p[1], p[2]])
+POD_SIZE = "M"                     # The reference tips (3.5 x 4.5 mm) take the M pods
+
+
+def placed(shape, right):
+    """A pod part (straight coordinates, as returned by mount_v2) bent onto the tip and put in
+    the world. Left parts are modelled on the right; world() mirrors them."""
+    mesh = rw.to_mesh(shape)
+    mesh.points = world(rw.bend_points(mesh.points, False), right)
+    return mesh
+
+
+def placed_point(p, right):
+    return world(rw.bend_points(np.array([p], float), False)[0], right)
 
 
 def pod_meshes():
     out = []
-    # Right: XIAO nRF52840 Plus pod + button, with the earlobe arm and MAX30101
-    r = tip_end(True) + np.array([0, 2.0, -6.0])
-    out.append((pv.Box(bounds=(r[0] - 13, r[0] + 13, r[1] - 4.5, r[1] + 4.5, r[2] - 11, r[2] + 11)), POD, 1.0))
-    out.append((pv.Box(bounds=(r[0] - 10.5, r[0] + 10.5, r[1] - 5.0, r[1] - 4.4, r[2] - 8.5, r[2] + 8.5)), BOARD, 1.0))
-    lobe = np.array([rw.EAR["x"] - 8, -(rw.EAR["y"] - 3), rw.EAR["z"] - 22])
-    arm = pv.Spline(np.array([r + [8, 0, -10], r + [12, 0, -18], lobe + [-4, 0, 2]]), 30).tube(radius=1.2)
-    out.append((arm, POD, 1.0))
-    out.append((pv.Box(bounds=(lobe[0] - 6, lobe[0] + 6, lobe[1] - 1.5, lobe[1] + 1.5, lobe[2] - 5, lobe[2] + 5)),
-                rw.SENSOR, 1.0))
-    # Left: battery pod
-    l = tip_end(False) + np.array([0, -2.0, -6.0])
-    out.append((pv.Box(bounds=(l[0] - 17, l[0] + 17, l[1] - 4.5, l[1] + 4.5, l[2] - 12, l[2] + 12)), POD, 1.0))
-    out.append((pv.Box(bounds=(l[0] - 15, l[0] + 15, l[1] + 4.4, l[1] + 5.0, l[2] - 10, l[2] + 10)), BATTERY, 1.0))
+    pod, lid, arm, d = mv.board_pod(POD_SIZE)
+    for shape, colour in ((pod, PETG), (lid, rw.TPU), (arm, rw.TPU)):
+        out.append((placed(mv.worn_pod(shape), True), colour, 1.0))
+    h = gm.REF_TIP[1]
+    flip = lambda x, y, z: (x, y, -z - h)          # Same flip as mv.worn_pod, for single points
+    r_label = placed_point(flip(d["xm"], d["y1"], d["zb"] + 6), True)
+    rx = (d["xa"] + mv.POD_WALL + d["xm"] - mv.XIAO[0] / 2) / 2
+    r_cord = placed_point(flip(rx, d["cy0"] + 1.8, d["zb"]), True)
+    lobe = placed_point(flip(d["xa"] - mv.ARM_OUT - mv.ARM_W / 2, d["y1"], mv.ARM_UP + 12), True)
+
+    bat, blid, bd = mv.battery_pod(POD_SIZE)
+    for shape, colour in ((bat, PETG), (blid, rw.TPU)):
+        out.append((placed(mv.worn_pod(shape), False), colour, 1.0))
+    l_cord = placed_point(flip(bd["xa"], bd["cy0"] + 1.8, bd["zb"] + mv.POD_WALL + 7.75), False)
+
     # Cord round the back of the head
     hx = rw.HEAD["center"][0] - rw.HEAD["radii"][0]
-    cord = np.array([r + [-10, 0, -4], (-165, -62, -55), (hx - 4, 0, -62), (-165, 62, -55), l + [-14, 0, -4]])
-    out.append((pv.Spline(cord, 120).tube(radius=1.2), CORD, 1.0))
-    return out, r, l, lobe
+    cord = np.array([r_cord, r_cord + [-12, 4, 2], (-175, -55, -40), (hx - 4, 0, -48), (-175, 55, -40),
+                     l_cord + [-14, -4, 0], l_cord])
+    out.append((pv.Spline(cord, 160).tube(radius=1.2), CORD, 1.0))
+    return out, r_label, placed_point(flip(bd["xm"], bd["y1"], bd["zb"] + 6), False), lobe
 
 
 def thermistor_meshes():
@@ -134,6 +146,9 @@ def scene(head=True):
     for right in (True, False):
         meshes.append((rw.to_world(rw.temple(), right), rw.FRAME, 1.0))
         meshes += strip_meshes(right)
+        dfu = rw.to_mesh(mv.diffuser())
+        dfu.points = world(dfu.points, right)
+        meshes.append((dfu, "#eef4ff", 0.45))
     pods, r, l, lobe = pod_meshes()
     therm, bead = thermistor_meshes()
     return meshes + pods + therm, dict(r=r, l=l, lobe=lobe, bead=bead)
@@ -161,8 +176,8 @@ def main():
     p = pv.Plotter(off_screen=True, window_size=(1800, 1300))
     p.set_background("white")
     add(p, meshes)
-    label(p, [at["r"] + [0, -8, 14], at["lobe"] + [0, -6, -8], (-200, -10, -70), right_temple + [0, -6, 8]],
-          ["XIAO nRF52840 Plus pod + button", "MAX30101 on the earlobe", "Cord to the battery pod",
+    label(p, [at["r"] + [0, -10, 0], at["lobe"] + [0, -6, -4], (-200, -10, -50), right_temple + [0, -6, 8]],
+          ["XIAO pod (button, USB-C at the top)", "MAX30101 arm (soft flex)", "Cord to the battery pod",
            "PETG rail, size M"])
     p.camera_position = [(-430, -360, 70), (-110, 0, -40), (0, 0, 1)]
     p.camera.view_angle = 30

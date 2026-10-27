@@ -18,7 +18,9 @@ neck and corner had almost no stiffness, so it flopped about and slid. Here:
   straight. It slides down onto a tongue on the rail's front end and carries the last two LEDs
   round the hinge. It bends further when the glasses fold.
 - There is no neck or ear-end arch: the rail stops before the ear bend. The wires cross the
-  bend loose to the pods, which clip onto the temple tips (pods to come).
+  bend loose to the pods, which clip onto the temple tips: the XIAO pod on the right, with the
+  soft-flex MAX30101 arm, and the battery pod on the left.
+- A snap-on diffuser printed in natural PETG covers each rail's LED channel.
 
 Coordinates, as worn on the RIGHT temple (the left parts are mirrored): x forward (glasses
 hinge at x = 0), y outward (temple inner face at y = 0), z up (temple top edge at z = 0).
@@ -191,8 +193,8 @@ def liner(length):
 def corner(angle=CORNER_ANGLE):
     """Soft-flex corner: a straight sleeve over the rail's tongue, a bend toward the head side
     about a vertical axis, and a straight flap against the frame front. The same section all
-    along: channel open on the concave (head) side. Symmetric about its mid-height, so one
-    part serves both sides (flipped over for the left)."""
+    along: channel open on the concave (head) side. The tongue slot is open at the top only,
+    so the left corner is a mirrored part, not this one flipped over."""
     tl = TONGUE["l"]
     z0, z1 = CORNER_Z
     yc = (CH_Y0 + CH_D / 2) - CORNER_R          # Bend centre, on the head side
@@ -228,6 +230,217 @@ def corner(angle=CORNER_ANGLE):
     return part
 
 
+# ================================================================ diffuser
+DIFF_T = 0.8         # Cover thickness. Print in natural (translucent) PETG
+DIFF_GAP = 1.5       # Air between the channel mouth and the cover, so the LEDs blur into a line
+DIFF_X = (gm.LED_X[0] - 4.0, RAIL_X1 - 0.2)   # Over the eight rail LEDs
+DIFF_HOOK = 0.8      # How far the hooks reach over the rail's top and bottom edges
+DIFF_CLEAR = 0.05
+
+
+def diffuser():
+    """Snap-on cover over the rail's LED channel: a plate standing off the head-side face, with
+    hooks over the rail's top and bottom edges. Fit it after the strip is in."""
+    x0, x1 = DIFF_X
+    yp0, yp1 = CH_Y0 - DIFF_GAP - DIFF_T, CH_Y0 - DIFF_GAP
+    zt, zb = CLIP_T + DIFF_CLEAR, -OL_H - DIFF_CLEAR
+    part = box(x0, x1, yp0, yp1, zb - DIFF_T, zt + DIFF_T)                        # Plate
+    for z0, z1 in ((zt, zt + DIFF_T), (zb - DIFF_T, zb)):
+        part += box(x0, x1, yp0, CH_Y0 + DIFF_HOOK, z0, z1)                       # Hooks
+    return part
+
+
+# ================================================================ pods
+# The pods clip onto the temple tips behind the ears. Same leaf idea as the rail, but the
+# leaves sit below the tip, in the pod's plane, and push the tip up into the pod's top bar, so
+# the pod adds no bulk sideways. The pod slides onto the tip from its end: the leaves lean
+# toward the tip's end, so sliding on cams them down, and pulling off doesn't dig them in.
+# Modelled in the same straight coordinates as the rail, with the ear bend not applied: the
+# tip runs from x = -TEMPLE_STRAIGHT toward -x, inner face at y = 0. The functions below build
+# each pod with the tip's top edge at z = 0 and the body below; worn_pod() flips it over so the
+# body sits behind the tip (see there). The leaves then press the tip onto the bar under it.
+# Sizes are set by the tip's height (the leaves) and thickness (the slot).
+POD_SIZES = {"S": ((2.5, 3.3), (3.0, 4.3)), "M": ((3.3, 4.2), (4.3, 5.6)), "L": ((4.2, 5.2), (5.6, 7.0))}
+POD_X1 = -gm.TEMPLE_STRAIGHT - 3.0   # Pod's front end, just past the ear bend
+POD_L = 36.0
+POD_WALL = 1.2
+POD_TOP = 1.6        # Bar along the tip's top edge (unflipped), with a liner groove in its face
+POD_LP = 0.6         # Bar face stands this far off the tip; the liner fills the gap
+POD_GROOVE_Y = (0.3, 2.3)            # Liner groove across the bar face (fits the thinnest tip)
+POD_LIP = 2.0        # Inner lip reaches this far down the tip's inner face
+POD_Y0 = -POD_WALL   # Head-side face (the pod prints on it)
+LID_T = 1.0          # Soft-flex lid over the cavity, on the outer face
+LID_FIT = 0.05       # Lid is this much bigger than its recess, each side (soft, so it presses in)
+XIAO = (17.8, 21.0, 1.0, 3.2)        # XIAO nRF52840 Plus: width, length, PCB, USB-C height (check yours)
+USB_W = 9.2
+BUTTON = 6.2         # Tactile button pocket (up to 6x6 mm), plunger out through the bottom
+BATTERY = (34.0, 21.0, 5.6)          # 502030 cell with its protection board, plus clearance
+ARM_W, ARM_T = 6.0, 1.8
+ARM_OUT = 4.0        # MAX30101 arm runs this far past the tip's end ...
+ARM_UP = 4.0         # ... then across to this far beyond the tip's top edge, where the cradle starts
+MAX_BOARD = (22.5, 19.0, 1.6, 1.8)   # MAX30101 breakout: length, height, PCB, parts on the sensor side
+CRADLE_RIM, CRADLE_LIP = 1.5, 0.8
+
+
+def pod_leaf_geometry(size):
+    """(rest, gap) for the pod leaves, measured down from the tip's top edge."""
+    (h_min, _) = POD_SIZES[size][1]
+    a = math.radians(LEAF_ANGLE)
+    rest = h_min - PRELOAD
+    return rest, rest + LEAF_L * math.cos(a) + LEAF_T / 2 * math.sin(a) - 0.5
+
+
+def pod_groove(clear=0.0):
+    """(y, z) dovetail outline of the pod liner's groove in the bar face; with clear > 0, of the
+    liner's rib inside it."""
+    y0, y1 = POD_GROOVE_Y
+    f = GROOVE_FLARE
+    return [(y0 + clear, POD_LP - 0.01), (y1 - clear, POD_LP - 0.01), (y1 + f - clear, POD_LP + GROOVE_D - clear),
+            (y0 - f + clear, POD_LP + GROOVE_D - clear)]
+
+
+def pod_liner():
+    """Soft-flex bar in the pod's groove, standing proud to the tip's edge (z = 0, unflipped)."""
+    xa, xb = POD_X1 - POD_L, POD_X1
+    rib = yz_prism(pod_groove(LINER_CLEAR), xa, xb - 1.2)
+    pad = box(xa, xb - 1.2, POD_GROOVE_Y[0] + LINER_CLEAR, POD_GROOVE_Y[1] - LINER_CLEAR, 0, POD_LP)
+    return rib + pad
+
+
+def pod_frame(size, depth):
+    """Common pod geometry: (solid, cuts, dims). depth is the cavity depth needed (y)."""
+    (_, t_max), _ = POD_SIZES[size]
+    rest, gap = pod_leaf_geometry(size)
+    slot = t_max + 0.3
+    y1 = max(slot + 1.6, POD_Y0 + POD_WALL + depth + LID_T)   # Outer face
+    xb, xa = POD_X1, POD_X1 - POD_L
+    floor = -gap - POD_WALL
+    top = POD_LP + POD_TOP
+    part = box(xa, xb, POD_Y0, y1, POD_LP, top)                         # Bar the leaves press the tip onto
+    part += box(xa, xb, POD_Y0, 0, -POD_LIP, top)                       # Inner lip
+    part += box(xa, xb, slot, y1, floor, top)                           # Outer wall beside the tip
+    part += box(xa, xb, POD_Y0, y1, floor, -gap)                        # Floor the leaves stand on
+    a = math.radians(LEAF_ANGLE)
+    d = (-math.sin(a), math.cos(a))
+    n = (-d[1] * LEAF_T / 2, d[0] * LEAF_T / 2)
+    for xr in (xb - 2.0, xb - 17.0):
+        r = (xr, -gap - 0.5)
+        t = (xr + d[0] * LEAF_L, -gap - 0.5 + d[1] * LEAF_L)
+        outline = [(r[0] + n[0], r[1] + n[1]), (t[0] + n[0], t[1] + n[1]), (t[0] - n[0], t[1] - n[1]),
+                   (r[0] - n[0], r[1] - n[1])]
+        part += gm.xz_prism(outline, POD_Y0, slot - 0.4)
+    part -= yz_prism(pod_groove(), xa - 1, xb - 1.0)                   # Liner groove, open at the tip end
+    dims = dict(xa=xa, xb=xb, xm=(xa + xb) / 2, y1=y1, floor=floor, slot=slot, cy0=POD_Y0 + POD_WALL)
+    return part, dims
+
+
+def pod_body(dims, cav_h):
+    """The box below the floor holding the cavity (cav_h tall); returns (solid, zb, zc1)."""
+    zc1 = dims["floor"] - 1.0
+    zb = zc1 - cav_h - POD_WALL
+    return box(dims["xa"], dims["xb"], POD_Y0, dims["y1"], zb, dims["floor"] + 0.01), zb, zc1
+
+
+def lid_outline(dims, zb, zc1, grow=0.0):
+    return (dims["xa"] + 0.6 - grow, dims["xb"] - 0.6 + grow, zb + 0.6 - grow, zc1 + 0.6 + grow)
+
+
+def board_pod(size):
+    """Right pod: XIAO nRF52840 Plus with its USB-C out of the far end, the button beside it,
+    the wires from the rail in through the front, and the MAX30101 arm out of the tip-end face
+    near the tip (the earlobe is that way). Returns (pod, lid, arm, dims), unflipped."""
+    w, length, pcb, usb_h = XIAO
+    depth = pcb + usb_h + 0.4
+    part, dims = pod_frame(size, depth)
+    body, zb, zc1 = pod_body(dims, length + 0.2)
+    part += body
+    xa, xb, xm, y1, cy0 = dims["xa"], dims["xb"], dims["xm"], dims["y1"], dims["cy0"]
+    cav_y = (cy0, y1 + 1)
+    cz0 = zb + POD_WALL
+    fx = (xm + w / 2, xb - POD_WALL)               # Front column: button, wires from the rail
+    rx = (xa + POD_WALL, xm - w / 2)               # Rear column: arm root, cord
+    cuts = box(xm - w / 2 - 0.2, xm + w / 2 + 0.2, *cav_y, cz0, zc1)                 # Board
+    cuts += box(*fx, *cav_y, cz0, zc1)
+    cuts += box(*rx, *cav_y, cz0, zc1)
+    lx0, lx1, lz0, lz1 = lid_outline(dims, zb, zc1)
+    cuts += box(lx0, lx1, y1 - LID_T, y1 + 1, lz0, lz1)                              # Lid recess
+    usb_y = (cy0 + pcb - 0.2, cy0 + pcb + usb_h + 0.4)
+    cuts += box(xm - USB_W / 2 - 0.2, xm + USB_W / 2 + 0.2, *usb_y, zb - 1, cz0 + 0.1)   # USB-C
+    bx = (fx[0] + fx[1]) / 2
+    cuts += box(bx - 1.6, bx + 1.6, cy0 + 0.5, cy0 + 3.7, zb - 1, cz0 + 0.1)         # Button plunger
+    wy = (cy0 + 0.6, cy0 + 3.0)
+    cuts += box(xb - POD_WALL - 1, xb + 1, *wy, zc1 - 2.6, zc1 - 0.4)                # Wires from the rail
+    cx = (rx[0] + rx[1]) / 2
+    cuts += box(cx - 1.4, cx + 1.4, *wy, zb - 1, cz0 + 0.1)                          # Cord, out of the far end
+    arm_y = (y1 - LID_T - ARM_T - 0.4, y1 + 1)
+    arm_z = (zc1 - 1.0 - ARM_W - 0.4, zc1 - 1.0)
+    cuts += box(xa - 1, xa + POD_WALL + 0.1, *arm_y, *arm_z)                         # Arm slot, open to the lid side
+    part -= cuts
+
+    lid = box(*lid_outline(dims, zb, zc1, LID_FIT)[:2], y1 - LID_T, y1, *lid_outline(dims, zb, zc1, LID_FIT)[2:])
+    rst = (xm - 5.0, cz0 + 2.5)                       # XIAO reset button, next to the USB-C (check yours)
+    lid -= box(rst[0] - 0.6, rst[0] + 0.6, y1 - LID_T - 1, y1 + 1, rst[1] - 0.6, rst[1] + 0.6)
+
+    # MAX30101 arm (soft flex), an L: a flange held inside the pod under the lid, a strap out
+    # through the tip-end face past the end of the tip, then across toward the ear (above the
+    # tip's top edge here; in front of the tip when worn), ending in a cradle that holds the
+    # breakout with its sensor window outward, against the back of the earlobe. The cradle's
+    # open end, where the board slides in, faces away from the strap. Strap, flange and cradle
+    # are flush on their outer face, so it prints flat on it.
+    ys = (arm_y[0] + 0.1, arm_y[0] + 0.1 + ARM_T)
+    zs = (arm_z[0] + 0.2, arm_z[1] - 0.2)
+    arm = box(rx[0] + 0.2, rx[0] + 3.2, ys[0] - 0.6, ys[1], zs[0] - 1.5, min(zs[1] + 0.8, zc1 - 0.1))  # Flange
+    kx = xa - ARM_OUT                                                                       # The L's corner
+    arm += box(kx - ARM_W, rx[0] + 0.5, *ys, *zs)                                           # Out past the tip end
+    arm += box(kx - ARM_W, kx, *ys, zs[0], ARM_UP + 0.5)                                    # Across toward the ear
+    bl, bh, bt, bf = MAX_BOARD
+    hl, hh = bl / 2 + 0.2, bh / 2 + 0.2
+    c_y1 = ys[1]
+    c_y0 = c_y1 - CRADLE_LIP - bf - bt
+    cxm = kx - ARM_W / 2
+    c_z0 = ARM_UP
+    czm = c_z0 + POD_WALL + hh
+    arm += box(cxm - hl - POD_WALL, cxm + hl + POD_WALL, c_y0 - CRADLE_LIP, c_y1, c_z0, czm + hh + POD_WALL)
+    arm -= box(cxm - hl, cxm + hl, c_y0, c_y1 - CRADLE_LIP, czm - hh, czm + hh + POD_WALL + 1)       # Board, in from the far end
+    for ya, yb in ((c_y0 - CRADLE_LIP - 1, c_y0 + 0.01), (c_y1 - CRADLE_LIP - 0.01, c_y1 + 1)):
+        arm -= box(cxm - hl + CRADLE_RIM, cxm + hl - CRADLE_RIM, ya, yb, czm - hh + CRADLE_RIM, czm + hh + POD_WALL + 1)
+    arm -= box(cxm - 2.5, cxm + 2.5, c_y0, c_y1 - CRADLE_LIP, c_z0 - 1, czm - hh + 0.1)              # Wires along the strap
+    dims.update(zb=zb, zc1=zc1)
+    return part, lid, arm, dims
+
+
+def worn_pod(p, left=False):
+    """Pods are modelled with the tip's top edge at z = 0 and the body below it. Worn, the body
+    must sit behind the tip, on the bone behind the ear, and the bar under the tip's bottom
+    edge, so the pod is flipped over: mirrored in z and set under the reference tip. A left
+    pod is also mirrored in y; the two mirrors together are a half turn about x (mirroring a
+    mirrored solid twice leaves it broken)."""
+    if left:
+        return Pos(0, 0, -gm.REF_TIP[1]) * (Rot(180, 0, 0) * p)
+    return Pos(0, 0, -gm.REF_TIP[1]) * mirror(p, Plane.XY)
+
+
+def battery_pod(size):
+    """Left pod (modelled on the right, then mirrored): the 502030 cell, and the junction where
+    the cord meets the left strip's wires. Returns (pod, lid, dims)."""
+    bw, bh, bd = BATTERY
+    part, dims = pod_frame(size, bd)
+    body, zb, zc1 = pod_body(dims, bh)
+    part += body
+    xa, xb, xm, y1, cy0 = dims["xa"], dims["xb"], dims["xm"], dims["y1"], dims["cy0"]
+    cz0 = zb + POD_WALL
+    cuts = box(xm - bw / 2, xm + bw / 2, cy0, y1 + 1, cz0, zc1)
+    lx0, lx1, lz0, lz1 = lid_outline(dims, zb, zc1)
+    cuts += box(lx0, lx1, y1 - LID_T, y1 + 1, lz0, lz1)
+    wy = (cy0 + 0.6, cy0 + 3.0)
+    cuts += box(xm + bw / 2 - 1, xb + 1, *wy, zc1 - 2.6, zc1 - 0.4)                # Left strip wires
+    cuts += box(xa - 1, xm - bw / 2 + 1, *wy, cz0 + 6.5, cz0 + 9.0)                # Cord
+    part -= cuts
+    lid = box(*lid_outline(dims, zb, zc1, LID_FIT)[:2], y1 - LID_T, y1, *lid_outline(dims, zb, zc1, LID_FIT)[2:])
+    dims.update(zb=zb, zc1=zc1)
+    return part, lid, dims
+
+
 # ================================================================ build
 def print_orient_rail(p):
     """Top face (z = CLIP_T) down on the bed: leaves and outer legs stand up from it."""
@@ -248,6 +461,26 @@ def print_orient_liner(p):
     return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * p
 
 
+def _to_bed(p):
+    bb = p.bounding_box()
+    return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * p
+
+
+def print_orient_diffuser(p):
+    return _to_bed(Rot(90, 0, 0) * p)           # Plate (head side) down, hooks up
+
+
+def print_orient_pod(p):
+    """Head-side face down: the leaves stand on the bed and the cavity opens upward. Works for
+    the mirrored left pod too, whose head-side face is at +y."""
+    bb = p.bounding_box()
+    return _to_bed((Rot(90, 0, 0) if abs(bb.min.Y - POD_Y0) < 1e-6 else Rot(-90, 0, 0)) * p)
+
+
+def print_orient_lid(p):
+    return _to_bed(Rot(-90, 0, 0) * p)          # Outer face down
+
+
 def test_clip(size):
     """One clip on a short length of rail, to try the grip before printing whole rails."""
     c0, c1 = CLIPS[0]
@@ -266,7 +499,24 @@ def build():
     ln = liner(CLIP_L - 2 * BRIDGE_W)
     parts["liner"] = (ln, print_orient_liner(ln))
     c = corner()
-    parts["corner"] = (c, print_orient_flat(c))
+    parts["corner_right"] = (c, print_orient_flat(c))
+    cl = mirror(c, Plane.XZ)
+    parts["corner_left"] = (cl, print_orient_flat(cl))
+    d = diffuser()
+    parts["diffuser"] = (d, print_orient_diffuser(d))
+    for s in POD_SIZES:
+        pod, lid, arm, _ = (worn_pod(x) if not isinstance(x, dict) else x for x in board_pod(s))
+        parts[f"pod_board_{s}"] = (pod, print_orient_pod(pod))
+        bat, blid, _ = (worn_pod(x, left=True) if not isinstance(x, dict) else x for x in battery_pod(s))
+        parts[f"pod_battery_{s}"] = (bat, print_orient_pod(bat))
+        if s == "M":
+            # The lids and liner are the same for every size. The arm's cross-piece is about
+            # 1.3 mm shorter for S and longer for L; the soft arm takes that up.
+            parts["lid_board"] = (lid, print_orient_lid(lid))
+            parts["lid_battery"] = (blid, print_orient_lid(blid))
+            parts["max_arm"] = (arm, print_orient_lid(arm))
+            pl = pod_liner()
+            parts["pod_liner"] = (pl, _to_bed(pl))
     return parts
 
 
