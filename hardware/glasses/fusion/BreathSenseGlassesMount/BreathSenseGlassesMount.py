@@ -15,7 +15,8 @@ The geometry here matches glasses_mount.py (the build123d model). The
 build functions are plain Python so they can be checked outside Fusion.
 
 Frames:
-  Sleeves: Fusion X = forward, Y = up, Z = toward the head (worn x, z, -y).
+  Sleeves: Fusion X = forward, Y = up, Z = toward the head (worn x, z, -y),
+           modelled straight, as printed (standing on Y = CLIP_T).
   Band parts and trays: X along the band, Y across it (up when worn), Z out from the head.
 """
 
@@ -30,57 +31,63 @@ except ImportError:   # Running outside Fusion (geometry checks)
 
 # name, default, unit ("mm", "deg" or "" for counts), comment
 PARAMS = [
-    ("T_W", 3.5, "mm", "Temple thickness, straight part"),
-    ("T_H", 6.0, "mm", "Temple height, straight part"),
-    ("TIP_W", 3.5, "mm", "Temple tip thickness"),
-    ("TIP_H", 4.5, "mm", "Temple tip height"),
-    ("TEMPLE_STRAIGHT", 100.0, "mm", "Glasses hinge to the start of the ear bend"),
-    ("TIP_ANGLE", 55.0, "deg", "Tip slope behind the ear, below horizontal"),
-    ("FIT", 0.2, "mm", "TPU grip: openings this much smaller than the temple"),
-    ("STRIP_W", 10.0, "mm", "LED strip width"),
-    ("STRIP_PCB", 0.6, "mm", "Slot for the strip PCB"),
-    ("LED_PITCH", 6.5, "mm", "LED spacing"),
+    ("T_W_MIN", 2.0, "mm", "Thinnest temple the leaves grip"),
+    ("T_W_MAX", 6.0, "mm", "Thickest temple the clips take"),
+    ("STRIP_W", 4.0, "mm", "LED strip width"),
+    ("STRIP_PCB", 0.6, "mm", "LED strip PCB thickness"),
+    ("LED_PITCH", 6.8, "mm", "LED spacing"),
     ("LEDS_ON_TEMPLE", 8, "", "LEDs along the temple"),
-    ("LEDS_ON_FLAP", 2, "", "LEDs on the fold-in flap"),
-    ("LIP", 1.5, "mm", "Channel lips cover this much of each strip edge"),
-    ("LIP_T", 0.8, "mm", "Lip thickness"),
-    ("WALL", 1.2, "mm", "TPU wall"),
-    ("ARCH_BACK", 95.0, "mm", "Arch starts this far behind the glasses hinge"),
-    ("ARCH_FRONT", 3.0, "mm", "Arch ends this far behind the glasses hinge"),
-    ("OUTER_LEG", 3.0, "mm", "Outer leg reach down the temple (longer needs print supports)"),
-    ("NUB", 0.4, "mm", "Retaining nub at the foot of the outer leg"),
-    ("SOCK_START", 5.0, "mm", "Sock starts this far along the tip"),
-    ("SOCK_END", 37.0, "mm", "Sock ends (closed) this far along the tip"),
-    ("HINGE_LEN", 4.0, "mm", "Living hinge length before the flap"),
-    ("HINGE_T", 0.8, "mm", "Living hinge thickness"),
-    ("STUD_AT", 25.0, "mm", "Band stud position along the tip"),
+    ("LEDS_ON_FLAP", 2, "", "LEDs on the front flap"),
+    ("WALL", 1.2, "mm", "TPU wall (sensor pod)"),
+    ("CLIP_T", 1.6, "mm", "Top bar thickness"),
+    ("OL_T", 1.6, "mm", "Outer leg thickness"),
+    ("OL_H", 9.0, "mm", "Outer leg reach below the temple's top edge"),
+    ("LEAF_T", 1.0, "mm", "Leaf thickness"),
+    ("LEAF_ANGLE", 45.0, "deg", "Leaf angle from straight across"),
+    ("RAMP", 1.0, "", "Leaf lead-in slope (rise per mm toward the tip)"),
+    ("CLIP_N", 3, "", "Clips along the temple"),
+    ("CLIP_L", 23.0, "mm", "Clip length"),
+    ("CLIP_GAP", 5.5, "mm", "Gap between clips"),
+    ("CLIP_FRONT", 6.0, "mm", "Front clip starts this far behind the hinge"),
+    ("BRIDGE_W", 2.0, "mm", "Top bar left at each clip end"),
+    ("CORNER_X1", -1.2, "mm", "Front end of the corner bend (it starts at -CLIP_FRONT)"),
+    ("CORNER_FLOOR", 0.6, "mm", "Channel floor round the corner"),
+    ("KERF_W", 0.8, "mm", "Corner slot width"),
+    ("KERF_PITCH", 1.4, "mm", "Corner slot spacing"),
+    ("NECK_L", 20.0, "mm", "Neck length (takes the ear bend)"),
+    ("NECK_H", 3.0, "mm", "Neck height"),
+    ("TIP_ARCH_L", 25.0, "mm", "Ear-end arch length"),
     ("STUD_D", 3.0, "mm", "Stud shaft diameter"),
     ("STUD_HEAD_D", 5.0, "mm", "Stud head diameter"),
     ("STUD_SHAFT", 2.4, "mm", "Stud shaft length"),
-    ("TUNNEL_T", 1.4, "mm", "Wire tunnel thickness"),
-    ("TUNNEL_H", 3.0, "mm", "Wire tunnel height"),
+    ("FLOOR", 1.0, "mm", "LED channel floor"),
+    ("LIP", 0.7, "mm", "Channel lips cover this much of each strip edge"),
+    ("LIP_T", 0.6, "mm", "Lip thickness"),
+    ("LIP_L", 2.5, "mm", "Lip length along the channel"),
     ("EAR_ARM", 1, "", "1 = right sleeve carries the earlobe sensor arm, 0 = left"),
     ("ARM_W", 6.0, "mm", "Sensor arm width"),
     ("ARM_T", 1.8, "mm", "Sensor arm thickness"),
-    ("ARM_TO_X", -100.0, "mm", "Sensor pod centre, forward of the glasses hinge"),
-    ("ARM_TO_Z", -52.0, "mm", "Sensor pod centre, height relative to the temple"),
+    ("POD_DEPTH", 38.0, "mm", "Sensor pod centre below the ear-end arch's top"),
     ("BOARD_L", 22.5, "mm", "MAX30101 breakout length"),
     ("BOARD_H", 19.0, "mm", "MAX30101 breakout height"),
     ("BOARD_T", 1.6, "mm", "Breakout PCB thickness"),
     ("BOARD_FRONT", 1.8, "mm", "Component height on the sensor side"),
     ("POD_RIM", 1.5, "mm", "Pod rims holding the board"),
     ("POD_LIP", 0.8, "mm", "Pod rim thickness"),
+    ("POD_DETENT", 0.3, "mm", "Bumps the board snaps past at the pod's open edge"),
     ("BAND_H", 14.0, "mm", "Band height"),
     ("BAND_T", 2.0, "mm", "Band thickness"),
-    ("BAND_HALF_LEN", 94.0, "mm", "Band half: inner studs to first outer hole"),
-    ("ADJ_HOLES", 5, "", "Size-adjustment holes"),
+    ("BAND_HALF_LEN", 121.0, "mm", "Band half: inner studs to first outer hole"),
+    ("ADJ_HOLES", 7, "", "Size-adjustment holes"),
     ("ADJ_PITCH", 6.0, "mm", "Adjustment hole spacing"),
     ("HOLE_D", 3.2, "mm", "Band hole diameter"),
     ("END_STUD_GAP", 9.0, "mm", "Stud spacing across the band at the center module"),
-    ("GROOVE_W", 3.2, "mm", "Wire groove width"),
+    ("GROOVE_W", 4.0, "mm", "Wire groove width"),
     ("GROOVE_D", 1.0, "mm", "Wire groove depth"),
     ("RAIL_W", 1.0, "mm", "Wire channel rail width"),
-    ("RAIL_H", 1.6, "mm", "Wire channel rail height"),
+    ("RAIL_H", 2.0, "mm", "Wire channel rail height"),
+    ("PASS_W", 6.0, "mm", "Wire opening width through tray and socket walls"),
+    ("PASS_H", 3.0, "mm", "Wire opening height"),
     ("BRIDGE_EVERY", 18.0, "mm", "Wire channel bridge spacing"),
     ("BRIDGE_LEN", 4.0, "mm", "Wire channel bridge length"),
     ("ITSY_L", 36.5, "mm", "ItsyBitsy length"),
@@ -93,7 +100,7 @@ PARAMS = [
     ("SW_L", 10.5, "mm", "Switch plate length, ears snipped (across the tray)"),
     ("SW_D", 8.0, "mm", "Switch depth behind the plate incl. pins (along the tray)"),
     ("SW_H", 5.5, "mm", "Switch plate width"),
-    ("SW_SLOT_W", 8.0, "mm", "Switch lever slot width (slide direction)"),
+    ("SW_SLOT_W", 8.0, "mm", "Switch lever slot width: lever thickness + travel"),
     ("SW_SLOT_H", 3.5, "mm", "Switch lever slot height"),
     ("TRAY_CLEAR", 0.3, "mm", "Tray clearance per side"),
     ("TRAY_WALL", 1.6, "mm", "PLA tray wall"),
@@ -108,7 +115,9 @@ PART_PREFIX = "BS "
 
 # ======================================================================= geometry model
 # A part is a list of steps on named bodies:
-#   ("new" | "join" | "cut", body, profile, z0, z1)   extrude profile from z0 to z1
+#   ("new" | "join" | "cut", body, profile, z0, z1)   extrude profile from Z = z0 to z1
+#   (..., z0, z1, "x")    profile in (Y, Z), extruded from X = z0 to z1
+#   (..., z0, z1, "y")    profile in (X, Z), extruded from Y = z0 to z1
 #   ("combine", target, tool)                           join body tool into target
 # A profile is ("poly", [(x, y), ...]) or ("circle", (x, y), r). All mm.
 
@@ -131,7 +140,7 @@ def rrect(origin, ang_deg, s0, s1, t0, t1):
 
 
 def move(steps, dx=0.0, dy=0.0, dz=0.0, rot_deg=0.0):
-    """Rotate steps about Z, then translate them."""
+    """Rotate steps about Z, then translate them. Z-axis steps only (band parts and trays)."""
     c, s = math.cos(math.radians(rot_deg)), math.sin(math.radians(rot_deg))
 
     def tp(p):
@@ -152,23 +161,35 @@ def move(steps, dx=0.0, dy=0.0, dz=0.0, rot_deg=0.0):
 
 
 class Sleeve:
-    """Sleeve geometry in the worn frame (x forward, y outward, z up), emitted in Fusion's frame."""
+    """Sleeve geometry in the worn frame (x forward, y outward, z up; temple inner face at y=0, top
+    edge at z=0), as printed: straight. Emitted in Fusion's frame. Mirrors glasses_mount.sleeve()."""
 
     def __init__(self, P, right, with_arm):
         self.P = P
         self.zs = -1.0 if right else 1.0   # Fusion Z = -y on the right; mirrored on the left
         self.with_arm = with_arm
-        T_W, WALL, STRIP_PCB, LIP_T = P["T_W"], P["WALL"], P["STRIP_PCB"], P["LIP_T"]
-        self.Y_PCB = -T_W / 2 - WALL
-        self.BED = self.Y_PCB - STRIP_PCB - LIP_T
-        self.ARCH_TOP = P["T_H"] / 2 + WALL
-        self.CH_Z1 = self.ARCH_TOP
-        self.CH_Z0 = self.ARCH_TOP - (P["STRIP_W"] + 0.4 + 2 * WALL)
-        self.STRIP_ZC = (self.CH_Z0 + self.CH_Z1) / 2
-        self.P0 = (-P["TEMPLE_STRAIGHT"], 0.0)
-        self.TIP_ANG = 180.0 + P["TIP_ANGLE"]   # Tip direction in the x-z plane
         self.steps = []
+        ch_w = P["STRIP_W"] + 0.4
+        self.CH_D = P["STRIP_PCB"] + 0.2 + P["LIP_T"]
+        self.IL_T = P["FLOOR"] + self.CH_D
+        self.CH_Z1 = -0.2
+        self.CH_Z0 = self.CH_Z1 - ch_w
+        self.IL_Z0 = self.CH_Z0 - 1.2
+        self.STRIP_ZC = (self.CH_Z0 + self.CH_Z1) / 2
+        self.GAP = P["T_W_MAX"] + P["LEAF_T"] + 0.3
+        self.LEAF_REST = P["T_W_MIN"] - 0.5
+        n, L, g, front = int(P["CLIP_N"]), P["CLIP_L"], P["CLIP_GAP"], P["CLIP_FRONT"]
+        self.TEMPLE_END = -front - n * L - (n - 1) * g
+        self.TIP_X1 = self.TEMPLE_END - P["NECK_L"]
+        self.TIP_X0 = self.TIP_X1 - P["TIP_ARCH_L"]
+        pitch = P["LED_PITCH"]
+        nt, nf = int(P["LEDS_ON_TEMPLE"]), int(P["LEDS_ON_FLAP"])
+        self.LED_X = ([-front - 1.0 - pitch * (nt - 1 - i) for i in range(nt)]
+                      + [P["CORNER_X1"] + 1.0 + pitch * i for i in range(nf)])
+        self.FLAP_X1 = self.LED_X[-1] + pitch / 2 + 1.0
+        self.spans = [(-front - k * (L + g) - L, -front - k * (L + g)) for k in range(n)] + [(self.TIP_X0, self.TIP_X1)]
 
+    # Worn-frame primitives. Fusion X = x, Y = z, Z = zs * y.
     def _z(self, y0, y1):
         a, b = self.zs * y0, self.zs * y1
         return min(a, b), max(a, b)
@@ -176,89 +197,132 @@ class Sleeve:
     def box(self, kind, x0, x1, y0, y1, z0, z1):
         self.steps.append((kind, "sleeve", rect(x0, x1, z0, z1)) + self._z(y0, y1))
 
-    def tip_box(self, kind, s0, s1, y0, y1, t0, t1):
-        # Local t is the tip's "up" (n = (sin a, -cos a)); rrect's left normal is the opposite
-        self.steps.append((kind, "sleeve", rrect(self.P0, self.TIP_ANG, s0, s1, -t1, -t0)) + self._z(y0, y1))
-
     def y_cyl(self, kind, x, z, y0, y1, d):
         self.steps.append((kind, "sleeve", circle(x, z, d)) + self._z(y0, y1))
 
-    def tip_point(self, s):
-        a = math.radians(self.P["TIP_ANGLE"])
-        return (self.P0[0] - math.cos(a) * s, self.P0[1] - math.sin(a) * s)
+    def xz_poly(self, kind, pts, y0, y1):
+        """Prism from an (x, z) outline across y0..y1."""
+        self.steps.append((kind, "sleeve", ("poly", pts)) + self._z(y0, y1))
+
+    def yz_poly(self, kind, pts, x0, x1):
+        """Prism from a (y, z) outline along x0..x1: sketched on Fusion's YZ plane, (Y, Z) = (z, zs * y)."""
+        self.steps.append((kind, "sleeve", ("poly", [(z, self.zs * y) for y, z in pts]), x0, x1, "x"))
+
+    def xy_poly(self, kind, pts, z0, z1):
+        """Prism from an (x, y) outline over z0..z1: sketched on Fusion's XZ plane, (X, Z) = (x, zs * y)."""
+        self.steps.append((kind, "sleeve", ("poly", [(x, self.zs * y) for x, y in pts]), z0, z1, "y"))
+
+    def leaf_outline(self, xr, sense):
+        P = self.P
+        a = math.radians(P["LEAF_ANGLE"])
+        t = P["LEAF_T"]
+        d = (sense * math.sin(a), -math.cos(a))
+        n = (-d[1] * t / 2, d[0] * t / 2)
+        y_root = self.GAP + 0.5
+        length = (y_root - self.LEAF_REST - t / 2 * math.sin(a)) / math.cos(a)
+        r, e = (xr, y_root), (xr + d[0] * length, y_root + d[1] * length)
+        return [(r[0] + n[0], r[1] + n[1]), (e[0] + n[0], e[1] + n[1]), (e[0] - n[0], e[1] - n[1]),
+                (r[0] - n[0], r[1] - n[1])]
+
+    def lip_positions(self):
+        P = self.P
+        xs, x = [], self.FLAP_X1 - 3.0
+        while x > self.TEMPLE_END + 2.0:
+            if not -P["CLIP_FRONT"] - 1.5 < x < P["CORNER_X1"] + 1.5:
+                xs.append(x)
+            x -= 2 * P["LED_PITCH"]
+        x = self.TIP_X1 - 3.0
+        while x > self.TIP_X0 + 2.0:
+            xs.append(x)
+            x -= 2 * P["LED_PITCH"]
+        return xs
+
+    def kerf_positions(self):
+        P = self.P
+        return [x for x in [-P["CLIP_FRONT"] + 0.6 + i * P["KERF_PITCH"] for i in range(20)]
+                if x + P["KERF_W"] <= P["CORNER_X1"] - 0.6]
 
     def build(self):
         P = self.P
-        BED, Y_PCB, WALL, FIT = self.BED, self.Y_PCB, P["WALL"], P["FIT"]
-        T_W, T_H, TIP_W, TIP_H = P["T_W"], P["T_H"], P["TIP_W"], P["TIP_H"]
-        AF, AB = P["ARCH_FRONT"], P["ARCH_BACK"]
-        ch_back = -AF - P["LEDS_ON_TEMPLE"] * P["LED_PITCH"] - 4.0
-        inner = -T_W / 2 + FIT / 2
-        outer = T_W / 2 - FIT / 2
-        cuts = []
+        IL_T, GAP, CT, OL_T, OL_H = self.IL_T, self.GAP, P["CLIP_T"], P["OL_T"], P["OL_H"]
+        BW = P["BRIDGE_W"]
+        TE, X0, X1 = self.TEMPLE_END, self.TIP_X0, self.TIP_X1
 
-        # Inner wall, along the temple and round the bend
-        self.box("new", -P["TEMPLE_STRAIGHT"], -AF, BED, inner, -T_H / 2, self.ARCH_TOP)
-        self.tip_box("join", 0, P["SOCK_END"], BED, -TIP_W / 2 + FIT / 2, -(TIP_H / 2 + WALL), TIP_H / 2 + WALL)
-        self.y_cyl("join", self.P0[0], self.P0[1], BED, inner, T_H + 2 * WALL)
-        # Arch: top bar, outer leg, nub
-        self.box("join", -AB, -AF, BED, outer + WALL, T_H / 2 - FIT / 2, self.ARCH_TOP)
-        self.box("join", -AB, -AF, outer, outer + WALL, T_H / 2 - P["OUTER_LEG"], self.ARCH_TOP)
-        self.box("join", -AB, -AF, outer - P["NUB"], outer, T_H / 2 - P["OUTER_LEG"], T_H / 2 - P["OUTER_LEG"] + 0.8)
-        # Sock
-        hh = TIP_H / 2 - FIT / 2
-        self.tip_box("join", P["SOCK_START"], P["SOCK_END"], BED, TIP_W / 2 + WALL, -(TIP_H / 2 + WALL), TIP_H / 2 + WALL)
-        cuts.append(("tip", P["SOCK_START"] - 1, P["SOCK_END"] - WALL, -TIP_W / 2 + FIT / 2, TIP_W / 2 - FIT / 2, -hh, hh))
-        # LED channels, hinge, flap
-        flap0 = -AF + P["HINGE_LEN"]
-        flap1 = flap0 + P["LEDS_ON_FLAP"] * P["LED_PITCH"] + 3.0
-        for x0, x1 in ((ch_back, -AF), (flap0, flap1)):
-            self.box("join", x0, x1, BED, Y_PCB + WALL, self.CH_Z0, self.CH_Z1)
-            hw = P["STRIP_W"] / 2 + 0.2
-            cuts.append(("box", x0 - 1, x1 + 1, Y_PCB - P["STRIP_PCB"], Y_PCB, self.STRIP_ZC - hw, self.STRIP_ZC + hw))
-            win = P["STRIP_W"] / 2 - P["LIP"]
-            cuts.append(("box", x0 - 1, x1 + 1, BED - 1, Y_PCB - P["STRIP_PCB"] + 0.01, self.STRIP_ZC - win, self.STRIP_ZC + win))
-        self.box("join", -AF - 0.5, flap0 + 0.5, BED, BED + P["HINGE_T"], self.CH_Z0, self.CH_Z1)
-        # Stud on the sock's outer face (head stepped so it prints without a steep overhang)
-        sx, sz = self.tip_point(P["STUD_AT"])
-        y_out = TIP_W / 2 + WALL
+        # Inner leg (flap, corner and temple; ear-end arch) and the neck between
+        self.box("new", TE, self.FLAP_X1, -IL_T, 0, self.IL_Z0, CT)
+        self.box("join", X0, X1, -IL_T, 0, self.IL_Z0, CT)
+        self.box("join", X1 - 0.5, TE + 0.5, -IL_T, 0, CT - P["NECK_H"], CT)
+        # Clips: top bar and outer leg; top bar opened between the end bridges; two leaves each
+        for x0, x1 in self.spans:
+            self.box("join", x0, x1, -IL_T, GAP + OL_T, 0, CT)
+            self.box("join", x0, x1, GAP, GAP + OL_T, -OL_H, CT)
+        for x0, x1 in self.spans:
+            self.box("cut", x0 + BW, x1 - BW, 0, GAP, -1, CT + 1)
+        for x0, x1 in self.spans:
+            c = BW + 0.8
+            for xr, sense in ((x0 + c, 1), (x1 - c, -1)):
+                self.xy_poly("join", self.leaf_outline(xr, sense), -OL_H, CT)
+        # Band stud on the arch's outer leg (head stepped so it prints without a steep overhang)
+        sx, sz = (X0 + X1) / 2, CT - P["STUD_D"] / 2
+        y_out = GAP + OL_T
         sh = P["STUD_SHAFT"]
         self.y_cyl("join", sx, sz, y_out - 0.2, y_out + sh, P["STUD_D"])
         for i, f in enumerate((0.33, 0.67, 1.0)):
             d = P["STUD_D"] + (P["STUD_HEAD_D"] - P["STUD_D"]) * f
             self.y_cyl("join", sx, sz, y_out + sh - 0.01 + i / 3, y_out + sh + (i + 1) / 3, d)
         self.y_cyl("join", sx, sz, y_out + sh + 0.98, y_out + sh + 1.8, P["STUD_HEAD_D"])
-        # Ear arm and sensor pod
+        cuts = [("box", sx - 4, sx + 4, y_out, y_out + 6, CT, CT + 4)]
+        # Ear arm, gusset and sensor pod
         if self.with_arm:
-            ex, ez = self.tip_point(P["SOCK_END"] - 3)
-            tx, tz = P["ARM_TO_X"], P["ARM_TO_Z"]
-            length = math.hypot(tx - ex, tz - ez)
-            ang = math.degrees(math.atan2(tz - ez, tx - ex))
-            aw = P["ARM_W"] / 2
-            self.steps.append(("join", "sleeve", rrect((ex, ez), ang, 0, length, -aw, aw)) + self._z(BED, BED + P["ARM_T"]))
-            y1 = BED + P["POD_LIP"] + P["BOARD_T"] + P["BOARD_FRONT"] + P["POD_LIP"]
-            hl, hh2 = P["BOARD_L"] / 2 + 0.2, P["BOARD_H"] / 2 + 0.2
-            rim, lip = P["POD_RIM"], P["POD_LIP"]
-            self.box("join", tx - hl - WALL, tx + hl + WALL, BED, y1, tz - hh2 - WALL, tz + hh2 + WALL)
-            cuts.append(("box", tx - hl, tx + hl, BED + lip, y1 - lip, tz - hh2, tz + hh2))
-            cuts.append(("box", tx - hl + rim, tx + hl - rim, BED - 1, BED + lip + 0.01, tz - hh2 + rim, tz + hh2 - rim))
-            cuts.append(("box", tx - hl + rim, tx + hl - rim, y1 - lip - 0.01, y1 + 1, tz - hh2 + rim, tz + hh2 - rim))
-            cuts.append(("box", tx - 4, tx + 4, BED + lip, y1 - lip, tz + hh2 - 0.1, tz + hh2 + WALL + 1))
-        # Wire tunnel
-        ty0, ty1 = BED + 0.6, BED + 0.6 + P["TUNNEL_T"]
-        th = P["TUNNEL_H"] / 2
-        cuts.append(("box", -P["TEMPLE_STRAIGHT"], ch_back + 6.0, ty0, ty1, -th, th))
-        cuts.append(("tip", -1.0, P["SOCK_END"] + 1.0, ty0, ty1, -th, th))
-        cuts.append(("cyl", self.P0[0], self.P0[1], ty0, ty1, P["TUNNEL_H"]))
+            WALL, lip = P["WALL"], P["POD_LIP"]
+            aw, at = P["ARM_W"], P["ARM_T"]
+            px, pz = X0 + aw / 2, -P["POD_DEPTH"]
+            y0 = -IL_T
+            y1 = y0 + lip + P["BOARD_T"] + P["BOARD_FRONT"] + lip
+            hl, hh = P["BOARD_L"] / 2 + 0.2, P["BOARD_H"] / 2 + 0.2
+            top = pz + hh + WALL
+            pw = hl + WALL
+            zg = top + pw - aw / 2
+            dy = y1 - y0 - at
+            self.box("join", px - aw / 2, px + aw / 2, y0, y0 + at, zg - 0.5, self.IL_Z0 + 0.5)
+            self.xz_poly("join", [(px - aw / 2, zg), (px + aw / 2, zg), (px + pw, top - 0.5), (px - pw, top - 0.5)], y0, y1)
+            self.yz_poly("join", [(y0 + at - 0.01, zg - 0.01), (y1, zg - 0.01), (y0 + at - 0.01, zg + dy)],
+                         px - aw / 2, px + aw / 2)
+            self.box("join", px - pw, px + pw, y0, y1, pz - hh - WALL, top)
+            rim = P["POD_RIM"]
+            cuts.append(("box", px - hl, px + hl, y0 + lip, y1 - lip, pz - hh - WALL - 1, pz + hh))
+            cuts.append(("box", px - hl + rim, px + hl - rim, y0 - 1, y0 + lip + 0.01, pz - hh - WALL - 1, pz + hh - rim))
+            cuts.append(("box", px - hl + rim, px + hl - rim, y1 - lip - 0.01, y1 + 1, pz - hh - WALL - 1, pz + hh - rim))
+            cuts.append(("box", px + hl - 0.1, px + pw + 1, y0 + lip, y1 - lip, pz + hh - 6, pz + hh))
+        # Open LED channel, corner floor and slots, lead-in ramps under the leaves
+        cd = self.CH_D
+        cuts.append(("box", TE - 1, self.FLAP_X1 + 1, -IL_T - 1, -IL_T + cd, self.CH_Z0, self.CH_Z1))
+        cuts.append(("box", X0 - 1, X1 + 1, -IL_T - 1, -IL_T + cd, self.CH_Z0, self.CH_Z1))
+        cuts.append(("box", -P["CLIP_FRONT"], P["CORNER_X1"], -(P["FLOOR"] - P["CORNER_FLOOR"]), 1, self.IL_Z0 - 1, CT + 1))
+        for x in self.kerf_positions():
+            cuts.append(("box", x, x + P["KERF_W"], -IL_T - 1, -P["FLOOR"], self.IL_Z0 - 1, self.CH_Z0 + 0.01))
+            cuts.append(("box", x, x + P["KERF_W"], -IL_T - 1, -P["FLOOR"], self.CH_Z1 - 0.01, CT + 1))
+        ramp = [(GAP, -OL_H), (0.2, -OL_H + (GAP - 0.2) * P["RAMP"]), (0.2, -OL_H - 1), (GAP, -OL_H - 1)]
+        for x0, x1 in self.spans:
+            cuts.append(("ramp", ramp, x0 + BW, x1 - BW))
 
-        # Cavities last, so no solid refills them
+        # Cavities after all solids, so no solid refills them
         for c in cuts:
             if c[0] == "box":
                 self.box("cut", *c[1:])
-            elif c[0] == "tip":
-                self.tip_box("cut", *c[1:])
             else:
-                self.y_cyl("cut", *c[1:])
+                self.yz_poly("cut", *c[1:])
+        # Lips at the channel mouth, after the channel is cut
+        for x in self.lip_positions():
+            for z0, z1 in ((self.CH_Z0 - 0.3, self.CH_Z0 + P["LIP"]), (self.CH_Z1 - P["LIP"], self.CH_Z1 + 0.3)):
+                self.box("join", x - P["LIP_L"] / 2, x + P["LIP_L"] / 2, -IL_T, -IL_T + P["LIP_T"], z0, z1)
+        if self.with_arm:   # Pod detents, below the board's bottom edge
+            lip, rim, WALL = P["POD_LIP"], P["POD_RIM"], P["WALL"]
+            px, pz = X0 + P["ARM_W"] / 2, -P["POD_DEPTH"]
+            y1 = -IL_T + lip + P["BOARD_T"] + P["BOARD_FRONT"] + lip
+            hl, hh = P["BOARD_L"] / 2 + 0.2, P["BOARD_H"] / 2 + 0.2
+            for xa, xb in ((px - hl - 0.3, px - hl + rim), (px + hl - rim, px + hl + 0.3)):
+                self.box("join", xa, xb, y1 - lip - P["POD_DETENT"], y1 - lip + 0.3, pz - hh - WALL, pz - hh - 0.2)
         return self.steps
 
 
@@ -279,7 +343,7 @@ def switch_slot(P, x_wall, zc, body):
     return ("cut", body, rect(x_wall - P["SOCKET_WALL"] - 1, x_wall + P["TRAY_WALL"] + 1, -w / 2, w / 2), zc - h / 2, zc + h / 2)
 
 
-def tray_steps(P, comp, port=True, switch=False):
+def tray_steps(P, comp, port=True, switch=False, wire_exit="sides"):
     ol, ow, oh = tray_outer(P, comp)
     R, TW = P["RIDGE"], P["TRAY_WALL"]
     rz = oh - 1.5
@@ -291,11 +355,15 @@ def tray_steps(P, comp, port=True, switch=False):
         s.append(("cut", "tray", rect(ol / 2 - TW - 1, ol / 2 + R + 1, -P["PORT_W"] / 2, P["PORT_W"] / 2), P["TRAY_FLOOR"], oh + 1))
     if switch:
         s.append(switch_slot(P, -ol / 2, P["TRAY_FLOOR"] + P["SW_H"] / 2, "tray"))
-    s.append(("cut", "tray", rect(-2.5, 2.5, -ow / 2 - R - 1, ow / 2 + R + 1), oh - 1.2, oh + 1))
+    pw, ph = P["PASS_W"], P["PASS_H"]
+    if wire_exit == "sides":
+        s.append(("cut", "tray", rect(-pw / 2, pw / 2, -ow / 2 - R - 1, ow / 2 + R + 1), oh - ph, oh + 1))
+    else:
+        s.append(("cut", "tray", rect(-ol / 2 - R - 1, -ol / 2 + TW + 1, -pw / 2, pw / 2), oh - ph, oh + 1))
     return s
 
 
-def socket_steps(P, comp, port, body, switch=False):
+def socket_steps(P, comp, port, body, switch=False, wire_exit="sides"):
     """TPU socket in tray coordinates (band surface at z=0). Returns (steps, length, width)."""
     ol, ow, oh = tray_outer(P, comp)
     sl, sw = ol + 2 * P["SOCKET_WALL"], ow + 2 * P["SOCKET_WALL"]
@@ -308,6 +376,11 @@ def socket_steps(P, comp, port, body, switch=False):
         s.append(("cut", body, rect(ol / 2 - 1, sl / 2 + 1, -P["PORT_W"] / 2 - 0.5, P["PORT_W"] / 2 + 0.5), -1, oh + 1))
     if switch:   # The tray goes in upside down, so its slot height is measured from the top
         s.append(switch_slot(P, -ol / 2, oh - (P["TRAY_FLOOR"] + P["SW_H"] / 2), body))
+    pw, ph = P["PASS_W"], P["PASS_H"]
+    if wire_exit == "sides":
+        s.append(("cut", body, rect(-pw / 2, pw / 2, -sw / 2 - 1, sw / 2 + 1), -1, ph))
+    else:
+        s.append(("cut", body, rect(-sl / 2 - 1, -ol / 2 + 1, -pw / 2, pw / 2), -1, ph))
     return s, sl, sw
 
 
@@ -329,7 +402,7 @@ def band_half_steps(P, comp=None, port=False):
     s = [("new", "band", rect(-6.0, outer, -H / 2, H / 2), 0, T)]
     rails_from = 6.0                     # Clear of the center module's stud heads
     if comp is not None:
-        sock, sl, sw = socket_steps(P, comp, port, "socket")
+        sock, sl, sw = socket_steps(P, comp, port, "socket", wire_exit="end")
         if port:
             sock, sl, sw = move(sock, rot_deg=-90), sw, sl   # Port faces down (-y)
         cx = 8.0 + sl / 2
@@ -378,7 +451,7 @@ def all_parts(P):
         "band center (ItsyBitsy)": band_center_steps(P),
         "band right (strap)": band_half_steps(P),
         "tray ItsyBitsy": tray_steps(P, itsy_bay(P), switch=True),
-        "tray battery": tray_steps(P, (P["BATT_L"] + P["BATT_LEAD"], P["BATT_W"], P["BATT_H"]), port=False),
+        "tray battery": tray_steps(P, (P["BATT_L"] + P["BATT_LEAD"], P["BATT_W"], P["BATT_H"]), port=False, wire_exit="end"),
     }
 
 
@@ -408,29 +481,52 @@ def _params(design):
 class _Builder:
     """Turns steps into sketches and extrudes inside one component."""
 
+    AXES = {"x": 0, "y": 1, "z": 2}
+
     def __init__(self, comp):
         self.comp = comp
         self.planes = {}
         self.bodies = {}
+        self.base = {"x": comp.yZConstructionPlane, "y": comp.xZConstructionPlane, "z": comp.xYConstructionPlane}
+        self.sense = {}
 
-    def plane(self, z):
-        key = round(z, 4)
+    @staticmethod
+    def _point(axis, u, v, w):
+        """Profile point (u, v) on the plane at w along axis, in mm -> model (x, y, z)."""
+        return {"z": (u, v, w), "x": (w, u, v), "y": (u, w, v)}[axis]
+
+    def _normal_sign(self, axis):
+        """+1 if the base plane's normal and its sketches' normals point along +axis, else -1.
+        Read from Fusion, not assumed: extrudes then run the intended way on every plane."""
+        if axis not in self.sense:
+            i = self.AXES[axis]
+            n = self.base[axis].geometry.normal
+            sk = self.comp.sketches.add(self.base[axis])
+            sn = sk.xDirection.crossProduct(sk.yDirection)
+            sk.deleteMe()
+            self.sense[axis] = (1.0 if n.asArray()[i] > 0 else -1.0, 1.0 if sn.asArray()[i] > 0 else -1.0)
+        return self.sense[axis]
+
+    def plane(self, axis, w):
+        key = (axis, round(w, 4))
         if key not in self.planes:
-            if abs(z) < 1e-9:
-                self.planes[key] = self.comp.xYConstructionPlane
+            if abs(w) < 1e-9:
+                self.planes[key] = self.base[axis]
             else:
                 inp = self.comp.constructionPlanes.createInput()
-                inp.setByOffset(self.comp.xYConstructionPlane, adsk.core.ValueInput.createByReal(z / 10.0))
+                offset = w * self._normal_sign(axis)[0]
+                inp.setByOffset(self.base[axis], adsk.core.ValueInput.createByReal(offset / 10.0))
                 pl = self.comp.constructionPlanes.add(inp)
                 pl.isLightBulbOn = False
                 self.planes[key] = pl
         return self.planes[key]
 
-    def profile(self, prof, z):
-        sk = self.comp.sketches.add(self.plane(z))
+    def profile(self, prof, axis, w):
+        sk = self.comp.sketches.add(self.plane(axis, w))
         sk.isComputeDeferred = True
 
-        def pt(x, y):
+        def pt(u, v):
+            x, y, z = self._point(axis, u, v, w)
             return sk.modelToSketchSpace(adsk.core.Point3D.create(x / 10.0, y / 10.0, z / 10.0))
 
         if prof[0] == "circle":
@@ -458,23 +554,46 @@ class _Builder:
             ci.operation = F.JoinFeatureOperation
             self.comp.features.combineFeatures.add(ci)
             return
-        kind, body, prof, z0, z1 = st
+        kind, body, prof, z0, z1 = st[:5]
+        axis = st[5] if len(st) > 5 else "z"
+        if axis not in self.sense:
+            self._verify(axis)
         op = {"new": F.NewBodyFeatureOperation, "join": F.JoinFeatureOperation, "cut": F.CutFeatureOperation}[kind]
-        ext = self.comp.features.extrudeFeatures
-        ei = ext.createInput(self.profile(prof, z0), op)
-        ei.setDistanceExtent(False, adsk.core.ValueInput.createByReal((z1 - z0) / 10.0))
-        if kind != "new":
-            ei.participantBodies = [self.bodies[body]]
-        feat = ext.add(ei)
+        self._extrude(op, prof, axis, z0, z1, body if kind != "new" else None)
+        feat = self.last
         if kind == "new":
             b = feat.bodies.item(0)
             b.name = body
             self.bodies[body] = b
-            # Every step assumes extrusions run up from their plane (+Z). Stop if not.
-            zmin = b.boundingBox.minPoint.z * 10.0
-            if abs(zmin - z0) > 0.05:
-                raise RuntimeError("Extrude went the wrong way for {} (bottom at {:.2f} mm, "
-                                   "expected {:.2f} mm). Please report this.".format(body, zmin, z0))
+            self._check(b, axis, z0, z1, body)
+
+    def _extrude(self, op, prof, axis, z0, z1, body):
+        # Extrudes run along the sketch normal: start from whichever end that normal points away from
+        start = z0 if self._normal_sign(axis)[1] > 0 else z1
+        ext = self.comp.features.extrudeFeatures
+        ei = ext.createInput(self.profile(prof, axis, start), op)
+        ei.setDistanceExtent(False, adsk.core.ValueInput.createByReal((z1 - z0) / 10.0))
+        if body is not None:
+            ei.participantBodies = [self.bodies[body]]
+        self.last = ext.add(ei)
+
+    def _verify(self, axis):
+        """Before the first step on a plane, extrude a test block 1..2 mm off it and check where it lands."""
+        self._extrude(adsk.fusion.FeatureOperations.NewBodyFeatureOperation, rect(1, 2, 1, 2), axis, 1.0, 2.0, None)
+        b = self.last.bodies.item(0)
+        try:
+            self._check(b, axis, 1.0, 2.0, "test block")
+        finally:
+            self.last.deleteMe()
+
+    def _check(self, b, axis, z0, z1, name):
+        """Stop if a new body doesn't span z0..z1 along its axis."""
+        i = self.AXES[axis]
+        lo = b.boundingBox.minPoint.asArray()[i] * 10.0
+        hi = b.boundingBox.maxPoint.asArray()[i] * 10.0
+        if abs(lo - z0) > 0.05 or abs(hi - z1) > 0.05:
+            raise RuntimeError("Extrude landed in the wrong place for {} ({:.2f}..{:.2f} mm along {}, "
+                               "expected {:.2f}..{:.2f}). Please report this.".format(name, lo, hi, axis, z0, z1))
 
 
 def run(context):

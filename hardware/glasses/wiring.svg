@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 740" width="1020" height="740" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <style>
+    .box { fill: #f7f7f4; stroke: #333; stroke-width: 1.5; }
+    .title { font-size: 15px; font-weight: bold; }
+    .note { font-size: 11.5px; fill: #555; }
+    .pin { font-size: 12px; font-weight: bold; }
+    .w { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .red { stroke: #d32f2f; } .blk { stroke: #222; } .wht { stroke: #aaa; }
+    .sig { stroke: #1565c0; } .i2c { stroke: #2e7d32; } .v3 { stroke: #ef6c00; } .sw { stroke: #6a1b9a; }
+    .dot { fill: #222; }
+  </style>
+  <rect width="1020" height="740" fill="#fff"/>
+  <text x="20" y="28" font-size="18" font-weight="bold">BreathSense glasses: wiring</text>
+  <text x="20" y="48" class="note">All G pins and ground symbols are one net. A dot marks a join; crossing wires without a dot (or with a hop) are not connected.</text>
+
+  <g transform="translate(0,40)">
+    <!-- Battery -->
+    <rect class="box" x="20" y="40" width="160" height="110" rx="6"/>
+    <text x="32" y="64" class="title">LiPo 502030</text>
+    <text x="32" y="82" class="note">3.7 V 200 mAh</text>
+    <text x="150" y="74" class="pin" text-anchor="end">+</text>
+    <text x="150" y="104" class="pin" text-anchor="end">−</text>
+    <text x="150" y="134" class="pin" text-anchor="end">T</text>
+    <path class="w red" d="M180 70 H280"/>
+    <path class="w blk" d="M180 100 H280"/>
+    <path class="w wht" d="M180 130 H215"/>
+    <rect x="215" y="125" width="16" height="10" rx="2" fill="#ccc"/>
+    <text x="20" y="168" class="note">White wire: temperature sensor, not used.</text>
+    <text x="20" y="183" class="note">Heat-shrink its end; leave unconnected.</text>
+
+    <!-- Switch -->
+    <rect class="box" x="40" y="225" width="140" height="90" rx="6"/>
+    <text x="52" y="247" class="title">Slide switch</text>
+    <circle cx="80" cy="285" r="3.5" class="dot"/>
+    <circle cx="140" cy="270" r="3.5" class="dot"/>
+    <circle cx="140" cy="300" r="3.5" class="dot"/>
+    <path class="w sw" d="M80 285 L136 272"/>
+    <path class="w sw" d="M140 270 H160 V250 H280"/>
+    <path class="w sw" d="M80 285 V305 H120 V328 H260 V290 H280"/>
+    <text x="20" y="350" class="note">Middle pin + one outer pin to the</text>
+    <text x="20" y="365" class="note">backpack's switch pads. Cut the</text>
+    <text x="20" y="380" class="note">trace between the pads first.</text>
+
+    <!-- Backpack -->
+    <rect class="box" x="280" y="40" width="180" height="290" rx="6"/>
+    <text x="292" y="146" class="title">LiPo backpack</text>
+    <text x="292" y="164" class="note">Adafruit #2124</text>
+    <text x="292" y="182" class="note">Under the ItsyBitsy on</text>
+    <text x="292" y="197" class="note">header spacers. Charges</text>
+    <text x="292" y="212" class="note">at 100 mA from USB.</text>
+    <text x="290" y="74" class="pin">BATT +</text>
+    <text x="290" y="104" class="pin">BATT −</text>
+    <text x="290" y="296" class="pin">SW</text>
+    <text x="290" y="254" class="pin">SW</text>
+    <text x="450" y="84" class="pin" text-anchor="end">BAT</text>
+    <text x="450" y="124" class="pin" text-anchor="end">G</text>
+    <text x="450" y="164" class="pin" text-anchor="end">5V</text>
+
+    <!-- Backpack to ItsyBitsy -->
+    <path class="w red" d="M460 80 H560"/>
+    <path class="w blk" d="M460 120 H560"/>
+    <path class="w v3" d="M460 160 H560" style="stroke:#888"/>
+
+    <!-- Divider -->
+    <circle cx="510" cy="80" r="4" class="dot"/>
+    <path class="w red" d="M510 80 V114 a6 6 0 0 1 0 12 V154 a6 6 0 0 1 0 12 V340"/>
+    <path class="w blk" d="M510 340 l9 5 l-18 10 l18 10 l-18 10 l18 10 l-18 10 l9 5 V430" style="stroke:#555"/>
+    <text x="528" y="378" class="pin">100k</text>
+    <circle cx="510" cy="430" r="4" class="dot"/>
+    <path class="w sig" d="M510 430 H560"/>
+    <path class="w blk" d="M510 430 V440 l9 5 l-18 10 l18 10 l-18 10 l18 10 l-18 10 l9 5 V530" style="stroke:#555"/>
+    <text x="528" y="478" class="pin">100k</text>
+    <path class="w blk" d="M510 530 V545 M494 545 H526 M499 551 H521 M505 557 H515"/>
+    <text x="400" y="585" class="note">BAT ÷ 2 to A2: 4.2 V full reads 2.1 V</text>
+
+    <!-- ItsyBitsy -->
+    <rect class="box" x="560" y="40" width="200" height="480" rx="6"/>
+    <text x="660" y="280" class="title" text-anchor="middle">ItsyBitsy</text>
+    <text x="660" y="298" class="title" text-anchor="middle">nRF52840</text>
+    <text x="570" y="84" class="pin">BAT</text>
+    <text x="570" y="124" class="pin">G</text>
+    <text x="570" y="164" class="pin">USB</text>
+    <text x="570" y="434" class="pin">A2</text>
+    <text x="750" y="84" class="pin" text-anchor="end">Vhi</text>
+    <text x="750" y="124" class="pin" text-anchor="end">D9</text>
+    <text x="750" y="164" class="pin" text-anchor="end">D7</text>
+    <text x="750" y="204" class="pin" text-anchor="end">G</text>
+    <text x="750" y="364" class="pin" text-anchor="end">3V</text>
+    <text x="750" y="404" class="pin" text-anchor="end">SDA</text>
+    <text x="750" y="444" class="pin" text-anchor="end">SCL</text>
+    <text x="750" y="484" class="pin" text-anchor="end">G</text>
+
+    <!-- LED power and data -->
+    <path class="w red" d="M760 80 H860"/>
+    <circle cx="828" cy="80" r="4" class="dot"/>
+    <path class="w red" d="M828 80 V225 H860"/>
+    <path class="w sig" d="M760 120 H822 a6 6 0 0 1 12 0 H860"/>
+    <path class="w sig" d="M760 160 H808 V260 H860"/>
+    <path class="w blk" d="M760 200 H780 V215 M764 215 H796 M769 221 H791 M775 227 H785"/>
+
+    <!-- Left strip -->
+    <rect class="box" x="860" y="55" width="140" height="120" rx="6"/>
+    <text x="872" y="84" class="pin">+</text>
+    <text x="872" y="124" class="pin">DIN</text>
+    <text x="872" y="159" class="pin">−</text>
+    <text x="990" y="104" class="title" text-anchor="end">Left LEDs</text>
+    <text x="990" y="122" class="note" text-anchor="end">10 × NeoPixel</text>
+    <path class="w blk" d="M860 155 H852 V165 M840 165 H864 M844 171 H860 M849 177 H855"/>
+
+    <!-- Right strip -->
+    <rect class="box" x="860" y="200" width="140" height="120" rx="6"/>
+    <text x="872" y="229" class="pin">+</text>
+    <text x="872" y="264" class="pin">DIN</text>
+    <text x="872" y="299" class="pin">−</text>
+    <text x="990" y="249" class="title" text-anchor="end">Right LEDs</text>
+    <text x="990" y="267" class="note" text-anchor="end">10 × NeoPixel</text>
+    <path class="w blk" d="M860 295 H852 V305 M840 305 H864 M844 311 H860 M849 317 H855"/>
+
+    <!-- MAX30101 -->
+    <path class="w v3" d="M760 360 H860"/>
+    <path class="w i2c" d="M760 400 H860"/>
+    <path class="w i2c" d="M760 440 H860" style="stroke:#66bb6a"/>
+    <path class="w blk" d="M760 480 H860"/>
+    <rect class="box" x="860" y="345" width="140" height="180" rx="6"/>
+    <text x="872" y="364" class="pin">VIN</text>
+    <text x="872" y="404" class="pin">SDA</text>
+    <text x="872" y="444" class="pin">SCL</text>
+    <text x="872" y="484" class="pin">GND</text>
+    <text x="990" y="404" class="title" text-anchor="end">MAX30101</text>
+    <text x="990" y="422" class="note" text-anchor="end">earlobe clip</text>
+    <text x="990" y="512" class="note" text-anchor="end">INT: not connected</text>
+    <text x="760" y="545" class="note">Twist SDA and SCL with GND on the run to the ear.</text>
+  </g>
+
+  <text x="20" y="680" class="note">LED strips run from Vhi, the higher of USB and battery, so they stay lit on battery. Trim header pins flush on both boards.</text>
+  <text x="20" y="697" class="note">Breath mode's thermistor (A0) and the optional analog pulse sensor (A1) are not shown; see firmware/PULSE_SENSOR.md.</text>
+  <text x="20" y="714" class="note">Firmware: BATTERY_PIN = "A2" in config.py. Set it to None if the divider isn't fitted.</text>
+</svg>
