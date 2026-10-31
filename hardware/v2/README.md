@@ -49,10 +49,11 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Seeed XIAO nRF52840 **Plus** (on hand) | Same chip as the ItsyBitsy, but 21×17.5 mm. Built-in LiPo charger (no backpack), extra pads. No IMU or microphone | $0 |
 | Adafruit Ultra Skinny NeoPixel 1515 strip, 4 mm, 150 LEDs/m (on hand, as 10-LED pieces) | SK6805-EC15 LEDs. One 10-LED piece per side: 3 on the corner's flap against the frame front, 1 at the hinge, 6 along the temple | $0 |
 | MAX30101 earlobe sensor, 502030 250 mAh LiPo (on hand) | | $0 |
-| Fast 10k bead NTC thermistor | Breath sensor on a nose pad, in the breath stream | ~$2 |
+| Fast 10k glass-bead NTC thermistor (1 mm or smaller) | Breath sensor, just inside the right nostril on the nose clip | ~$2 |
+| 2-pin 4 mm magnetic pogo connector, four 2×1 mm magnets (on hand) | Nose clip's plug at the board pod; the clip's magnets | $0 |
 | P-MOSFET (e.g. AO3401) and 100k gate pull-up | Cuts all LED power when the display is off or the battery is low | ~$0.50 |
 | 6×6 mm or smaller tactile button | Wake, sleep and mode | ~$0.50 |
-| Natural (translucent) PETG | For the printed diffuser covers (see Mount); neon-flex is too big for the open channel. A small spool if you don't have one | $0–15 |
+| Natural (translucent) PETG (on hand) | The one-piece temple parts: the LEDs shine through the wall (see Mount) | $0 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
 | **Total** | | **about $8, or $23 with natural PETG** |
 
@@ -76,9 +77,9 @@ Strip sources:
 - **LEDs:** a 10-LED piece on each side: 6 in the rail's channel, 4 in the
   corner piece (1 at the hinge, 3 on the flap). Nothing touches the lens rim, so it fits any frames. Each strip
   has its own data pin, as in v1.
-- **Thermistor:** on the right nose pad. Its two wires run along the frame
-  front to the right hinge, then along the right rail's channel to the board
-  pod.
+- **Thermistor:** on a soft clip on the right nostril's wing, just inside the
+  nostril. Its two wires run loose along the cheek and under the ear to a
+  magnetic pogo socket on the board pod (see Nose clip).
 
 ## Power and switching
 
@@ -145,6 +146,244 @@ months.
 
 ## Mount
 
+### What to print (current)
+
+The STLs in `out/stl/` are already oriented: don't rotate them. Each name ends in its filament: `_petg` or `_flex` (soft flex). `out/print_layout.step` (from `print_layout.py`) has them all
+in one file for Fusion, as they sit on the bed, one body per copy to print.
+
+| File (`out/stl/`) | Material | Qty | What it is |
+|---|---|---|---|
+| `onepiece_right_petg`, `onepiece_left_petg` | Translucent PETG | 1 each | LED band and rail. 5 mm brim: they stand on a narrow edge |
+| `hang_pod_board_petg` | PETG | 1 | Right pod: XIAO |
+| `hang_pod_battery_petg` | PETG | 1 | Left pod: battery |
+| `onepiece_clip_front_flex`, `onepiece_clip_rear_flex` | Soft flex | 2 each | Temple bands (closed loops), one of each per side (they fit either side) |
+| `hang_liner_flex` | Soft flex | 2 | Lines each pod's pocket |
+| `hang_back_clip_flex` | Soft flex | 2 | Holds each pod on across the paddle's back edge |
+| `hang_lid_board_flex`, `hang_lid_battery_flex` | Soft flex | 1 each | Press-in pod lids |
+| `lobe_clip_flex` | Soft flex | 1 | Magnetic earlobe clip (see Earlobe clip) |
+| `nose_clip_flex` | Soft flex | 1 | Thermistor clip for the nostril (see Nose clip) |
+
+- **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
+- **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
+  infill, no supports. A brim helps the small clips stay down.
+- **Handedness:** the parts are modelled for the left temple (y outward, in a
+  right-handed frame), so the right-side files are mirrored. Files exported
+  before 28 Oct had right and left swapped.
+- **Liner:** prints open edge down, so its walls stand up and only the 3.6 mm
+  bottom bridges.
+- **Test fits first:** a pod with a liner and back clip on the glasses tip;
+  `onepiece_right_petg` with its two bands; the earlobe clip on your ear; the nose clip on your nostril.
+
+### One-piece temple part (current design)
+
+`onepiece.py` replaces the rail, corner, liners, caps and diffuser below with
+**one PETG part per side**. The pods still clip onto the tips (see Pods). It's
+shaped to one measured pair of glasses, not universal.
+
+![One-piece part, inside view](renders/onepiece_inside_right.png)
+
+- **The strip stays in one piece.** It runs along the temple, then round the
+  hinge corner in one rigid 18 mm-radius curve onto the frame front's back
+  face. The glasses can't fold while the part is fitted, so the curve doesn't
+  have to bend. 5 LEDs sit on the curve and the frame run, and 1 more at the
+  front of the rail, so 6 are in direct view.
+- **Nothing over the lens.** The strip can't bend sideways within its own
+  plane, so it stays at one height all the way along. That height is the top
+  rim: on the frame front it sits above the lens, and it passes over the
+  hinge knuckle.
+- **No threading.** The strip drops into a slot that's open along its top
+  edge, past small retaining tabs.
+- **Windows.** Print the part in translucent PETG. The slot's head-side wall
+  is 0.8 mm thick, but in front of each LED it's thinned from the slot side to
+  a 0.45 mm skin (one line from a 0.4 mm nozzle) over a 3.4 × 3 mm patch.
+  Each LED shines through its skin as a soft spot, and the outside face stays
+  smooth. The full-thickness wall above and below each patch holds the strip
+  in. Some light also spreads along the wall, which blurs the LEDs together;
+  if that's too much, darken the outside between the windows with a marker.
+  Check that the slicer prints the skin as one line and doesn't leave it out:
+  set the line width to 0.45 mm, or detect thin walls.
+- **Length.** The rail ends just behind the last LED, about 54 mm behind the
+  hinge. From there the strip's wires run along the temple's inner face to
+  the pod.
+- **Grip.** A rigid hook over the temple's top edge carries the part. Two
+  soft-flex bands (`onepiece_clip_front` and `_rear`) hold it to the temple.
+  Each is a closed loop right round both: over the top, down the head-side
+  face, under both bottom edges, up the temple's outer face and the hook's
+  lip. However soft the flex, a closed loop can't spring off the way an open
+  clip can. A rib inside each band sits in a shallow pocket in the part's
+  lower plate, so it can't slide along. The bands are about 7% smaller than
+  what they go round, so they stretch on snugly. The front band is 3 mm wide
+  to fit in the 3.4 mm between two windows; the rear one, behind the last LED,
+  is 6 mm.
+- **Fitting.** The bands can't go on from the front (the hinge and frame are
+  in the way), so they go on over the tip:
+  1. Take the pod off the tip.
+  2. Slide both bands onto the temple over the tip, rear band first. They're
+     loose on the bare temple; the tip paddle is smaller than they are.
+  3. Hook the part over the temple's top edge and swing its bottom in.
+  4. Roll the front band forward along the part to its pocket between the
+     2nd and 3rd LEDs on the rail (counting from the front), then the rear
+     band to its pocket behind the last LED.
+  5. Put the pod back on.
+  To remove, reverse it. Nothing is stuck to the glasses.
+- **Nothing springy in the PETG.** All the give is in the soft-flex bands, so
+  the PETG part has nothing thin to snap.
+- **Printing.** PETG, top edge down on the bed, no supports. The bands print
+  in soft flex, lying flat (standing on one end), no supports.
+- **No separate test piece.** The part is short enough to print whole as the
+  first test, about 2 g. Check that the curve sits against the frame front,
+  clears the hinge and stays above the lens, that the strip drops in, and
+  that the bands hold.
+
+**Measurements to check.** These come from photos or are guesses:
+- Where the lens starts below the frame front's top, near the corner
+  (`LENS_TOP_Z`, guessed at 4.5 mm below the temple's top edge).
+- The frame front's top height beside the hinge (`FRAME_TOP_Z`).
+- The hinge knuckle's size and height (`KNUCKLE_Z`, `GUSSET_L`).
+- The temple's outline. It assumes a straight top edge and a straight taper
+  from 8.1 to 4.0 mm tall, and 4.0 to 3.2 mm thick.
+
+`CLEAR` sets the fit against the temple, and `CURVE_R` the corner radius. A
+bigger radius carries more LEDs round the corner, but reaches further along
+the frame front.
+
+### Pods hanging off the tips (current)
+
+`hang_pods.py` replaces the earlier pods. The temple tip ends in a paddle: 4.0
+mm thick, growing from 6.3 mm tall 20 mm back to 8.5 mm at the end (measured).
+Each pod fits over the paddle's last 22 mm, and its body carries on past the
+end, down onto the bone behind the earlobe. It doesn't rise above the ear.
+
+| File (`out/stl/`) | Material | What it is |
+|---|---|---|
+| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn), button in the back wall, earlobe lead out of the ear-side wall |
+| `hang_pod_battery` | PETG | Left pod: 502030 cell; cord out of the far end |
+| `hang_liner` | Soft flex | Lines each pod's pocket. Print 2 |
+| `hang_back_clip` | Soft flex | Holds each pod on across the paddle's back edge. Print 2 |
+| `hang_lid_board`, `hang_lid_battery` | Soft flex | Press-in lids |
+| `lobe_clip` | Soft flex | Magnetic earlobe clip for any adult lobe (see below), on a loose 4-wire lead |
+
+- **Pocket:** a rigid PETG pocket shaped to the paddle, lined with soft flex.
+  It wraps both faces and the edge nearest the ear.
+- **Locked along the tip:** the paddle's 8.5 mm end can't pass back through
+  the pocket's narrower neck, and its end stops against the body. So the pod
+  can't slide along the tip either way. It may creep a few mm, squeezing the
+  liner, before the rigid stop.
+- **Fitting:** the pod goes on from the paddle's back edge (the edge away from
+  the ear). Gravity pulls the paddle into the pocket. One soft clip across
+  the back edge holds it there; peel the clip off and lift the pod away to
+  remove it.
+- **Wires:** the rail's wires (up to 4 of about 1 mm) run along the paddle's
+  back edge in a 2.2 mm channel under the clip, into the body through its
+  front wall. The cord between the pods leaves the far end through a 5 × 3 mm
+  hole.
+- **Assumption to check:** the paddle grows on its lower edge (nearest the ear
+  when worn) and its top edge is straight. If it's the other way round, the
+  pocket needs flipping.
+- **Weight:** the pods sit behind the ear pivot, so they take a little weight
+  off your nose rather than lifting the glasses.
+- **Printing:** pods in PETG, head-side face down, no supports (the pocket's
+  outer wall bridges over the paddle's space). The liner prints open edge
+  down, and the clips on their ends.
+
+### Earlobe clip (current)
+
+`lobe_clip.py` makes one soft-flex part sized for adult earlobes 13–27 mm tall
+(intertragic notch to the bottom; the mean is about 19–20 mm) and 2.5–8 mm
+thick, free or attached. The magnets set where the sensor sits, so the clip's
+shape doesn't have to match the lobe.
+
+![Clip folded onto a lobe](renders/lobe_clip_worn.png)
+
+- **Back pad:** 21.6 × 21.6 × 5.8 mm, behind the lobe, sensor window facing it.
+  Sized for the Pimoroni MAX30101 breakout: 19 × 19 mm, narrowing to 15 mm
+  over the bottom 5 mm where the pin holes are, every part on the sensor face,
+  chip centred at the top edge.
+  - **Board:** goes in from the back, past soft lips along its side edges,
+    into a pocket 0.1 mm over its size. At the front it's held on all four
+    edges: thin rims along the sides, tabs over the two top corners (round the
+    mounting holes, clear of the chip) and a cover over the pin tab, with a
+    0.5 mm recess behind the pins for solder that wicks through.
+  - **Chip proud:** the chip's face stands 0.5 mm proud of the pad's skin face,
+    so it presses into the lobe rather than sitting back behind a rim.
+  - **Magnets:** three 9.5 × 0.8 mm discs behind the chip. The chip is too
+    near the top edge for them to centre on it, so they sit 3.35 mm lower,
+    still covering the chip. The pinch presses the chip itself onto the skin.
+  - **Flap:** folds over the back on a living hinge and presses in. It holds
+    the magnets against the board.
+  - **Wires:** solder them to the pins from the back, run them along behind the
+    tab and out of the rear wall beside it (4.4 × 3.9 mm slot; the flap is
+    recessed 0.8 mm over the tab to make room). Rear is the side away from the
+    hinge, toward the pod.
+- **Keeper strap:** flat and floppy, 32 mm from the pad's bottom edge to the
+  front puck. It goes round whatever free edge the lobe has: under a free
+  lobe, or round the back edge of an attached one. It replaces the pre-curled
+  finger, which fixed the chip's height above the lobe's bottom and needed a
+  free lobe. The strap only keeps the clip on.
+  - **Length:** long enough for the longest, thickest lobe with the chip high
+    on it. On smaller lobes the spare hangs as a loop under the lobe: about
+    13 mm on an average lobe, 19 mm on the smallest.
+- **Front puck:** 14 mm across, to spread the pinch, with three discs that
+  snap in past a lip.
+  - **Polarity:** put the stacks in so they attract when the strap is folded.
+- **Pinch:** the magnets are the lobe's thickness plus 3.25 mm apart (board,
+  chip and skins). That gives about 1.3 N on a 2.5 mm lobe and 0.3 N on an
+  8 mm one. The clip weighs about 6 g, so even the weakest pinch holds it. On
+  very thin lobes, use two discs in the puck if it pinches.
+- **Wearing it:** put the chip on the upper, fleshy part of the lobe, at
+  least 6 mm below the notch. Fold the strap round and let the puck snap on.
+- **Lead:** 4 loose silicone wires (power, ground, SDA, SCL), 70 mm long. The
+  farthest a lobe sits from the pod's exit is 42 mm, checked over ±5 mm of
+  ear position and every lobe size, plus 25 mm of slack. Tie a knot inside
+  the pod as strain relief; it leaves through a 4 mm hole in the ear-side
+  wall.
+- **Check:** `CHIP_OFFSET` puts the chip's centre 2.3 mm below the board's
+  top edge, from a photo; and the side rims (0.8 mm) must clear the parts
+  nearest the side edges.
+- **Printing:** flat, skin side down, no supports: pad, strap, puck and open
+  flap all start on the bed. The only overhangs are the 1 mm lips and the puck's lip.
+
+### Nose clip (current)
+
+`nose_clip.py` makes one small soft-flex part (8 × 8 × 9 mm) that clips onto
+the wing of the right nostril and holds the breath thermistor just inside it.
+It's held by the nose, not the glasses, so it stays put when the glasses move.
+
+- **The U:** wraps the wing's lower rim, the inner leg inside the nostril and
+  the outer pad on the skin outside. It prints nearly closed (1.6 mm) and
+  springs shut onto any wing about 2–5 mm thick.
+- **Magnets:** two 2×1 mm discs stacked in each leg, pushed in from the faces
+  away from the skin; put them in so the legs attract. They only help it
+  settle: through a 3 mm wing they pull about 0.02 N. The spring does the
+  holding.
+- **Bead cage:** an open square tube on the inner leg's tip, along the nostril
+  (the way the air goes). It holds the bead about 4 mm in and 2 mm off the
+  skin, in the airflow; touching skin, it would read skin temperature.
+- **Wiring:** the bead's leads drop through the cage, down the groove on the
+  inner leg's free face to the keel under the U, outside the nostril. Solder
+  them to a twisted pair of 30 AWG silicone wires there (heat-shrink each
+  joint), and press the pair into the keel's channel; it leaves from the back,
+  toward the ear.
+- **Wire:** 220 mm, loose: down behind the earlobe, under its clip, along the
+  cheek. The path on the stand-in head is 178 mm, plus 40 mm slack. It ends in
+  the plug half of a 2-pin 4 mm magnetic pogo connector; the socket half
+  presses into the board pod's ear-side wall, 7 mm behind the earlobe lead's
+  hole, and its tails solder to A0 and ground (the
+  firmware's divider: 10k from 3V to A0, thermistor from A0 to ground). Set
+  `BETA` in `firmware/config.py` to your bead's B value (3435 now).
+- **Tugs:** the pogo connector's magnets probably hold harder than the clip
+  grips, so a snag could pull the clip off the nose before the plug lets go.
+  Leave a slack loop under the ear; if tugs still reach the nose, add a tie-off
+  where the wire passes the earlobe clip.
+- **Check:** the bead (`BEAD_D`, 0.8 mm assumed) and the pogo socket
+  (`hang_pods.POGO`, 4.0 × 4.0 mm assumed, no flange). The socket's tails sit
+  in the knot space under the XIAO; bend them flat.
+- **Printing:** back face down, no supports. The only overhangs are short
+  bridges over the magnet holes, the groove and the cage.
+
+### Earlier v2 mount (superseded)
+
+
 `mount_v2.py` models the mount; `render_v2.py` draws it on the stand-in head
 (`renders/`).
 
@@ -172,6 +411,14 @@ only where it helps (grip and the corner).
 | `max_arm` | Soft flex | MAX30101 arm and cradle |
 
 `out/step/` holds the same parts as fitted, in worn coordinates.
+
+For Fusion 360, open these with File → Open. Each part comes in as its own
+named body:
+- `out/all_parts.step`: every part, laid out side by side in print
+  orientation.
+- `out/assembly_right_M.step`: the right side in place, in size M. It is
+  modelled on a straight temple, so the pod sits in line with the temple
+  rather than bent down behind the ear.
 
 ### Rail
 
@@ -287,15 +534,30 @@ won't stay, a dot of flexible glue fixes it.
     comes out beside the USB-C.
   - **Wires:** the rail's wires enter at the front. The cord leaves from the
     far end.
-- **MAX30101 arm:**
-  - **Fitting:** a soft-flex flange is trapped inside the board pod under the
-    lid.
-  - **Path:** the strap leaves the tip-end face, runs past the end of the
-    tip, then crosses toward the ear.
-  - **Cradle:** at the strap's end, it holds the breakout with its sensor
-    window outward, against the back of the earlobe. The board slides into the
-    cradle from its far end.
-  - **Fit:** it is printed flat as an L, and bends to suit the ear.
+- **MAX30101 earlobe clip** (`max_clip`, soft flex, one part):
+  - **Tether:** a slack strap, about 47 mm from where it leaves the pod to
+    the sensor. It carries the wires and catches the clip if it comes off;
+    the magnets, not the tether, set the position. A flange is trapped
+    inside the board pod under the lid.
+  - **Cradle:** sits behind the earlobe, with the sensor window facing it.
+    The breakout slides in from one end, with its 19 mm side along the
+    tether and its pin edge toward the tether. An open strip across the back
+    along the pin edge leaves room for the solder joints.
+  - **Magnets:** two 9.5 × 0.8 mm discs stacked, pressed into a pocket right
+    behind the board. Another stack goes in the finger.
+  - **Finger:** printed already curled into a U from the cradle's far end. It
+    goes under the lobe and up its front, with its magnets opposite the
+    cradle's, so the two pull together through the lobe. The gap is 5 mm
+    (soft, so roughly 3–7 mm lobes fit), giving 8 mm between the magnets.
+    At that distance two stacked discs pull about 0.35 N, a light ear-clip
+    squeeze. A single disc each side (about 0.1 N) would slip.
+  - **Polarity:** put the cradle's and the finger's stacks in so they
+    attract.
+  - **Wires:** 4 thin wires (about 0.9 mm: power, ground, SDA, SCL) press
+    into a groove along the tether's head-side face. It's 4 mm wide and
+    1.4 mm deep, with a 3.4 mm mouth. It runs from inside the pod to the
+    solder strip behind the board's pin edge.
+  - **Printing:** on its flat side, with no supports.
 - **Battery pod (left):** holds the 502030 cell under its lid. The cord comes
   in at the tip end, and the left strip's wires at the front.
 

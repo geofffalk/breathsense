@@ -38,7 +38,7 @@ from build123d import Compound, Plane, Polyline, Pos, Rot, export_step, export_s
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "glasses"))
 import glasses_mount as gm   # noqa: E402  (box/prism helpers and the LED strip's measurements)
-from glasses_mount import box, xy_prism, yz_prism   # noqa: E402
+from glasses_mount import box, xy_prism, y_cyl, yz_prism   # noqa: E402
 
 OUT = Path(__file__).parent / "out"
 
@@ -358,11 +358,19 @@ XIAO = (17.8, 21.0, 1.0, 3.2)        # XIAO nRF52840 Plus: width, length, PCB, U
 USB_W = 9.2
 BUTTON = 6.2         # Tactile button pocket (up to 6x6 mm), plunger out through the bottom
 BATTERY = (34.0, 21.0, 5.6)          # 502030 cell with its protection board, plus clearance
-ARM_W, ARM_T = 6.0, 1.8
-ARM_OUT = 4.0        # MAX30101 arm runs this far past the tip's end ...
-ARM_UP = 4.0         # ... then across to this far beyond the tip's top edge, where the cradle starts
+ARM_W, ARM_T = 6.0, 2.4
+ARM_OUT = 8.0        # Tether runs this far past the tip's end (to the end of its bend), then turns toward the ear ...
+ARM_BEND_R = 10.0    # ... round a smooth bend of this radius (centre line), so it flexes evenly and the wires don't kink
+ARM_REACH = 20.0     # ... to this far past the tip's top edge, where the cradle starts. Slack: the magnets set the position
+WIRE_GROOVE = (4.6, 1.6, 3.8)        # Groove for 4 wires (1 mm) along the tether's head-side face: width, depth, mouth
+MAGNET = (9.5, 0.8, 2)               # Earlobe magnets: diameter, thickness, how many stacked on each side
+LOBE_T = 5.0                         # Finger's inside gap for the earlobe (soft, so it takes about 3-7 mm)
+FINGER_T = 1.6                       # Finger thickness under the lobe
+LEG_WALL = 0.6                       # Skin between the finger's magnets and the lobe
+SOLDER_STRIP = 4.0                   # Open strip across the back of the board along its pin edge, for the solder joints
 MAX_BOARD = (22.5, 19.0, 1.6, 1.8)   # MAX30101 breakout: length, height, PCB, parts on the sensor side
-CRADLE_RIM, CRADLE_LIP = 1.5, 0.8
+CRADLE_RIM, CRADLE_LIP = 1.5, 0.8    # Front rim round the sensor window; rim and back-lip thickness
+CRADLE_BACK = 1.0                    # Back lips overlap the board's edges this much (it presses in past them)
 
 
 def pod_leaf_geometry(size):
@@ -464,30 +472,8 @@ def board_pod(size):
     rst = (xm - 5.0, cz0 + 2.5)                       # XIAO reset button, next to the USB-C (check yours)
     lid -= box(rst[0] - 0.6, rst[0] + 0.6, y1 - LID_T - 1, y1 + 1, rst[1] - 0.6, rst[1] + 0.6)
 
-    # MAX30101 arm (soft flex), an L: a flange held inside the pod under the lid, a strap out
-    # through the tip-end face past the end of the tip, then across toward the ear (above the
-    # tip's top edge here; in front of the tip when worn), ending in a cradle that holds the
-    # breakout with its sensor window outward, against the back of the earlobe. The cradle's
-    # open end, where the board slides in, faces away from the strap. Strap, flange and cradle
-    # are flush on their outer face, so it prints flat on it.
-    ys = (arm_y[0] + 0.1, arm_y[0] + 0.1 + ARM_T)
-    zs = (arm_z[0] + 0.2, arm_z[1] - 0.2)
-    arm = box(rx[0] + 0.2, rx[0] + 3.2, ys[0] - 0.6, ys[1], zs[0] - 1.5, min(zs[1] + 0.8, zc1 - 0.1))  # Flange
-    kx = xa - ARM_OUT                                                                       # The L's corner
-    arm += box(kx - ARM_W, rx[0] + 0.5, *ys, *zs)                                           # Out past the tip end
-    arm += box(kx - ARM_W, kx, *ys, zs[0], ARM_UP + 0.5)                                    # Across toward the ear
-    bl, bh, bt, bf = MAX_BOARD
-    hl, hh = bl / 2 + 0.2, bh / 2 + 0.2
-    c_y1 = ys[1]
-    c_y0 = c_y1 - CRADLE_LIP - bf - bt
-    cxm = kx - ARM_W / 2
-    c_z0 = ARM_UP
-    czm = c_z0 + POD_WALL + hh
-    arm += box(cxm - hl - POD_WALL, cxm + hl + POD_WALL, c_y0 - CRADLE_LIP, c_y1, c_z0, czm + hh + POD_WALL)
-    arm -= box(cxm - hl, cxm + hl, c_y0, c_y1 - CRADLE_LIP, czm - hh, czm + hh + POD_WALL + 1)       # Board, in from the far end
-    for ya, yb in ((c_y0 - CRADLE_LIP - 1, c_y0 + 0.01), (c_y1 - CRADLE_LIP - 0.01, c_y1 + 1)):
-        arm -= box(cxm - hl + CRADLE_RIM, cxm + hl - CRADLE_RIM, ya, yb, czm - hh + CRADLE_RIM, czm + hh + POD_WALL + 1)
-    arm -= box(cxm - 2.5, cxm + 2.5, c_y0, c_y1 - CRADLE_LIP, c_z0 - 1, czm - hh + 0.1)              # Wires along the strap
+    dims.update(arm_y=arm_y, arm_z=arm_z, rx=rx)
+    arm = max_arm(dims)
     dims.update(zb=zb, zc1=zc1)
     return part, lid, arm, dims
 
@@ -501,6 +487,122 @@ def worn_pod(p, left=False):
     if left:
         return Pos(0, 0, -gm.REF_TIP[1]) * (Rot(180, 0, 0) * p)
     return Pos(0, 0, -gm.REF_TIP[1]) * mirror(p, Plane.XY)
+
+
+def max_arm(dims):
+    """MAX30101 earlobe clip on a slack tether (soft flex, one part), in the board pod's unflipped
+    coordinates.
+    - Tether: a flange held inside the pod under the lid; a strap out through the pod's tip-end
+      face, past the end of the tip, then across toward the ear (above the tip's top edge here,
+      in front of it when worn). It's long and floppy: it carries the wires and catches the clip
+      if it comes off; the magnets set the position.
+    - Cradle: sits behind the earlobe, sensor window facing it. The board slides in from one end
+      (its 19 mm side along the tether, pin edge toward the tether). Behind it, a pocket holds a
+      stack of magnets touching the board's back, and an open strip along the pin edge leaves
+      room for the solder joints.
+    - Finger: printed already curled into a U from the cradle's far end, round under the lobe in a
+      smooth half-round bend and up its front, with a magnet pocket in its tip opposite the
+      cradle's. The magnets pinch the lobe.
+    - Wires: a press-in groove along the tether's head-side face, through a notch to the solder strip.
+    Everything starts from one flat side face, so it prints on that side with no supports."""
+    arm_y = dims["arm_y"]
+    ys = (arm_y[0] + 0.1, arm_y[0] + 0.1 + ARM_T)         # Tether's head-side face, outer face
+    if "path" in dims:                                     # A pod that lays out its own tether
+        x0, path, groove_path, reach = dims["x0"], dims["path"], dims["groove_path"], dims["reach"]
+        fx0, fx1, fz0, fz1 = dims["flange"]
+    else:
+        arm_z, rx, xa = dims["arm_z"], dims["rx"], dims["xa"]
+        zs = (arm_z[0] + 0.2, arm_z[1] - 0.2)
+        zc = (zs[0] + zs[1]) / 2
+        x0 = xa - ARM_OUT - ARM_W                          # The flat side everything starts from
+        path = tether_path(dims)
+        reach = ARM_REACH
+        groove_path = [(rx[0] + 3.3, zc)] + path[1:-1] + [(x0 + ARM_W / 2, reach + 0.01)]
+        fx0, fx1, fz0, fz1 = rx[0] + 0.2, rx[0] + 3.2, zs[0] - 1.5, zs[1] + 0.8
+    sx = x0 + ARM_W / 2                                    # Tether's centre line where it meets the cradle
+    arm = box(fx0, fx1, ys[0] - 0.6, ys[1], fz0, fz1)                                   # Flange
+    arm += xz_band(path, ARM_W, *ys)                                                     # Tether
+
+    bl, bh, bt, bf = MAX_BOARD
+    hl, hh = bl / 2 + 0.2, bh / 2 + 0.2
+    w = POD_WALL
+    md, mt, mn = MAGNET
+    mdep = mt * mn + 0.1
+    mr = (md + 0.25) / 2
+    c_y1 = ys[1]                                           # Front (sensor side), flush with the tether
+    board_y = (c_y1 - CRADLE_LIP - bt - 0.1, c_y1 - CRADLE_LIP)
+    c_y0 = board_y[0] - mdep                               # Back: the magnet pocket's depth
+    x1 = x0 + 2 * (hl + w)
+    cx = (x0 + x1) / 2
+    cz0, cz1 = reach, reach + 2 * (hh + w)
+    bz = (cz0 + w, cz1 - w)
+    czm = (bz[0] + bz[1]) / 2
+    arm += box(x0, x1, c_y0, c_y1, cz0, cz1)
+    arm -= box(cx - hl, x1 + 1, *board_y, *bz)                                               # Board, slides in from the end
+    arm -= box(cx - hl + CRADLE_RIM, cx + hl - CRADLE_RIM, board_y[1] - 0.01, c_y1 + 1,
+               bz[0] + CRADLE_RIM, bz[1] - CRADLE_RIM)                                         # Sensor window
+    arm -= box(cx - hl + 1.0, cx + hl - 1.0, c_y0 - 1, board_y[0] + 0.01, bz[0], bz[0] + SOLDER_STRIP)   # Solder strip
+    arm -= y_cyl(cx, czm, c_y0 - 1, board_y[0] + 0.01, 2 * mr)                                # Magnets, against the board
+
+    # Finger: a U from the cradle's far end, round under the lobe and up its front. The bend is
+    # a smooth half-round, inside and out, running straight on from the cradle's front face and
+    # the finger's inner face, so nothing digs into the lobe.
+    leg_y0 = c_y1 + LOBE_T
+    leg_y1 = leg_y0 + LEG_WALL + mdep
+    arm += box(x0, x1, leg_y0, leg_y1, czm - mr - 1.2, cz1 + 0.01)                          # Up its front
+    n = 32
+    yo, ro = (c_y0 + leg_y1) / 2, (leg_y1 - c_y0) / 2                                         # Outside of the bend
+    yi, ri = c_y1 + LOBE_T / 2, LOBE_T / 2                                                    # Inside of the bend
+    outer = [(yo + ro * math.cos(math.pi * i / n), cz1 + ro * math.sin(math.pi * i / n)) for i in range(n + 1)]
+    inner = [(yi + ri * math.cos(math.pi * i / n), cz1 + ri * math.sin(math.pi * i / n)) for i in range(n + 1)]
+    arm += yz_prism(outer, x0, x1)
+    arm -= yz_prism(inner + [(c_y1, cz1 - 0.01), (leg_y0, cz1 - 0.01)], x0 - 1, x1 + 1)
+    arm -= y_cyl(cx, czm, leg_y0 + LEG_WALL, leg_y1 + 1, 2 * mr)                            # Magnets, pressed in from outside
+
+    # Wire groove along the tether's path: full width just under the face, narrower at the mouth
+    # so the wires snap in
+    gw, gd, gm = WIRE_GROOVE
+    arm -= xz_band(groove_path, gw, ys[0] + 0.35, ys[0] + gd)
+    arm -= xz_band(groove_path, gm, ys[0] - 0.7, ys[0] + 0.36)
+    arm -= box(sx - gw / 2, sx + gw / 2, c_y0 - 1, ys[0] + gd, cz0 - 0.5, bz[0] + SOLDER_STRIP)  # Into the solder strip
+    return arm
+
+
+def tether_path(dims):
+    """Centre line (x, z) of the earlobe clip's tether: from inside the pod, straight out through
+    the tip-end face, round a smooth bend toward the ear, then straight on to the cradle."""
+    arm_z, rx, xa = dims["arm_z"], dims["rx"], dims["xa"]
+    zc = (arm_z[0] + arm_z[1]) / 2
+    sx = xa - ARM_OUT - ARM_W / 2                          # Cross piece centre line
+    xs = sx + ARM_BEND_R                                   # Where the bend starts
+    pts = [(rx[0] + 0.5, zc), (xs, zc)]
+    n = 16
+    for i in range(1, n + 1):
+        a = math.radians(270 - 90 * i / n)                 # From heading -x to heading +z
+        pts.append((xs + ARM_BEND_R * math.cos(a), zc + ARM_BEND_R + ARM_BEND_R * math.sin(a)))
+    pts.append((sx, ARM_REACH + 0.5))
+    return pts
+
+
+def xz_band(path, width, y0, y1):
+    """A strip of the given width along an (x, z) polyline, spanning y0..y1."""
+    left, right = [], []
+    for i, (x, z) in enumerate(path):
+        xa_, za_ = path[max(i - 1, 0)]
+        xb_, zb_ = path[min(i + 1, len(path) - 1)]
+        dx, dz = xb_ - xa_, zb_ - za_
+        L = math.hypot(dx, dz)
+        nx, nz = -dz / L * width / 2, dx / L * width / 2
+        left.append((x + nx, z + nz))
+        right.append((x - nx, z - nz))
+    return gm.xz_prism(left + right[::-1], y0, y1)
+
+
+def print_orient_clip(p):
+    """On its flat side (the x = min face): the finger's U and the cradle's walls stand up."""
+    p = Rot(0, -90, 0) * p
+    bb = p.bounding_box()
+    return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * p
 
 
 def battery_pod(size):
@@ -570,6 +672,24 @@ def test_clip(size):
     return rail(size, x0=c0 - 3, x1=c1 + 3, clips=[(c0, c1)], tongue=False)
 
 
+def assembly_right(size="M"):
+    """The right side's parts in place on a straight temple (the ear bend isn't applied, so the
+    pod sits in line with the temple), corner bent to its fitted 90 degrees."""
+    pod, lid, arm, _ = board_pod(size)
+    hinge_cap, flap_cap = corner_caps(90.0)
+    items = [("rail", rail(size)), ("corner", corner(90.0)), ("diffuser", diffuser()),
+             ("corner_cap_hinge", hinge_cap), ("corner_cap_flap", flap_cap),
+             ("pod_board", worn_pod(pod)), ("lid_board", worn_pod(lid)), ("max_arm", worn_pod(arm)),
+             ("pod_liner", worn_pod(pod_liner()))]
+    for i, (c0, c1) in enumerate(CLIPS):
+        items.append((f"liner_{i + 1}", Pos(c0 + BRIDGE_W, 0, 0) * liner(c1 - c0 - 2 * BRIDGE_W)))
+    out = []
+    for name, shape in items:
+        shape.label = name
+        out.append(shape)
+    return out
+
+
 def build():
     parts = {}
     for s in SIZES:
@@ -600,7 +720,7 @@ def build():
             # 1.3 mm shorter for S and longer for L; the soft arm takes that up.
             parts["lid_board"] = (lid, print_orient_lid(lid))
             parts["lid_battery"] = (blid, print_orient_lid(blid))
-            parts["max_arm"] = (arm, print_orient_lid(arm))
+            parts["max_clip"] = (arm, print_orient_clip(arm))      # arm is already flipped (worn_pod above)
             pl = pod_liner()
             parts["pod_liner"] = (pl, _to_bed(pl))
     return parts
@@ -614,7 +734,21 @@ if __name__ == "__main__":
               f"per leaf {f_lo:.1f}-{f_hi:.1f} N, stress {s_lo:.0f}-{s_hi:.0f} MPa")
     (OUT / "step").mkdir(parents=True, exist_ok=True)
     (OUT / "stl").mkdir(parents=True, exist_ok=True)
-    for name, (model, printable) in build().items():
+    parts = build()
+    for name, (model, printable) in parts.items():
         export_step(model, str(OUT / "step" / f"{name}.step"))
         export_stl(printable, str(OUT / "stl" / f"{name}.stl"))
         print("wrote", name, f"{model.volume:.0f} mm3")
+    # Every part laid out side by side, in print orientation, named (for Fusion: File > Open)
+    laid_out, y = [], 0.0
+    for name, (_, printable) in parts.items():
+        bb = printable.bounding_box()
+        p = Pos(-bb.min.X, y - bb.min.Y, -bb.min.Z) * printable
+        p.label = name
+        laid_out.append(p)
+        y += bb.size.Y + 5.0
+    export_step(Compound(children=laid_out, label="BreathSense v2 parts"), str(OUT / "all_parts.step"))
+    # The right side in place, size M, as modelled: straight temple, ear bend not applied
+    asm = assembly_right()
+    export_step(Compound(children=asm, label="BreathSense v2 right side (M)"), str(OUT / "assembly_right_M.step"))
+    print("wrote all_parts.step and assembly_right_M.step")
