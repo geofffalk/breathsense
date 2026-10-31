@@ -192,7 +192,13 @@ shaped to one measured pair of glasses, not universal.
   rim: on the frame front it sits above the lens, and it passes over the
   hinge knuckle.
 - **No threading.** The strip drops into a slot that's open along its top
-  edge, past small retaining tabs.
+  edge. The slot is 2.2 mm wide for the 1.2 mm strip (PCB plus LEDs), because
+  printed slots come out 0.2–0.4 mm narrow, and nothing narrows the opening.
+  The two soft-flex bands cross the slot's top on the rail, so the strip
+  can't lift out there. Round the curve it's held by its own stiffness: it
+  can't bend within its own width, so it can't climb out of a curved slot. If
+  it lifts at the front, a dab of silicone in the slot (on the part, not the
+  glasses) holds it.
 - **Windows.** Print the part in translucent PETG. The slot's head-side wall
   is 0.8 mm thick, but in front of each LED it's thinned from the slot side to
   a 0.45 mm skin (one line from a 0.4 mm nozzle) over a 3.4 × 3 mm patch.

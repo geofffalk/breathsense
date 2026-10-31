@@ -8,7 +8,8 @@ have to bend. Shaped to one measured pair of glasses, not universal.
   nothing you look through. It can't bend sideways within its own plane, so it stays at that
   height all the way along. That also takes it clear of the hinge knuckle.
 - The strip drops into a slot that's open along its top edge, so it never has to be threaded
-  through. Print it in translucent PETG: each LED shines straight out through the slot's
+  through. Nothing narrows the opening; the soft-flex bands cross it on the rail and keep the strip
+  from lifting out. Print it in translucent PETG: each LED shines straight out through the slot's
   head-side wall, thinned to a single-line skin in front of it.
 - The rail hangs on the temple by a rigid hook over its top edge. Two soft-flex bands, closed
   loops, go right round the part and the temple and hold them together. Each sits in a shallow
@@ -56,7 +57,7 @@ LENS_TOP_Z = -4.5        # Where the lens starts below the frame front's top, ne
 STRIP_W, STRIP_T = gm.STRIP_W, 1.2   # Strip width, and thickness including the LEDs
 WALL = 0.8               # Head-side wall, thinned in front of each LED
 WALL_OUT = 1.6           # Temple-side wall: the band's backbone, so it carries the curve
-SLOT_T = STRIP_T + 0.4   # Slot width (across the strip)
+SLOT_T = STRIP_T + 1.0   # Slot width (across the strip): a printed slot comes out 0.2-0.4 mm narrow
 ZS0 = FRAME_TOP_Z - (STRIP_W + 0.4)   # Bottom of the slot: the strip's top edge sits level with the frame front's top
 CLEAR = 0.15             # Fit clearance against the temple
 HOOK_T = 1.6             # Top hook thickness over the temple's top edge
@@ -67,8 +68,6 @@ BAND_T = WALL_OUT + SLOT_T + WALL     # Band thickness: temple-side wall, slot, 
 WINDOW_W = 3.4           # Thin patch of the head-side wall in front of each LED (along the strip) ...
 WINDOW_EDGE = 0.7        # ... leaving full wall this much above and below it to hold the strip
 SKIN = 0.45              # Wall left in front of each LED: one 0.4 mm-nozzle line of translucent PETG
-TAB = 0.4                # Retaining tabs over the slot's open top edge: overhang ...
-TAB_L, TAB_EVERY = 2.0, 2 * gm.LED_PITCH
 
 # ---------------------------------------------------------------- the curve
 CURVE_R = 18.0           # Arc radius at the temple/frame faces. The strip turns 90 degrees round it
@@ -140,18 +139,6 @@ def led_path():
     return [s_last - (9 - i) * gm.LED_PITCH for i in range(10)]
 
 
-def tab_positions(s_rear=None):
-    """Retaining tabs between LEDs, along the whole band."""
-    s_rear = S_REAR if s_rear is None else s_rear
-    leds = led_path()
-    xs = [(a + b) / 2 for a, b in zip(leds, leds[1:])]
-    s = leds[0] - gm.LED_PITCH / 2
-    while s > s_rear + 3:
-        xs.append(s)
-        s -= TAB_EVERY
-    return xs
-
-
 # ================================================================ the part
 def part(rail_x0=RAIL_X0):
     zb = ZS0 - FLOOR
@@ -161,8 +148,6 @@ def part(rail_x0=RAIL_X0):
     p += band(s_rear, S_FRONT, WALL_OUT + SLOT_T, BAND_T, zb, ZS1)
     p += band(s_rear, S_FRONT, 0, BAND_T, zb, ZS0)
     p += band(S_FRONT - 0.8, S_FRONT, 0, BAND_T, zb, ZS1)                        # Front end closed
-    for s in tab_positions(s_rear):
-        p += band(s - TAB_L / 2, s + TAB_L / 2, WALL_OUT - 0.01, WALL_OUT + TAB, STRIP_TOP, ZS1)   # Down to the strip
     # Windows: the head-side wall thinned from the slot side in front of each LED, so the light
     # goes through a thin skin and the outside face stays smooth
     for s in led_path():
