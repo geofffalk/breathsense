@@ -8,19 +8,21 @@ have to bend. Shaped to one measured pair of glasses, not universal.
   nothing you look through. It can't bend sideways within its own plane, so it stays at that
   height all the way along. That also takes it clear of the hinge knuckle.
 - The strip drops into a slot that's open along its top edge, so it never has to be threaded
-  through. Nothing narrows the opening; the soft-flex bands cross it on the rail and keep the strip
-  from lifting out. Print it in translucent PETG: each LED shines straight out through the slot's
+  through. Nothing narrows the opening. The strip can't climb out of the curve (it
+  can't bend within its own width); the band crosses the slot behind the last LED, over the
+  strip's end; a dab of silicone in the slot holds the rest if it lifts. Print it in translucent PETG: each LED shines straight out through the slot's
   head-side wall, thinned to a single-line skin in front of it.
-- The rail hangs on the temple by a rigid hook over its top edge. Two soft-flex bands, closed
-  loops, go right round the part and the temple and hold them together. Each sits in a shallow
-  pocket so it can't slide, and being closed it can't spring off however soft the flex is. The
-  PETG part has no springy features. To fit: take the pod off, slide both bands onto the temple
-  over its tip, hook the part over the temple, then roll the bands forward into their pockets.
+- The rail hangs on the temple by a rigid hook over its top edge. One soft-flex band, a closed
+  loop just behind the last LED, goes right round the part and the temple and holds them
+  together. It sits in grooves in the part, so it can't slide, and being closed it can't spring
+  off however soft the flex is. Nothing crosses the LEDs. The
+  PETG part has no springy features. To fit: take the pod off, slide the band onto the temple
+  over its tip, hook the part over the temple, then roll the band forward into its grooves.
 - The curve is a circular arc tangent to the temple's inner face and to the frame front's back
   face. A short straight run continues along the frame front.
 - The pods clip onto the temple tips as before (mount_v2.py).
 
-Prints on its top edge with no supports. The bands print in soft flex, flat on their ends.
+Prints on its top edge with no supports. The band prints in soft flex, flat on its end.
 
 Coordinates, as worn on the RIGHT temple (the left part is mirrored): x forward, hinge pin at
 x = 0; y outward, temple inner face at y = 0; z up, temple top edge at z = 0.
@@ -76,20 +78,22 @@ X_T = FRAME_BACK_X - CURVE_R          # Where the arc leaves the temple
 ARC_L = CURVE_R * math.pi / 2
 
 # ---------------------------------------------------------------- rail and grip
-RAIL_X0 = -54.0          # Rail ends just behind the last LED; the wires run on along the temple to the pod
+RAIL_X0 = -60.0          # Rail ends past the band behind the last LED; the wires run on along the temple to the pod
 CATCH = 0.8              # Hooks reach this far down/up the temple's outer face ...
 CATCH_T = 1.2            # ... with lips this thick
 PLATE_T = BAND_T         # Lower plate thickness: flush with the band, one flat head-side face
 
-# Soft-flex bands: closed loops round the whole cross-section (over the top, down the head-side
-# face, under both bottom edges, up the temple's outer face and the hook's lip). A rib on each
-# band's inside sits in a shallow pocket in the lower plate, so it can't slide along.
-CLIPS = (-25.1, -48.0)   # Between two LEDs, and behind the last one
-CLIP_L = (3.0, 6.0)      # Band width along the temple: the front one fits in the 3.4 mm between two windows
-CLIP_ARM = 1.4           # Band thickness
-CLIP_UP = 2.5            # Pocket (and rib) height up the head-side face from the bottom edge
-CLIP_SQUEEZE = 0.3       # Band's inside this much smaller than the part + temple on every side (~7% stretch)
-POCKET = 0.5             # Pocket depth in the part's head-side face
+# Soft-flex band: a closed loop round the whole cross-section (over the top, down the head-side
+# face, under both bottom edges, up the temple's outer face and the hook's lip), just behind the
+# last LED so it covers none. It sits in grooves in the part's top, the hook's lip and the
+# plate's bottom edge, so it can't slide along. The head-side face has no groove: the LED wall
+# there is only 0.8 mm. Where it crosses the temple itself it just lies on it.
+CLIPS = (-48.0,)         # Band's centre: starts 1.2 mm behind the last LED's window
+CLIP_L = (6.0,)          # Band width along the temple
+CLIP_ARM = 1.2           # Band thickness
+CLIP_SQUEEZE = 0.3       # Band's inside this much smaller than what it goes round, every side (~7% stretch)
+GROOVE = 0.5             # Groove depth in the part's top, the hook's lip and the plate's bottom edge
+GROOVE_FIT = 0.1         # Groove this much wider than the band, each side
 
 
 def temple_t(x):
@@ -167,32 +171,34 @@ def part(rail_x0=RAIL_X0):
     outline = [(x, zb + 0.01) for x in xs] + [(x, bottom(x)) for x in reversed(xs)]
     p += xz_prism(outline, -PLATE_T, 0.0)
 
-    # Pockets locating the soft-flex bands
+    # Grooves for the soft-flex band (not in the head-side face)
     for xc, w in zip(CLIPS, CLIP_L):
-        p -= box(xc - w / 2 - 0.2, xc + w / 2 + 0.2, -PLATE_T - 1, -PLATE_T + POCKET,
-                 bottom(xc) - 1, bottom(xc) + CLIP_UP + 0.3)
+        xa, xb = xc - w / 2 - GROOVE_FIT, xc + w / 2 + GROOVE_FIT
+        yl = min(temple_t(xa), temple_t(xb)) + CLEAR + CATCH_T     # Lip's outer face
+        zlow = min(bottom(xa), bottom(xb))
+        p -= box(xa, xb, -PLATE_T - 1, yl + 1, ZS1 - GROOVE, ZS1 + 1)              # Top
+        p -= box(xa, xb, yl - GROOVE, yl + 1, -CATCH - 1, ZS1 + 1)                  # Hook's lip
+        p -= box(xa, xb, -PLATE_T - 1, 0.0, zlow - 1, max(bottom(xa), bottom(xb)) + GROOVE)   # Plate's bottom
     return p
 
 
 def clip(xc):
     """Soft-flex band for the clip position xc (the temple's thickness differs along its length),
-    modelled in place: a closed loop round the part and the temple, with a rib inside its
-    head-side arm for the pocket."""
+    modelled in place: a closed loop round the part and the temple, in the part's grooves."""
     w = CLIP_L[CLIPS.index(xc)]
     x0, x1 = xc - w / 2, xc + w / 2
-    sq = CLIP_SQUEEZE
+    sq, g = CLIP_SQUEEZE, GROOVE
     tt = max(temple_t(x0), temple_t(x1))          # Sized for the thicker, taller end of its span
-    yh = -PLATE_T                                 # Head-side face
-    yl = tt + CLEAR + CATCH_T                     # Hook lip's outer face
-    zt = ZS1                                      # Top of the part
-    zb = -max(temple_h(x0), temple_h(x1)) - CLEAR # Under both bottom edges
-    zr = zb + CLIP_UP + 0.1                       # Top of the rib
+    th = max(temple_h(x0), temple_h(x1))
+    yh = -PLATE_T                                 # Head-side face (no groove)
+    yl = tt + CLEAR + CATCH_T - g                 # Hook lip's outer face, in the groove
+    zt = ZS1 - g                                  # Top of the part, in the groove
+    zp = -th - CLEAR + g                          # Plate's bottom edge, in the groove
     inside = [(yh + sq, zt - sq), (yl - sq, zt - sq), (yl - sq, -CATCH),     # Over the top, down the lip
-              (tt - sq, -CATCH), (tt - sq, zb + sq),                         # Down the temple's outer face
-              (yh + POCKET + sq, zb + sq), (yh + POCKET + sq, zr),           # Under, then the rib
-              (yh + sq, zr + POCKET)]                                        # (sloped top: slides on)
+              (tt - sq, -CATCH), (tt - sq, -th + sq),                        # Down the temple's outer face
+              (0.0, -th + sq), (0.0, zp + sq), (yh + sq, zp + sq)]           # Under the temple, then the plate
     a, c = CLIP_ARM, 1.0                          # Thickness; outside corner chamfer
-    ya, yb, za, zc = yh + sq - a, yl - sq + a, zb + sq - a, zt - sq + a
+    ya, yb, za, zc = yh + sq - a, yl - sq + a, -th + sq - a, zt - sq + a
     outside = [(ya + c, zc), (yb - c, zc), (yb, zc - c), (yb, za + c), (yb - c, za),
                (ya + c, za), (ya, za + c), (ya, zc - c)]
     return yz_prism(outside, x0, x1) - yz_prism(inside, x0 - 1, x1 + 1)
@@ -223,9 +229,9 @@ if __name__ == "__main__":
         export_step(shape, str(OUT / "step" / f"{name}.step"))
         export_stl(print_orient(shape), str(OUT / "stl" / f"{name}_petg.stl"))
         print("wrote", name, f"{shape.volume:.0f} mm3")
-    for i, xc in enumerate(CLIPS):
+    for xc in CLIPS:
         c = clip(xc)                             # A prism along x: the same part fits either side
-        name = f"onepiece_clip_{('front', 'rear')[i]}"
+        name = "onepiece_band"
         export_step(c, str(OUT / "step" / f"{name}.step"))
         export_stl(print_orient_clip(c), str(OUT / "stl" / f"{name}_flex.stl"))
         print("wrote", name, f"{c.volume:.0f} mm3")

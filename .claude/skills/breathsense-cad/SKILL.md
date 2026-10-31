@@ -25,8 +25,8 @@ Bundled checks (in this skill's `scripts/`):
 
 | Script | Makes | Notes |
 |---|---|---|
-| `onepiece.py` | `onepiece_right_petg`, `onepiece_left_petg`, `onepiece_clip_front_flex`, `onepiece_clip_rear_flex` | One PETG part per temple: slot for the 10-LED strip (2.2 mm wide for the 1.2 mm strip, open top with no tabs - 0.4 mm tabs on a 1.6 mm slot blocked the strip; the bands hold it in; wall 0.8 mm, thinned from inside to a 0.45 mm `SKIN` over a 3.4 × 3 mm patch per LED; print in translucent PETG), 18 mm-radius rigid curve round the hinge onto the frame front's back face, above the lens; top hook + two closed soft-flex bands (3 and 6 mm wide, 0.3 mm squeeze, rib in a plate pocket; slid on over the tip with the pod off - open C-clips fell off, TPE too soft). Glasses can't fold while fitted |
-| `hang_pods.py` | `hang_pod_board_petg`, `hang_pod_battery_petg`, `hang_lid_*_flex`, `hang_liner_flex` (×2), `hang_back_clip_flex` (×2) | Pods over the last 22 mm of each temple-tip paddle, lined with soft flex, held by a back clip; body continues down behind the earlobe. Board pod: XIAO, USB-C at far end, button in back wall, earlobe lead hole (4 mm) and nose-clip pogo socket (4.1 mm, 7 mm behind it) in the ear-side wall. `board_pod()` returns `(pod, lid, d)`; `d["lead_exit"]`, `d["pogo"]` |
+| `onepiece.py` | `onepiece_right_petg`, `onepiece_left_petg`, `onepiece_band_flex` | One PETG part per temple: slot for the 10-LED strip (2.2 mm wide for the 1.2 mm strip, open top with no tabs - 0.4 mm tabs on a 1.6 mm slot blocked the strip; held by its stiffness in the curve, the band over its end, silicone if needed; wall 0.8 mm, thinned from inside to a 0.45 mm `SKIN` over a 3.4 × 3 mm patch per LED; print in translucent PETG), 18 mm-radius rigid curve round the hinge onto the frame front's back face, above the lens; rail to 60 mm behind the hinge; top hook + ONE closed soft-flex band, 6 mm, just behind the last LED (45-51 mm) - a band between LEDs covers light, so never put one on the LED run; 0.3 mm squeeze; 0.5 mm grooves in top, hook lip and plate bottom, none in the 0.8 mm head-side wall (0.4 mm left was too thin); slid on over the tip with the pod off - open C-clips fell off, TPE too soft. Glasses can't fold while fitted |
+| `hang_pods.py` | `hang_pod_board_petg`, `hang_pod_battery_petg`, `hang_lid_*_flex`, `hang_liner_flex` (×2), `hang_back_clip_flex` (×2) | Pods over the last 22 mm of each temple-tip paddle, lined with soft flex, held by a closed soft-flex band (`back_clip()`, 8 mm, 11-19 mm from the paddle end) in a groove round the pocket (0.7 mm faces/edge, 0.3 mm top edges); bands go on over the bare tip before the pod; body continues down behind the earlobe. Board pod: XIAO, USB-C at far end, button in back wall, earlobe lead hole (4 mm) and nose-clip pogo socket (4.1 mm, 7 mm behind it) in the ear-side wall. `board_pod()` returns `(pod, lid, d)`; `d["lead_exit"]`, `d["pogo"]` |
 | `lobe_clip.py` | `lobe_clip_flex` | Universal magnetic earlobe clip for the Pimoroni MAX30101 (see below) |
 | `nose_clip.py` | `nose_clip_flex` | Thermistor clip on the right nostril's wing (see below) |
 | `assembly_onepiece.py` | `out/assembly_onepiece.step` | Both sides as worn on stand-in glasses, ear, lobes (small/mid/large) and nostril wing; leads drawn; prints lead cut lengths. Checks overlaps only by intersecting bodies |
@@ -63,7 +63,7 @@ suffix are from superseded designs.
 
 One soft-flex part, printed flat skin side down: back pad (board pocket + flap on a living hinge
 holding the magnets), a 32 mm floppy keeper strap from the pad's bottom edge round the lobe's free
-edge, and a 14 mm front puck. Magnets (3 × 9.5 × 0.8 each side) set the sensor's position, so one
+edge, and a 14 mm front puck (magnets behind a lip, closed by a living-hinge lid at its +x side whose plug fills the lip opening; `puck_lid`/`puck_lid_open`). Magnets (3 × 9.5 × 0.8 each side) set the sensor's position, so one
 size fits lobes 13-27 mm tall and 2.5-8 mm thick; spare strap hangs as a loop.
 - Board `MAX_BOARD = (19, 19, 1.6, 1.55)`, tab `BOARD_TAB = (15, 5)`, `CHIP_OFFSET = (0, 7.2)`
   (chip 2.3 mm below top edge - from a photo, unverified), `POCKET_FIT` 0.1.
@@ -77,10 +77,10 @@ size fits lobes 13-27 mm tall and 2.5-8 mm thick; spare strap hangs as a loop.
 
 ## Nose clip (`nose_clip.py`)
 
-8 × 8 × 9 mm soft-flex U on the right nostril's wing, printed back face down. Rest gap 1.6 mm,
+8 × 11 × 9 mm (worn) soft-flex U on the right nostril's wing, printed back face down. Rest gap 1.6 mm,
 springs onto 2-5 mm walls (`clip(gap)` builds any opening). Inner leg ~4 mm into the nostril with
 a 3 mm open square cage holding a ≤1 mm glass bead 2 mm off the skin. 2 × 2×1 mm magnets per leg
-help settle only (~0.02 N through 3 mm); the spring holds it. Bead leads go down a groove to a
+help settle only (~0.02 N through 3 mm); the spring holds it. Holes open away from the wing (the pull seats the magnets), each closed by a living-hinge lid at the back edge with a peg filling the 0.9 mm `HEAD` above the stack; printed flat and open, `clip(gap, lids_open=False)` for the worn model. Bead leads go down a groove to a
 keel under the U; joint to a 30 AWG twisted pair in the keel's channel; pair exits the back toward
 the ear, ~220 mm to the pogo plug. Assumed: `BEAD_D` 0.8, pogo 4.0 × 4.0 mm no flange.
 

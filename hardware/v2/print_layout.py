@@ -31,8 +31,7 @@ def parts():
             ("onepiece_left_petg", 1, op.print_orient(left)),
             ("hang_pod_board_petg", 1, hp.print_orient_head_down_mirrored(mirror(pod, Plane.XZ))),
             ("hang_pod_battery_petg", 1, hp.print_orient_head_down(bat))]
-    flex = [("onepiece_clip_front_flex", 2, op.print_orient_clip(op.clip(op.CLIPS[0]))),
-            ("onepiece_clip_rear_flex", 2, op.print_orient_clip(op.clip(op.CLIPS[1]))),
+    flex = [("onepiece_band_flex", 2, op.print_orient_clip(op.clip(op.CLIPS[0]))),
             ("hang_liner_flex", 2, hp.print_orient_liner(hp.liner())),
             ("hang_back_clip_flex", 2, hp.print_orient_clip(hp.back_clip(d["y0"], d["y1"]))),
             ("hang_lid_board_flex", 1, mv.print_orient_lid(lid)),

@@ -7,8 +7,10 @@ lined with soft flex, that wraps both faces and the edge nearest the ear. The pa
 sits in the pocket's wide end and can't pass back through the narrower neck, and its end stops
 against the pod's body, so the pod can't slide along the tip either way. The pod goes on from
 the paddle's back edge (the edge away from the ear when worn); gravity then pulls the paddle
-into the pocket, and one soft-flex clip across the back edge holds it there. The rail's wires
-run along that back edge, in a channel under the clip, into the body.
+into the pocket, and a soft-flex band, a closed loop round the whole pocket, holds it there. The
+band sits in a groove round the pocket so it stands only a little proud. The rail's wires run
+along the back edge, in a channel under the band, into the body. The band goes onto the temple
+over its tip before the pod, then rolls back along the paddle into its groove.
 
 The body carries on past the tip's end along the same line, down onto the bone behind the
 earlobe, so the pod doesn't rise above the ear.
@@ -34,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "glasses"))
 sys.path.insert(0, str(Path(__file__).parent))
 import glasses_mount as gm   # noqa: E402
 import mount_v2 as mv        # noqa: E402
-from glasses_mount import box, xz_prism   # noqa: E402
+from glasses_mount import box, xz_prism, yz_prism   # noqa: E402
 
 OUT = Path(__file__).parent / "out"
 
@@ -64,15 +66,15 @@ END_CLEAR = 0.5          # Between the paddle's end and the body
 WIRE_D = 1.0
 WIRES = 4                # Most wires through any passage: the cord's 4
 WIRE_HOLE = (WIRES * WIRE_D + 1.0, 3 * WIRE_D)
-CHANNEL_H = 2.2          # Wire channel along the paddle's back edge, between the pocket's walls, under the clip
+CHANNEL_H = 2.2          # Wire channel along the paddle's back edge, between the pocket's walls, under the band
 
-# ---------------------------------------------------------------- back-edge clip (soft flex)
-CLIP_X = TIP_END_X + 11.0
-CLIP_L = 8.0
-CLIP_ARM = 1.4
-CLIP_DOWN = 2.5          # Arms reach this far down the pocket's faces
-CLIP_SQUEEZE = 0.4
-CLIP_POCKET = 0.5        # Recesses in the pocket's faces that locate the clip
+# ---------------------------------------------------------------- band (soft flex)
+CLIP_X = TIP_END_X + 15.0   # Band's centre: where the paddle's edge is nearly straight
+CLIP_L = 8.0             # Band width along the tip
+CLIP_ARM = 1.2           # Band thickness ...
+CLIP_GROOVE = 0.7        # ... sunk this deep in a groove round the pocket's faces and ear-side edge (0.5 mm proud) ...
+CLIP_GROOVE_TOP = 0.3    # ... and this deep in the walls' top edges, leaving the wires 1.6 mm under it
+CLIP_SQUEEZE = 0.3       # Band's inside this much smaller than the groove's floor on every side
 
 # ---------------------------------------------------------------- body
 FLANGE_ZONE = 3.6        # Room inside the board pod's ear-side wall for a knot in the earlobe lead (strain relief)
@@ -114,9 +116,21 @@ def pocket(depth):
     cav = profile_pts(in_off)
     p -= xz_prism([(x_end, CHANNEL_H + 1)] + [(GRIP_X1 + 1, CHANNEL_H + 1), (GRIP_X1 + 1, cav[-1][1])]
                   + cav[::-1] + [(x_end, cav[0][1])], *pi)
-    for ya, yb in ((po[0] - 1, po[0] + CLIP_POCKET), (y1 - CLIP_POCKET, y1 + 1)):                  # Clip recesses
-        p -= box(CLIP_X - CLIP_L / 2 - 0.2, CLIP_X + CLIP_L / 2 + 0.2, ya, yb, CHANNEL_H - CLIP_DOWN - 0.3, CHANNEL_H + 1)
+    # Band's groove, right round: both faces, the ear-side edge and the walls' top edges
+    ga, gb = CLIP_X - CLIP_L / 2 - 0.2, CLIP_X + CLIP_L / 2 + 0.2
+    g = CLIP_GROOVE
+    groove = box(ga, gb, po[0] - 1, y1 + 1, band_floor() - 5, CHANNEL_H + 1)
+    groove -= box(ga - 1, gb + 1, po[0] + g, y1 - g, band_floor() + g, CHANNEL_H - CLIP_GROOVE_TOP)
+    p -= groove
     return p, dict(y0=po[0], y1=y1, x_end=x_end, z_low=outer[0][1], pocket_in=pi)
+
+
+def band_floor():
+    """The pocket's ear-side outer face under the band, at its higher end (so the groove is at
+    least CLIP_GROOVE deep all along)."""
+    in_off = LINER_SQUEEZE - LINER_T + LINER_FIT
+    return max(bottom(d, in_off - POCKET_WALL) for d in (CLIP_X - TIP_END_X - CLIP_L / 2 - 0.2,
+                                                         CLIP_X - TIP_END_X + CLIP_L / 2 + 0.2))
 
 
 def liner():
@@ -133,15 +147,18 @@ def liner():
 
 
 def back_clip(y0, y1):
-    """Soft-flex clip across the paddle's back edge, at CLIP_X: a bar over the wire channel and arms
-    down both faces of the pocket into its recesses."""
-    a, b = y0 + CLIP_POCKET, y1 - CLIP_POCKET            # Pocket faces at the recesses
-    a, b = a + CLIP_SQUEEZE / 2, b - CLIP_SQUEEZE / 2
+    """Soft-flex band at CLIP_X, modelled in place: a closed loop in the pocket's groove, over the
+    walls' top edges (and the wire channel between them), down both faces and under the ear-side
+    edge."""
+    g, sq, a, c = CLIP_GROOVE, CLIP_SQUEEZE, CLIP_ARM, 1.0      # c: outside corner chamfer
+    yi0, yi1 = y0 + g + sq, y1 - g - sq
+    zi0, zi1 = band_floor() + g + sq, CHANNEL_H - CLIP_GROOVE_TOP - sq
+    ya, yb, za, zb = yi0 - a, yi1 + a, zi0 - a, zi1 + a
+    outside = [(ya + c, zb), (yb - c, zb), (yb, zb - c), (yb, za + c), (yb - c, za),
+               (ya + c, za), (ya, za + c), (ya, zb - c)]
     x0, x1 = CLIP_X - CLIP_L / 2, CLIP_X + CLIP_L / 2
-    c = box(x0, x1, a - CLIP_ARM, b + CLIP_ARM, CHANNEL_H, CHANNEL_H + CLIP_ARM)
-    c += box(x0, x1, a - CLIP_ARM, a, CHANNEL_H - CLIP_DOWN, CHANNEL_H + CLIP_ARM)
-    c += box(x0, x1, b, b + CLIP_ARM, CHANNEL_H - CLIP_DOWN, CHANNEL_H + CLIP_ARM)
-    return c
+    return (yz_prism(outside, x0, x1)
+            - box(x0 - 1, x1 + 1, yi0, yi1, zi0, zi1))
 
 
 def body(depth, height, length, d):
@@ -226,7 +243,7 @@ def print_orient_liner(p):
 
 
 def print_orient_clip(p):
-    """On its end: the C profile flat on the bed."""
+    """On its end: the loop flat on the bed."""
     return mv._to_bed(Rot(0, 90, 0) * p)
 
 
@@ -238,8 +255,8 @@ if __name__ == "__main__":
     pod, lid, d = board_pod()
     bat, blid, bd = battery_pod()
     # Modelled with y outward, which in a right-handed frame is the left temple: the board pod
-    # (right) is exported mirrored, the battery pod (left) as modelled. The lids, liner and back
-    # clip are symmetric through their thickness, so one of each fits either side.
+    # (right) is exported mirrored, the battery pod (left) as modelled. The lids, liner and band
+    # are symmetric through their thickness, so one of each fits either side.
     items = [("hang_pod_board", mirror(pod, Plane.XZ), print_orient_head_down_mirrored),
              ("hang_pod_battery", bat, print_orient_head_down),
              ("hang_lid_board", lid, mv.print_orient_lid), ("hang_lid_battery", blid, mv.print_orient_lid),

@@ -136,7 +136,7 @@ def nose_length():
 def nose_items():
     """The nose clip on a reference nostril wing, and its wire."""
     at = Pos(*NOSTRIL)
-    return [("nose_clip", at * nc.clip(WING_T)), ("nose_wire", polyline(nose_path())),
+    return [("nose_clip", at * nc.clip(WING_T, lids_open=False)), ("nose_wire", polyline(nose_path())),
             ("ref_nostril_wing", at * nc.wing(WING_T))]
 
 

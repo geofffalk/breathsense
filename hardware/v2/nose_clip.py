@@ -5,7 +5,10 @@ thermistor just inside the nostril.
 - A U that wraps the nostril wing's lower rim: the inner leg inside the nostril, the outer pad on
   the skin outside. The U is printed nearly closed (REST_GAP) and springs shut onto any wall of
   about 2-5 mm; a pair of 2x1 mm magnets in each leg only helps it settle (they pull about 0.02 N
-  through a 3 mm wall, too little to hold it on their own).
+  through a 3 mm wall, too little to hold it on their own). Each stack sits in a hole open on the
+  face away from the wing, closed by a lid on a living hinge with a peg that presses into the
+  hole over the stack. When worn the magnets pull each other toward the wing, deeper into their
+  holes, so the lids only need to stop them dropping out while the clip is off.
 - Bead cage: an open square tube at the inner leg's tip, its axis along the nostril (the way the
   air goes), holding the glass bead in the airflow about 4 mm in and 2 mm off the skin. Skin
   contact would read skin temperature, not breath.
@@ -14,6 +17,8 @@ thermistor just inside the nostril.
   silicone wires, pressed into the keel's channel, which leaves from the clip's back face
   toward the ear. The pair runs loose along the cheek to a 2-pin magnetic pogo plug that snaps
   onto the board pod (see hang_pods.py).
+- To fit out: magnets into the holes (check the two legs attract), bead leads into the groove,
+  then fold each lid up and press its peg in. The inner leg's lid closes over the groove.
 
 Coordinates (worn, right nostril): x forward, y outward (from inside the nostril through the
 wing to the skin outside), z up. The wing's inner face is y = 0 and its rim is at the U's centre,
@@ -26,7 +31,7 @@ import math
 import sys
 from pathlib import Path
 
-from build123d import Rot, export_step, export_stl
+from build123d import Align, Cylinder, Pos, Rot, export_step, export_stl
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "glasses"))
 sys.path.insert(0, str(Path(__file__).parent))
@@ -54,7 +59,13 @@ MAG_Z = 1.75                 # Magnets' centre height, and across ...
 MAG_X = -2.0                 # ... (both legs, so they line up)
 BOSS = (0.3, 3.2)            # Magnet bosses' z extent; each spans the leg's full width, so it prints on the bed
 STACK = MAGNETS * MAGNET_T
-BOSS_T = SKIN + STACK + 0.4  # Leg plus boss, from the wing's face
+HEAD = 0.9                   # Hole depth above the stack: the lid's peg fills it
+BOSS_T = SKIN + STACK + HEAD # Leg plus boss, from the wing's face
+LID_T = 0.8                  # Magnet lids: thickness ...
+LID_L = 5.6                  # ... length from the hinge at the back face (over the hole at MAG_X) ...
+LID_Z = (0.3, 2.9)           # ... z extent (kept 0.3 mm under the cage)
+HINGE_T, HINGE_L = 0.5, 1.0  # Living hinge: thinner first part of each lid, as printed flat
+PEG_FIT = 0.05               # Pegs this much over the holes' diameter, so they grip
 GROOVE = (0.6, 0.4)          # Leads' groove: width, depth
 KEEL_H = 2.0                 # Keel under the U, with the pair's channel ...
 CHANNEL = (PAIR_D + 0.1, 1.4)   # ... open underneath: width, depth
@@ -75,8 +86,26 @@ def u_band(gap):
     return yz_prism(pts, X0, X_IN)
 
 
-def clip(gap=REST_GAP):
-    """The clip with its legs this far apart: REST_GAP as printed, or a wing's thickness as worn."""
+def lid(face, out, closed):
+    """Magnet lid hinged on the boss face at y = face (out = +1 or -1, the way that face looks).
+    Open: lying flat on the bed (x = X0), pointing away from the boss, peg up. Closed: folded up
+    against the boss face, peg in the hole."""
+    d = MAGNET_D + MAG_FIT + PEG_FIT
+    if closed:
+        f = box(X0, X0 + LID_L, *sorted((face, face + out * LID_T)), *LID_Z)
+        return f + y_cyl(MAG_X, MAG_Z, *sorted((face - out * HEAD, face + out * 0.01)), d)
+    y = lambda a: face + out * a                 # noqa: E731
+    f = box(X0, X0 + HINGE_T, *sorted((y(-0.01), y(HINGE_L))), *LID_Z)
+    f += box(X0, X0 + LID_T, *sorted((y(HINGE_L), y(LID_L))), *LID_Z)
+    peg = Pos(X0 + LID_T - 0.01, y(MAG_X - X0), MAG_Z) * Cylinder(d / 2, HEAD + 0.01,
+                                                                  align=(Align.CENTER, Align.CENTER, Align.MIN),
+                                                                  rotation=(0, 90, 0))
+    return f + peg
+
+
+def clip(gap=REST_GAP, lids_open=True):
+    """The clip with its legs this far apart: REST_GAP as printed, or a wing's thickness as worn;
+    the magnet lids open (as printed) or closed."""
     zc = BEAD_IN - CAGE[2] / 2
     c = box(X0, X_IN, -LEG_T, 0, 0, zc + CAGE[2])                                   # Inner leg
     c += box(X0, X_OUT, gap, gap + LEG_T, 0, OUTER_TOP)                             # Outer pad
@@ -101,13 +130,15 @@ def clip(gap=REST_GAP):
     # keel's side, round under into the channel
     gw, gd = GROOVE
     c -= box(CAGE_X - gw / 2, CAGE_X + gw / 2, -BOSS_T - 1, -LEG_T + gd, zb - KEEL_H - 1, zc + 0.01)
+    # Magnet lids
+    c += lid(-BOSS_T, -1, not lids_open)
+    c += lid(gap + BOSS_T, 1, not lids_open)
     return c
 
 
 def wing(t, h=10.0, w=12.0):
     """Reference nostril wing: a slab t thick from its rounded rim up, inner face on y = 0."""
     import lobe_clip as lc
-    from build123d import Pos
     return Pos((X0 + X_OUT) / 2, 0, 0) * lc.lobe(t, h, w, -t / 2)
 
 
@@ -119,7 +150,7 @@ def wire_out(gap):
 
 def print_orient(p):
     """Back face down: every feature is an extrusion up from the bed, the magnet holes and the
-    cage's sides the only bridges (2-3 mm)."""
+    cage's sides the only bridges (2-3 mm). The lids lie flat on the bed, pegs up."""
     return mv._to_bed(Rot(0, -90, 0) * p)
 
 

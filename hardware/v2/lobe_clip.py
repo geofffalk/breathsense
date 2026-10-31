@@ -10,7 +10,9 @@ The magnets set where the sensor sits, so nothing about the clip's shape has to 
   board. The wires leave from the pins at the board's bottom, out through the rear wall.
 - Keeper strap: a flat floppy strap from the pad's bottom edge, round whatever free edge the lobe
   has (under a free lobe; round the back edge of an attached one) and up the front to the front
-  puck, whose magnets pull through the lobe onto the pad's. It doesn't set the height: it's long
+  puck, whose magnets pull through the lobe onto the pad's. A lid on a living hinge at the
+  puck's side folds over its outer face, with a plug pressing into the magnet pocket, so the
+  magnets can't drop out when the clip is off. It doesn't set the height: it's long
   enough for the longest, thickest lobe with the chip high on it, and on smaller lobes the spare
   length hangs as a loop under the lobe.
 - Lead: 4 loose silicone wires, not a printed tether, long enough to reach any lobe from the pod
@@ -18,7 +20,7 @@ The magnets set where the sensor sits, so nothing about the clip's shape has to 
 
 Sized for adult lobes about 13-27 mm tall (intertragic notch to the bottom; mean about 19-20 mm)
 and 2.5-8 mm thick. Prints flat on the skin side with no supports: pad, strap, puck and the open
-flap all start on the bed.
+flap and lid all start on the bed.
 
 Coordinates (worn, right ear): x forward, y outward (away from the head), z up. The lobe's back
 face is y = 0, so the pad is at y < 0 and the lobe and puck at y > 0. The chip is at x = z = 0.
@@ -82,6 +84,9 @@ PUCK_D = 14.0                # Wide, to spread the pinch on a thin lobe
 PUCK_SKIN = 0.6              # Between the puck's magnets and the lobe
 PUCK_LIP = 0.5               # Retaining lip over the magnets (they snap in past it)
 PUCK_T = PUCK_SKIN + STACK + PUCK_LIP
+LID_T = 0.8                  # Puck's lid over its outer face ...
+LID_PLUG_FIT = 0.1           # ... with a plug this much over the lip's opening, filling it down to the magnets
+LID_HINGE = (4.5, 6.0, 0.6)  # Lid's living hinge at the puck's forward side: gap as printed, width, thickness
 
 bl, bh, bt, bf = MAX_BOARD
 HL, HH = bl / 2 + POCKET_FIT, bh / 2 + POCKET_FIT   # Board pocket half sizes
@@ -185,6 +190,29 @@ def puck(y_skin, z, outward):
     return p
 
 
+def puck_lid(y_skin, z, outward):
+    """The puck's lid closed on its outer face, its plug in the lip's opening, plus the hinge
+    down the puck's forward side (+x). Same frame and sides as puck()."""
+    s = 1 if outward else -1
+    ys = lambda a, b: sorted((y_skin + s * a, y_skin + s * b))
+    f = y_cyl(0, z, *ys(PUCK_T - 0.01, PUCK_T + LID_T), PUCK_D)
+    f += y_cyl(0, z, *ys(PUCK_T - PUCK_LIP, PUCK_T), MAGNET_D - 0.7 + LID_PLUG_FIT)
+    hw, ht = LID_HINGE[1], LID_HINGE[2]
+    f += box(PUCK_D / 2 - 1.0, PUCK_D / 2 + ht, *ys(0, PUCK_T + LID_T), z - hw / 2, z + hw / 2)
+    return f
+
+
+def puck_lid_open(z):
+    """As printed: the lid lying on the bed beside the puck (+x), plug up, joined by a flat hinge."""
+    gap, hw, ht = LID_HINGE
+    xa, ya = (PUCK_D + gap) / 2, -(PUCK_T + LID_T) / 2           # Fold axis, along z
+    lid = y_cyl(0, z, -(PUCK_T + LID_T), -(PUCK_T - 0.01), PUCK_D)
+    lid += y_cyl(0, z, -PUCK_T - 0.01, -(PUCK_T - PUCK_LIP), MAGNET_D - 0.7 + LID_PLUG_FIT)
+    lid = Pos(xa, ya, z) * (Rot(0, 0, 180) * (Pos(-xa, -ya, -z) * lid))
+    xi = math.sqrt((PUCK_D / 2) ** 2 - (hw / 2) ** 2) - 0.3        # Inside both discs' edges
+    return lid + box(xi, PUCK_D + gap - xi, -ht, 0, z - hw / 2, z + hw / 2)
+
+
 def clip_flat():
     """As printed: pad, strap straight down from its bottom edge, puck at the strap's end, flap
     open beside the pad. Everything's skin side is on y = 0."""
@@ -192,6 +220,7 @@ def clip_flat():
     z_end = PZ0 - STRAP_L
     c += box(-STRAP_W / 2, STRAP_W / 2, -STRAP_T, 0, z_end, PZ0 + 0.5)
     c += puck(0, z_end, outward=False)
+    c += puck_lid_open(z_end)
     c += hinge_flat()
     c += open_flap(flap_closed())
     return c
@@ -225,7 +254,8 @@ def clip_worn(lobe_t, lobe_bottom):
     path += [(yc - r * math.cos(math.pi * i / n), zf - r * math.sin(math.pi * i / n)) for i in range(1, n)]
     path += [(lobe_t + STRAP_T / 2, zf), (lobe_t + STRAP_T / 2, MAG_Z)]
     c = pad() + flap_closed() + hinge_closed()
-    c += puck(lobe_t, MAG_Z, outward=True) + yz_band(path, STRAP_T, -STRAP_W / 2, STRAP_W / 2)
+    c += puck(lobe_t, MAG_Z, outward=True) + puck_lid(lobe_t, MAG_Z, outward=True)
+    c += yz_band(path, STRAP_T, -STRAP_W / 2, STRAP_W / 2)
     return c, (lobe_bottom - (zf - r - STRAP_T / 2))
 
 
