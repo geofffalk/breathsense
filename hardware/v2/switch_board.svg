@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 760" width="1100" height="760" font-family="Helvetica, Arial, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 900" width="1100" height="900" font-family="Helvetica, Arial, sans-serif" font-size="13">
   <style>
     .title { font-size: 15px; font-weight: bold; }
     .note { font-size: 11.5px; fill: #555; }
@@ -17,10 +17,10 @@
     .tbl { font-size: 12px; fill: #222; }
     .tblh { font-size: 12.5px; font-weight: bold; fill: #222; }
   </style>
-  <rect width="1100" height="760" fill="#fff"/>
+  <rect width="1100" height="900" fill="#fff"/>
   <text x="20" y="28" font-size="18" font-weight="bold">BreathSense v2: LED power switch on stripboard</text>
   <text x="20" y="48" class="note">Seen from the component side: copper strips (shaded) run left to right underneath. 6 strips × 8 holes, about 15 × 22 mm with the transistors folded over the h1 end.</text>
-  <text x="20" y="63" class="note">Make the 5 cuts (red) on the copper side, at the holes shown: count from the h1 end. All parts lie flat. This replaces joints 6–11 on the wiring diagram.</text>
+  <text x="20" y="63" class="note">Make the 5 cuts (red) on the copper side, at the holes shown: count from the h1 end. All parts lie flat. This replaces joints 6–11 on the wiring diagram. In the pod, turn this sheet a quarter turn clockwise.</text>
 
   <!-- hole column numbers -->
   <g class="small" text-anchor="middle">
@@ -28,6 +28,13 @@
     <text x="436" y="118">h5</text><text x="480" y="118">h6</text><text x="524" y="118">h7</text><text x="568" y="118">h8</text>
   </g>
 
+  <!-- which pod wall each board edge faces (board in the bay, parts up, as in renders/switch_board_in_pod.png) -->
+  <g font-size="11" font-weight="bold" fill="#00695c">
+    <text x="414" y="100" text-anchor="middle">FRONT WALL (to the temple tip; the right strip's wires come in here)</text>
+    <text x="414" y="428" text-anchor="middle">toward the XIAO (and past it, the cord hole at the far end)</text>
+    <text x="100" y="268" text-anchor="middle" transform="rotate(-90 100 268)">BACK WALL (button)</text>
+    <text x="609" y="268" text-anchor="middle" transform="rotate(90 609 268)">EAR-SIDE WALL (pogo)</text>
+  </g>
   <!-- board and strips -->
   <rect class="board" x="232" y="130" width="364" height="276" rx="4"/>
   <g>
@@ -147,16 +154,42 @@
     <text x="20" y="544">L1  S1 h8 to S2 h8: bare wire (neighbouring strips).</text>
     <text x="20" y="560">L2  S2 h7 to S4 h8, L3  S5 h3 to S6 h8, L4  S6 h3 to S3 h5: insulated wire (they arch over other holes and parts).</text>
 
-    <text x="20" y="582" class="tblh">Wires off the board</text>
-    <text x="20" y="602">W1  S1 h2  cord's battery + (red)                     W2  S1 h3  to the XIAO's BAT+ pad (red)</text>
-    <text x="20" y="618">W3  S3 h2  cord's LED + (purple)                      W4  S3 h3  to the right strip's + pad (purple)</text>
-    <text x="20" y="634">W5  S3 h6  button (black)       W6  S3 h7  pogo socket pin 2 (black)       W7  S3 h8  to the XIAO's BAT− pad (black)</text>
-    <text x="20" y="650">W8  S5 h8  to the XIAO's D3 pad (blue)                 W9  S6 h2  cord's ground (black)</text>
+    <text x="20" y="582" class="tblh">Wires off the board: one end in the hole, the other where it says. Strip 3 mm, push it through</text>
+    <text x="20" y="598" class="tblh">from the parts side, solder on the copper side. Holes on the same strip are joined by its copper.</text>
+    <text x="20" y="620" font-weight="bold">Wire  Hole    Colour   Other end</text>
+    <text x="640" y="620" font-weight="bold">Runs toward</text>
+    <text x="20" y="638">W1    S1 h2   red</text>
+    <text x="200" y="638">The cord's battery + (from the battery in the left pod)</text>
+    <text x="640" y="638">past the XIAO to the cord hole</text>
+    <text x="20" y="654">W2    S1 h3   red</text>
+    <text x="200" y="654">The XIAO's BAT+ pad (its underside)</text>
+    <text x="640" y="654">the XIAO</text>
+    <text x="20" y="670">W3    S3 h2   purple</text>
+    <text x="200" y="670">The cord's LED + (feeds the left strip)</text>
+    <text x="640" y="670">past the XIAO to the cord hole</text>
+    <text x="20" y="686">W4    S3 h3   purple</text>
+    <text x="200" y="686">The right strip's + pad</text>
+    <text x="640" y="686">the front wall, out along the temple</text>
+    <text x="20" y="702">W5    S3 h6   black</text>
+    <text x="200" y="702">The button (its other pin goes to the XIAO's D6)</text>
+    <text x="640" y="702">along the back wall to the button</text>
+    <text x="20" y="718">W6    S3 h7   black</text>
+    <text x="200" y="718">Pogo socket pin 2</text>
+    <text x="640" y="718">the ear-side wall</text>
+    <text x="20" y="734">W7    S3 h8   black</text>
+    <text x="200" y="734">The XIAO's BAT− pad (its underside)</text>
+    <text x="640" y="734">the XIAO</text>
+    <text x="20" y="750">W8    S5 h8   blue</text>
+    <text x="200" y="750">The XIAO's D3 pad</text>
+    <text x="640" y="750">the XIAO</text>
+    <text x="20" y="766">W9    S6 h2   black</text>
+    <text x="200" y="766">The cord's ground</text>
+    <text x="640" y="766">past the XIAO to the cord hole</text>
 
-    <text x="20" y="676" class="tblh">Fitting</text>
-    <text x="20" y="696">Goes in the bay in front of the XIAO, parts up, with the h1 end (the transistors) toward the pod's back wall.</text>
-    <text x="20" y="712">In the head-sensor pod the board sits over the MAX30101's back: only the h1 end has room for the transistors' height.</text>
-    <text x="20" y="728">Check before power: no copper bridging the cuts; S1 to S6 (battery + to ground) should not read as a short.</text>
-    <text x="20" y="744">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 16 × 25 mm, 6.5 mm tall (head pod: 4.9 mm over the sensor, 7.2 mm past it).</text>
+    <text x="20" y="796" class="tblh">Fitting</text>
+    <text x="20" y="816">Goes in the bay in front of the XIAO, parts up, with the h1 end (the transistors) toward the pod's back wall.</text>
+    <text x="20" y="832">In the head-sensor pod the board sits over the MAX30101's back: only the h1 end has room for the transistors' height.</text>
+    <text x="20" y="848">Check before power: no copper bridging the cuts; S1 to S6 (battery + to ground) should not read as a short.</text>
+    <text x="20" y="864">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 16 × 25 mm, 6.5 mm tall (head pod: 4.9 mm over the sensor, 7.2 mm past it).</text>
   </g>
 </svg>

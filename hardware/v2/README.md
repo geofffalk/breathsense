@@ -514,6 +514,15 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   mm, 1.5 mm board, parts lying flat, 5.7 mm tall), transistor end toward
   the back wall.
 
+  ![Stripboard next to the XIAO in the right pod, seen from the lid side](renders/switch_board_in_pod.png)
+
+  Seen from the lid side with the lid off: the XIAO at the far end (USB-C
+  out of it), the stripboard in the bay beside it, parts up. Its h1 end (the
+  two transistors) faces the back wall (the button's wall), strip S1 is
+  nearest the front wall and S6 nearest the XIAO. That's `switch_board.svg`
+  turned a quarter turn clockwise. In the head-sensor pod it sits in the same
+  place, over the MAX30101's back.
+
 #### Head-side sensor variant (to try)
 
 The MAX30101 sits in the pocket's head-side wall at the end of the temple tip,
