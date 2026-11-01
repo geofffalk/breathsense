@@ -83,6 +83,15 @@ by a computer (`supervisor.runtime.usb_connected`), not a wall charger.
 - App stops sending `M,F` on connect; waits for the `M` report. `M,O` becomes the app's off
   (LEDs dark, sensing paused, BLE stays on; only the button does a full System OFF).
 - Guided is dropped: `M,G`, `S,G`, `S,CS` go; `R` keeps its guided fields in place, unused.
+- Headset → app **`K,{stress},{focus},{meditation},{heart_stress},{breath_stress},{nose_worn},{heart_worn},{calibrating}`**
+  ~1 Hz: all scores computed on the headset (app's `mood_analyzer` moves to firmware); app → headset
+  **`S,W,{heart},{breath},{hr},{hrv}`** sets the fusion weights (defaults 0.6, 0.4, 0.5, 0.5).
+  Scales: stress, heart_stress, breath_stress 0-100 (app's breath stress -5..+5 → (s+5)×10);
+  focus, meditation 0-10; flags 0/1. Labels (CALM, TENSE...) stay in the app as display only.
+- The app's breath-stress tuning (ratio/duration/smoothness/peak-flow/RMSSD weights, calm ratio,
+  focus CV) lives only in the app today; with scoring on the headset it must be sent: extend
+  `S,M` to `S,M,{calm_ratio},{calm_var},{focus_con},{cal_breaths},{w_ratio},{w_dur},{w_smooth},{w_peak},{w_rmssd}`
+  (trailing fields optional, firmware defaults = the app settings' defaults).
 - "The v2 plan keeps this protocol unchanged" below is superseded by these additions.
 
 ## Known quirks

@@ -92,12 +92,43 @@ the temple end, nearest the pod. The front 4 are indices 6–9.
   because nothing can wake it over Bluetooth once it's asleep.
 - **The app shows** stress level and the rest as before.
 
+**All scoring happens on the wearable; the app only displays it:**
+- **Nose clip worn?** Three checks: the pogo plug is in (with it out the
+  thermistor input reads full scale), the bead is warm (about 30–34 °C in the
+  nostril, against room temperature off the nose), and there's a breath
+  rhythm in the last few seconds. The heart sensor already knows it's worn
+  from its light level.
+- **Combined stress:** heart and breath when the nose clip is worn, heart
+  alone when it isn't. Weights follow the evidence that HRV is the
+  best-supported heart marker of acute stress and that breathing adds
+  independent information: **60% heart, 40% breath**, with the heart part
+  split 50/50 between heart rate and HRV. They're firmware constants the app
+  can override. Neither score is clinically validated, so treat it as a
+  personal trend, not a medical measure.
+- **The LEDs keep their own rules (above).** The combined score goes to the
+  app only.
+- **Focus and meditation:** the app's breath scoring (`mood_analyzer.dart`)
+  is ported to the firmware unchanged.
+- **The app** keeps session history, summaries and reports (bookkeeping
+  over the scores it receives), but calculates no scores itself.
+
 **Protocol changes this needs** (see the `breathsense-protocol` skill):
 - **The headset reports its mode:** `M,{F|H|O}` (breath, heart, off) on
   connect and on every change, whether from the button, the app or waking.
 - **The app no longer sends `M,F` on connect.** It waits for the headset's
   `M` report. `M,O` (already in the firmware) becomes the app's off command,
   meaning LEDs dark and sensing paused.
+- **A new scores message, headset to app, about once a second:**
+  `K,{stress},{focus},{meditation},{heart_stress},{breath_stress},{nose_worn},{heart_worn},{calibrating}`.
+  `stress` is the combined score; the parts are sent so the app can show them.
+  Scales: `stress`, `heart_stress` and `breath_stress` 0–100; `focus` and
+  `meditation` 0–10, as in the app today; the three flags 0 or 1. The app's
+  breath stress (−5 to +5) maps to 0–100 as (score + 5) × 10. The app keeps
+  its label wording (CALM, TENSE…) as display only.
+  The weights can be set with `S,W,{heart},{breath},{hr},{hrv}`.
+- **The app's breath-stress tuning moves too:** its five component weights
+  are added to the end of `S,M`, so the app's settings screen keeps working
+  but the wearable does the sums.
 - **Guided messages go:** `M,G`, `S,G` and `S,CS` are dropped. `R` keeps its
   guided fields in place, unused, so older parsers still line up.
 

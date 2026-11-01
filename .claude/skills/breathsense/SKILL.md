@@ -61,6 +61,13 @@ over older README text). In short:
 - Button: short = heart ⇄ breath, long = System OFF; wake (button/USB) in the **last mode** (saved).
 - App: **connecting changes nothing**; the headset reports its mode (`M,{F|H|O}`); the app can set
   heart / breath / off. App off = LEDs dark + sensing paused, BLE on. Only the button fully offs.
+- **All scoring on the wearable; the app is a displayer** (keeps session history/reports only).
+  Nose clip worn = pogo plugged (A0 not full scale) + bead warm (~30-34 °C) + breath rhythm.
+  Combined stress (app only, LEDs keep their rules) = 60% heart (50/50 HR and HRV) + 40% breath
+  when the nose clip is worn, heart alone otherwise; the user asked for "whatever is medically shown
+  to be better": HRV is the best-supported marker, breathing adds independent info, no validated
+  fixed weights - say it's a personal trend, not medical. Focus/meditation ported from
+  `mood_analyzer.dart` as-is. New `K` scores message (~1 Hz) and `S,W` weights.
 - Order of work agreed: document (done) → C++ firmware → app.
 
 ## The user's standing rules

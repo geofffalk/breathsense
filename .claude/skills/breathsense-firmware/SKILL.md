@@ -96,6 +96,17 @@ HeartbeatLED unchanged; save the heart baseline/stress range and the last mode t
 short = heart⇄breath, long = sleep; `M,O` = LEDs dark + sensing paused, BLE on. v1 code was
 written for the ItsyBitsy nRF52840 (D7/D9 strips, A2 battery divider, slide switch) - use it as the
 reference for detectors and displays, not pins.
+**All scoring moves to the firmware** (app becomes a displayer):
+- Port `lib/services/mood_analyzer.dart` unchanged (stress -5..+5 from E/I ratio, cycle vs
+  calibration baseline, smoothness, peak flow vs baseline, breath-cycle RMSSD, short-breath
+  penalty; focus 0-10 from cycle CV; meditation 0-10 from cycle length × stability; 6-breath
+  calibration, 2%/breath baseline drift). Use the app settings' weights as defaults
+  (`lib/models/settings.dart`), not the analyzer's own field defaults, where they differ.
+- Nose clip worn = A0 not near full scale (pogo plugged) + bead temp ~30-34 °C (well above room)
+  + a breath rhythm in the last few seconds. Heart worn = MAX3010x skin level (exists).
+- Combined stress (app only; LEDs keep their rules) = 0.6 heart + 0.4 breath when the nose clip
+  is worn, heart alone otherwise; heart part here = 0.5 rate + 0.5 HRV (the LEDs keep 0.7/0.3).
+  Breath stress mapped (s+5)×10 to 0-100. Weights settable by `S,W`. Send `K` ~1 Hz.
 LED index 0 = back (DIN end, fitted at the temple end nearest the pod), 9 = front flap LED;
 front 4 = indices 6-9 (flap 3 + hinge 1).
 

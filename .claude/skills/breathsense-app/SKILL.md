@@ -47,8 +47,9 @@ Do these after the C++ firmware speaks the new protocol (see `breathsense-protoc
 Guided (`BreathingMode.guided`, `GuidedBreathingSettings`, mode button, guided session periods);
 add an **Off** mode (`M,O`; today the enum has no off and `M,O` is never sent - only `L,0` blanks
 the LEDs); stop sending `M,F` on connect (`ble_service.dart` ~line 530) and stop assuming Open
-(`_currentMode = BreathingMode.open`); parse the headset's `M,{F|H|O}` and show that mode. Stress
-display stays as is (app-side breath score; the headset's LEDs use exhale length).
+(`_currentMode = BreathingMode.open`); parse the headset's `M,{F|H|O}` and show that mode. Scores move to the
+headset: parse `K` and display it; delete `mood_analyzer.dart` scoring (keep session history,
+summaries and reports, fed from `K`).
 
 ## Behaviour worth knowing
 
