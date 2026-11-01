@@ -1,17 +1,19 @@
 """
 BreathSense v2 nose clip: a soft-flex U band over the rim of the right nostril's wing, holding the
-breath thermistor upright just inside the nostril.
+breath thermistor upright at the nostril's entrance.
 
 - A 4 mm wide band bent into a U: one leg inside the nostril, one on the skin outside, the bend
   under the rim. It's printed shaped to your wing, its legs SQUEEZE closer than the wing is thick,
   so the grip is only that light squeeze, spread over both legs. Print the size nearest your wing
   (FITS: pinch the wing gently with calipers). An earlier PETG ring sprang open from under 1 mm
   onto the wing and pinched hard; PETG is too stiff for a short U (0.3 mm of squeeze would be 3 N).
-- Thermistor: a stalk off the top of the inside leg holds the glass bead upright in the airflow,
-  STALK_OFF from the wing's inner face so it reads breath, not skin. The stalk carries on down as
-  a post on the inside leg, with one straight tunnel down both: the sleeved leads slot in from the
-  top, the bead stays on top, and the leads come out at the post's foot, under the rim, where they're soldered to a twisted pair of 30 AWG silicone wires (heat-shrink
-  each joint). The pair runs loose along the cheek to a 2-pin magnetic pogo plug that snaps onto
+- Thermistor: a short post joined to the bend on the inside holds the glass bead upright at the
+  nostril's entrance, about 1 mm above the rim's lowest point: higher up the nostril it didn't
+  cool fast enough to register the end of an out-breath. It sits STALK_OFF from the wing's inner
+  face so it reads breath, not skin. One straight tunnel runs down the post: the sleeved leads
+  slot in from the top, the bead stays on top, and the leads come out at the post's foot, below
+  the rim, outside the nose, where they're soldered to a twisted pair of 30 AWG silicone wires
+  (heat-shrink each joint). The pair runs loose along the cheek to a 2-pin magnetic pogo plug that snaps onto
   the board pod (see hang_pods.py).
 - Prints flat on its back face (x = X0): the U's profile is on the bed, so the lines run round the
   band and take its bending along their length; the tunnel's diamond section has a 45 deg roof,
@@ -49,11 +51,12 @@ LEAD_IN = 0.6                # Chamfer on the legs' inner top edges, so the wing
 E_FLEX = 25.0                # MPa, soft flex (TPE/TPU about 85-95A), for the grip estimate (check yours)
 
 STALK_OFF = 2.5              # Bead's axis this far from the wing's inner face
-STALK_UP = 1.5               # Bead's centre this far above the legs' top
-STALK = (2.8, 2.8)           # Stalk's size along x and y
-LEAD_TUNNEL = 1.0            # Leads' tunnel straight down the stalk and post: a diamond (45 deg roof as printed, no
+BEAD_Z = 0.0                 # Bead's centre this high above the bend's centre: about 1 mm above the rim's lowest point,
+                             # at the nostril's entrance (higher up, it cooled too slowly to catch the out-breath's end)
+STALK = (2.8, 2.8)           # Post's size along x and y
+LEAD_TUNNEL = 1.0            # Leads' tunnel straight down the post: a diamond (45 deg roof as printed, no
                              # bridge) this wide across its flats, a snug fit for two leads in 0.5 mm sleeving
-POST_Z0 = 1.0                # The stalk carries on down as a post to here, solid with the inside leg
+POST_Z0 = -3.0               # Post's foot, below the rim, outside the nose: the leads come out here
 
 X0, X1 = -BAND_W / 2, BAND_W / 2
 
@@ -83,16 +86,16 @@ def u_half(g, side):
 
 
 def halves(fit=WING):
-    """The clip as printed, the bend centred on the origin. Returns (inside half with the stalk and
-    post, outside half)."""
+    """The clip as printed, the bend centred on the origin. Returns (inside half with the post,
+    outside half)."""
     g = (fit - SQUEEZE) / 2
     inner, outer = u_half(g, -1), u_half(g, 1)
     sx, sy = STALK
     ys = -g - STALK_OFF
-    leg_out = -g - BAND_T
-    z_top = LEG_H + STALK_UP - BEAD_D / 2 - 0.1
-    inner += box(X0, X0 + sx, ys - sy / 2, leg_out + 0.05, POST_Z0, LEG_H)                  # Post, on the leg
-    inner += box(X0, X0 + sx, ys - sy / 2, ys + sy / 2, LEG_H - 0.05, z_top)                # Stalk
+    z_top = BEAD_Z - BEAD_D / 2 - 0.1
+    # Post, joined to the bend's inside quarter (it stops at the wing's inner face, y = -g, so it
+    # stays out of the U)
+    inner += box(X0, X0 + sx, ys - sy / 2, -g - 0.05, POST_Z0, z_top)
     w = LEAD_TUNNEL
     inner -= Pos(X0 + sx / 2, ys, 0) * (Rot(0, 0, 45) * box(-w / 2, w / 2, -w / 2, w / 2, POST_Z0 - 1, z_top + 1))
     return inner, outer

@@ -12,22 +12,28 @@ have to bend. Shaped to one measured pair of glasses, not universal.
   can't bend within its own width); the band crosses the slot behind the last LED, over the
   strip's end; a dab of silicone in the slot holds the rest if it lifts. Print it in translucent PETG: each LED shines straight out through the slot's
   head-side wall, thinned to a single-line skin in front of it.
-- The rail hangs on the temple by a rigid hook over its top edge. One soft-flex band, a closed
-  loop just behind the last LED, goes right round the part and the temple and holds them
-  together. It sits in grooves in the part, so it can't slide, and being closed it can't spring
-  off however soft the flex is. Nothing crosses the LEDs. The
-  PETG part has no springy features. To fit: take the pod off, slide the band onto the temple
-  over its tip, hook the part over the temple, then roll the band forward into its grooves.
+- Grip (grip="liner", the default): a rigid channel along the rail, open underneath: a top over
+  the temple's top edge and a leg 4 mm down its outer face, lined on those two sides with a
+  soft-flex L (liner()). The liner squeezes the temple onto the plate on its inner face, the
+  same wedge as the pods' pockets. Push the part straight down onto the temple. No band, nothing
+  round the LEDs. A short bridge across the slot's top behind the last LED holds the strip's end.
+- grip="band" (the earlier design, kept as a variant): a rigid hook over the top edge, and one
+  soft-flex band, a closed loop just behind the last LED, right round the part and the temple,
+  in grooves in the part. To fit: take the pod off, slide the band onto the temple over its tip,
+  hook the part over the temple, then roll the band forward into its grooves.
+- The PETG part has no springy features.
 - The curve is a circular arc tangent to the temple's inner face and to the frame front's back
   face. A short straight run continues along the frame front.
 - The pods clip onto the temple tips as before (mount_v2.py).
 
-Prints on its top edge with no supports. The band prints in soft flex, flat on its end.
+Prints on its top edge with no supports. The liner prints in soft flex on its top face; the band
+flat on its end.
 
 Coordinates, as worn on the RIGHT temple (the left part is mirrored): x forward, hinge pin at
 x = 0; y outward, temple inner face at y = 0; z up, temple top edge at z = 0.
 
-Run:  python onepiece.py   -> out/step/onepiece_*.step, out/stl/onepiece_*.stl
+Run:  python onepiece.py   -> out/step/onepiece_*.step, out/stl/onepiece_*.stl (the band variant as
+      onepiece_*_band_*)
 """
 
 import math
@@ -96,6 +102,23 @@ GROOVE = 0.5             # Groove depth in the part's top, the hook's lip and th
 GROOVE_FIT = 0.1         # Groove this much wider than the band, each side
 
 
+# Liner grip (grip="liner"): a soft-flex L on the temple's top and outer faces, in a rigid channel
+LINER_T = 1.0            # Outer pad thickness ...
+LINER_TOP_T = 0.8        # ... top pad thickness (thinner: keeps the part low)
+LINER_SQUEEZE = 0.35     # Outer pad's face this far inside the temple's outer face (one side lined, so all the squeeze is here)
+LINER_SQUEEZE_TOP = 0.1  # Top pad's face this far below the temple's top edge (gravity does most of it)
+LINER_FIT = 0.05         # Liner this much bigger than its channel, so it presses in
+LINER_D = 4.0            # Outer pad reaches this far down the temple's outer face
+LEG_T = 1.6              # Rigid leg outside it
+RETURN = 0.5             # Return at the leg's foot, under the liner's edge, so it can't drop out (its tip 0.1 mm clear of the temple) ...
+RETURN_H = 0.7           # ... this tall, so its slope prints unsupported (55 degrees from the bed)
+LINER_LEAD = 0.5         # Lead-in chamfer on the liner's bottom inside edge
+STOP_L = 0.8             # Front end of the channel closed over the liner's section
+ZS1_LINER = LINER_TOP_T - LINER_SQUEEZE_TOP + HOOK_T   # Top of the part with the liner
+BRIDGE = (-47.0, -45.0)  # Bridge across the slot's top behind the last LED (x), over the strip's end
+BRIDGE_T = 0.8
+
+
 def temple_t(x):
     """Temple thickness at x (linear between the two measurements)."""
     f = min(max((-5.0 - x) / (-5.0 - BEND_X), 0.0), 1.0)
@@ -144,25 +167,51 @@ def led_path():
 
 
 # ================================================================ the part
-def part(rail_x0=RAIL_X0):
+def leg_in(x):
+    """Liner grip: y of the rigid leg's inner face (the liner's outer face, less its fit)."""
+    return temple_t(x) - LINER_SQUEEZE + LINER_T - LINER_FIT
+
+
+def part(rail_x0=RAIL_X0, grip="liner"):
+    zs1 = ZS1_LINER if grip == "liner" else ZS1
     zb = ZS0 - FLOOR
     s_rear = rail_x0 - X_T
     # Band: temple-side wall, floor and head-side wall, from the rail's back end round to the frame
-    p = band(s_rear, S_FRONT, 0, WALL_OUT, zb, ZS1)
-    p += band(s_rear, S_FRONT, WALL_OUT + SLOT_T, BAND_T, zb, ZS1)
+    p = band(s_rear, S_FRONT, 0, WALL_OUT, zb, zs1)
+    p += band(s_rear, S_FRONT, WALL_OUT + SLOT_T, BAND_T, zb, zs1)
     p += band(s_rear, S_FRONT, 0, BAND_T, zb, ZS0)
-    p += band(S_FRONT - 0.8, S_FRONT, 0, BAND_T, zb, ZS1)                        # Front end closed
+    p += band(S_FRONT - 0.8, S_FRONT, 0, BAND_T, zb, zs1)                        # Front end closed
     # Windows: the head-side wall thinned from the slot side in front of each LED, so the light
     # goes through a thin skin and the outside face stays smooth
     for s in led_path():
         p -= band(s - WINDOW_W / 2, s + WINDOW_W / 2, WALL_OUT + SLOT_T - 0.1, BAND_T - SKIN,
                   ZS0 + WINDOW_EDGE, STRIP_TOP + 0.2 - WINDOW_EDGE)
 
-    # Top hook over the temple's top edge (rigid), along the rail
     xa, xb = rail_x0, X_T
-    ya, yb = temple_t(xa) + CLEAR, temple_t(xb) + CLEAR
-    p += xy_prism([(xa, -WALL_OUT), (xb, -WALL_OUT), (xb, yb + CATCH_T), (xa, ya + CATCH_T)], CLEAR, ZS1)
-    p += xy_prism([(xa, ya), (xb, yb), (xb, yb + CATCH_T), (xa, ya + CATCH_T)], -CATCH, ZS1)
+    if grip == "liner":
+        # Channel: a top over the liner's top pad and a leg outside its outer pad, along the rail
+        za = LINER_TOP_T - LINER_SQUEEZE_TOP + LINER_FIT        # Top's underside
+        ya, yb = leg_in(xa), leg_in(xb)
+        p += xy_prism([(xa, -WALL_OUT), (xb, -WALL_OUT), (xb, yb + LEG_T), (xa, ya + LEG_T)], za, zs1)
+        p += xy_prism([(xa, ya), (xb, yb), (xb, yb + LEG_T), (xa, ya + LEG_T)], -LINER_D - RETURN_H, zs1)
+        # Return at the leg's foot, in short steps along the temple's taper
+        n = 8
+        for i in range(n):
+            x0, x1 = xa + (xb - xa) * i / n, xa + (xb - xa) * (i + 1) / n
+            y = max(leg_in(x0), leg_in(x1))
+            p += yz_prism([(y + 0.1, -LINER_D), (y - RETURN, -LINER_D - RETURN_H), (y + 0.1, -LINER_D - RETURN_H)], x0, x1)
+        # Front stop over the liner's section (clear of the temple, which runs on to the hinge)
+        x0 = xb - STOP_L
+        p += xy_prism([(x0, -0.01), (xb, -0.01), (xb, yb), (x0, leg_in(x0))], CLEAR, za + 0.01)
+        p += xy_prism([(x0, temple_t(x0) + CLEAR), (xb, temple_t(xb) + CLEAR), (xb, yb + 0.01), (x0, leg_in(x0) + 0.01)],
+                      -LINER_D, za + 0.01)
+        # Bridge across the slot's top, behind the last LED, over the strip's end
+        p += band(BRIDGE[0] - X_T, BRIDGE[1] - X_T, WALL_OUT - 0.01, WALL_OUT + SLOT_T + 0.01, zs1 - BRIDGE_T, zs1)
+    else:
+        # Top hook over the temple's top edge (rigid), along the rail
+        ya, yb = temple_t(xa) + CLEAR, temple_t(xb) + CLEAR
+        p += xy_prism([(xa, -WALL_OUT), (xb, -WALL_OUT), (xb, yb + CATCH_T), (xa, ya + CATCH_T)], CLEAR, ZS1)
+        p += xy_prism([(xa, ya), (xb, yb), (xb, yb + CATCH_T), (xa, ya + CATCH_T)], -CATCH, ZS1)
 
     # Lower plate on the temple's inner face, below the band, down to the bottom edge
     def bottom(x):
@@ -170,6 +219,8 @@ def part(rail_x0=RAIL_X0):
     xs = [rail_x0 + (X_T - rail_x0) * i / 24 for i in range(25)]
     outline = [(x, zb + 0.01) for x in xs] + [(x, bottom(x)) for x in reversed(xs)]
     p += xz_prism(outline, -PLATE_T, 0.0)
+    if grip == "liner":
+        return p
 
     # Grooves for the soft-flex band (not in the head-side face)
     for xc, w in zip(CLIPS, CLIP_L):
@@ -180,6 +231,36 @@ def part(rail_x0=RAIL_X0):
         p -= box(xa, xb, yl - GROOVE, yl + 1, -CATCH - 1, ZS1 + 1)                  # Hook's lip
         p -= box(xa, xb, -PLATE_T - 1, 0.0, zlow - 1, max(bottom(xa), bottom(xb)) + GROOVE)   # Plate's bottom
     return p
+
+
+def liner(rail_x0=RAIL_X0):
+    """Soft-flex L for grip="liner", modelled in place: a top pad on the temple's top edge and an
+    outer pad down its outer face, in the part's channel from the rail's back end to the front stop.
+    Handed: this is the left one as modelled; the right is its mirror."""
+    xa, xb = rail_x0, X_T - STOP_L
+    z0 = -LINER_SQUEEZE_TOP                              # Top pad's face, on the temple
+    z1 = LINER_TOP_T - LINER_SQUEEZE_TOP + LINER_FIT     # ... its top, in the channel
+    def yin(x):
+        return temple_t(x) - LINER_SQUEEZE
+    def yout(x):
+        return leg_in(x) + LINER_FIT
+    top = xy_prism([(xa, 0.0), (xb, 0.0), (xb, yout(xb)), (xa, yout(xa))], z0, z1)
+    outer = xy_prism([(xa, yin(xa)), (xb, yin(xb)), (xb, yout(xb)), (xa, yout(xa))], -LINER_D, z1)
+    s = top + outer
+    # Lead-in on the bottom inside edge, so the temple slides in past it (short steps along the taper)
+    k, n = LINER_LEAD, 8
+    for i in range(n):
+        x0, x1 = xa + (xb - xa) * i / n, xa + (xb - xa) * (i + 1) / n
+        y = min(yin(x0), yin(x1))
+        s -= yz_prism([(y - 1, -LINER_D - 1), (y + k + 1, -LINER_D - 1), (y - 1, -LINER_D + k + 1)], x0 - 0.01, x1 + 0.01)
+    return s
+
+
+def print_orient_liner(s):
+    """Top pad's top face down: the outer pad stands up from it."""
+    s = Rot(180, 0, 0) * s
+    bb = s.bounding_box()
+    return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * s
 
 
 def clip(xc):
@@ -223,11 +304,17 @@ if __name__ == "__main__":
     (OUT / "stl").mkdir(parents=True, exist_ok=True)
     # Modelled with y outward: in a right-handed frame with x forward and z up, that's the left
     # temple. The right one is its mirror (as assembly_onepiece.place() does).
-    l = part()
-    r = mirror(l, Plane.XZ)
-    for name, shape in (("onepiece_right", r), ("onepiece_left", l)):
+    for grip, suffix in (("liner", ""), ("band", "_band")):
+        l = part(grip=grip)
+        r = mirror(l, Plane.XZ)
+        for name, shape in ((f"onepiece_right{suffix}", r), (f"onepiece_left{suffix}", l)):
+            export_step(shape, str(OUT / "step" / f"{name}.step"))
+            export_stl(print_orient(shape), str(OUT / "stl" / f"{name}_petg.stl"))
+            print("wrote", name, f"{shape.volume:.0f} mm3")
+    ln = liner()
+    for name, shape in (("onepiece_liner_right", mirror(ln, Plane.XZ)), ("onepiece_liner_left", ln)):
         export_step(shape, str(OUT / "step" / f"{name}.step"))
-        export_stl(print_orient(shape), str(OUT / "stl" / f"{name}_petg.stl"))
+        export_stl(print_orient_liner(shape), str(OUT / "stl" / f"{name}_flex.stl"))
         print("wrote", name, f"{shape.volume:.0f} mm3")
     for xc in CLIPS:
         c = clip(xc)                             # A prism along x: the same part fits either side

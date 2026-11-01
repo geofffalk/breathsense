@@ -43,7 +43,7 @@ Sources: `hardware/glasses/README.md` (v1 wiring section), `hardware/glasses/wir
 | Seeed **XIAO nRF52840 Plus** (on hand) | 21 × 17.5 mm, built-in LiPo charger, USB-C |
 | 2 × 10-LED NeoPixel 1515 pieces (on hand) | One per side: 6 in direct view around the hinge corner |
 | MAX30101 (Pimoroni, on hand) | Magnetic earlobe clip; 4 loose silicone wires (3V, GND, SDA, SCL), 70 mm, out of the right pod's ear-side wall (4 mm hole, knot inside). Or (head variant) in the board pod's head-side wall on short internal wires |
-| 10k glass-bead NTC, ≤1 mm | In the nose clip just inside the right nostril; twisted 30 AWG pair, ~220 mm, loose along the cheek to a **2-pin 4 mm magnetic pogo** socket in the right pod's ear-side wall → A0 and GND |
+| 10k glass-bead NTC, ≤1 mm | In the nose clip at the right nostril's entrance (~1 mm above the rim: higher up it cooled too slowly); twisted 30 AWG pair, ~220 mm, loose along the cheek to a **2-pin 4 mm magnetic pogo** socket in the right pod's ear-side wall → A0 and GND |
 | 502030 250 mAh LiPo (on hand) | Left pod; charges via USB-C in the right pod through the cord |
 | S8550 PNP + S8050 NPN (TO-92, user's transistor kit), 10k/2.2k/10k/100k | High-side LED switch on a 6-strip × 8-hole stripboard (`hardware/v2/switch_board.svg`: 5 cuts, 4 links, wires W1-W9); cuts LED power when dark (strips draw ~1 mA/LED idle) |
 | Omron B3F tactile button (on hand, tall round plunger) | Wake, sleep, mode (diagonal pins: D6, GND); reset pinhole over the XIAO's reset |

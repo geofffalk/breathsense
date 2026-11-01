@@ -105,7 +105,8 @@ GlassesSense; the app's auto-connect list needs "glassessense" added.
 **All scoring happens on the wearable; the app only displays it:**
 - **Nose clip worn?** Three checks: the pogo plug is in (with it out the
   thermistor input reads full scale), the bead is warm (about 30–34 °C in the
-  nostril, against room temperature off the nose), and there's a breath
+  nostril, against room temperature off the nose; at the entrance it swings
+  cooler on each in-breath, so check the threshold on the real clip), and there's a breath
   rhythm in the last few seconds. The heart sensor already knows it's worn
   from its light level.
 - **Combined stress:** heart and breath when the nose clip is worn, heart
@@ -183,7 +184,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Seeed XIAO nRF52840 **Plus** (on hand) | Same chip as the ItsyBitsy, but 21×17.5 mm. Built-in LiPo charger (no backpack), extra pads. No IMU or microphone | $0 |
 | Adafruit Ultra Skinny NeoPixel 1515 strip, 4 mm, 150 LEDs/m (on hand, as 10-LED pieces) | SK6805-EC15 LEDs. One 10-LED piece per side: 3 on the corner's flap against the frame front, 1 at the hinge, 6 along the temple | $0 |
 | MAX30101 earlobe sensor, 502030 250 mAh LiPo (on hand) | | $0 |
-| Fast 10k glass-bead NTC thermistor (1 mm or smaller) | Breath sensor, just inside the right nostril on the nose clip | ~$2 |
+| Fast 10k glass-bead NTC thermistor (1 mm or smaller) | Breath sensor, at the right nostril's entrance on the nose clip | ~$2 |
 | 2-pin 4 mm magnetic pogo connector (on hand) | Nose clip's plug at the board pod | $0 |
 | 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
 | S8550 PNP and S8050 NPN (TO-92, from a transistor kit: bought), 10k, 2.2k, 10k and 100k resistors (on hand) | LED power switch: cuts all LED power when the display is off or the battery is low. 2N2907A or BC327 also do for the PNP | ~$3 |
@@ -214,8 +215,8 @@ Strip sources:
 - **LEDs:** a 10-LED piece on each side: 6 in the rail's channel, 4 in the
   corner piece (1 at the hinge, 3 on the flap). Nothing touches the lens rim, so it fits any frames. Each strip
   has its own data pin, as in v1.
-- **Thermistor:** on a soft clip on the right nostril's wing, just inside the
-  nostril. Its two wires run loose along the cheek and under the ear to a
+- **Thermistor:** on a soft clip on the right nostril's wing, at the
+  nostril's entrance. Its two wires run loose along the cheek and under the ear to a
   magnetic pogo socket on the board pod (see Nose clip).
 
 ## Wiring
@@ -345,7 +346,7 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 | `onepiece_right_petg`, `onepiece_left_petg` | Translucent PETG | 1 each | LED band and rail. 5 mm brim: they stand on a narrow edge |
 | `hang_pod_board_petg` | PETG | 1 | Right pod: XIAO |
 | `hang_pod_battery_petg` | PETG | 1 | Left pod: battery |
-| `onepiece_band_flex` | Soft flex | 2 | Temple band (closed loop) behind the last LED, one per side (fits either side) |
+| `onepiece_liner_right_flex`, `onepiece_liner_left_flex` | Soft flex | 1 each | L-shaped liner in each one-piece part's channel, on the temple's top and outer face |
 | `hang_liner_flex` | Soft flex | 2 | Lines each pod's pocket |
 | `hang_back_clip_flex` | Soft flex | 2 | Closed band round each pod's pocket and the paddle (fits either side) |
 | `hang_lid_board_flex`, `hang_lid_battery_flex` | Soft flex | 1 each | Press-in pod lids |
@@ -365,6 +366,16 @@ the temple tip instead of on the earlobe, print these in place of
 | `hang_liner_head_flex` | Soft flex | 1 | Right pod's liner, cut away behind the sensor |
 | `hang_back_clip_head_flex` | Soft flex | 1 | Right pod's band (this pod is thicker) |
 
+**Band-grip variant of the one-piece part** (the earlier design, kept in case
+the liner doesn't hold): print these in place of `onepiece_right_petg`,
+`onepiece_left_petg` and the two `onepiece_liner_*_flex`. They're the fourth
+row of `print_layout.step`.
+
+| File (`out/stl/`) | Material | Qty | What it is |
+|---|---|---|---|
+| `onepiece_right_band_petg`, `onepiece_left_band_petg` | Translucent PETG | 1 each | The one-piece part with a short hook and the band's grooves |
+| `onepiece_band_flex` | Soft flex | 2 | Temple band (closed loop) behind the last LED, one per side (fits either side) |
+
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
   infill, no supports. A brim helps the small clips stay down.
@@ -374,7 +385,7 @@ the temple tip instead of on the earlobe, print these in place of
 - **Liner:** prints open edge down, so its walls stand up and only the 3.6 mm
   bottom bridges.
 - **Test fits first:** a pod with a liner and band on the glasses tip;
-  `onepiece_right_petg` with its band; the earlobe clip on your ear; the nose clip on your nostril.
+  `onepiece_right_petg` with its liner; the earlobe clip on your ear; the nose clip on your nostril.
 
 ### One-piece temple part (current design)
 
@@ -397,8 +408,10 @@ shaped to one measured pair of glasses, not universal.
   edge. The slot is 2.2 mm wide for the 1.2 mm strip (PCB plus LEDs), because
   printed slots come out 0.2–0.4 mm narrow, and nothing narrows the opening.
   Round the curve the strip is held by its own stiffness: it can't bend
-  within its own width, so it can't climb out of a curved slot. The band
-  crosses the slot behind the last LED, over the strip's end. If the strip
+  within its own width, so it can't climb out of a curved slot. A 2 mm
+  bridge crosses the slot's top just behind the last LED, over the strip's
+  end: feed the strip's back end and its wires under it first, then lay the
+  rest into the slot. If the strip
   lifts anywhere else, a dab of silicone in the slot (on the part, not the
   glasses) holds it.
 - **Windows.** Print the part in translucent PETG. The slot's head-side wall
@@ -410,40 +423,41 @@ shaped to one measured pair of glasses, not universal.
   if that's too much, darken the outside between the windows with a marker.
   Check that the slicer prints the skin as one line and doesn't leave it out:
   set the line width to 0.45 mm, or detect thin walls.
-- **Length.** The rail ends 60 mm behind the hinge, past the band behind the
+- **Length.** The rail ends 60 mm behind the hinge, about 18 mm past the
   last LED. From there the strip's wires run along the temple's inner face to
   the pod.
-- **Grip.** A rigid hook over the temple's top edge carries the part. One
-  soft-flex band (`onepiece_band`), 6 mm wide, holds it to the temple just
-  behind the last LED, 45–51 mm behind the hinge, so it covers no LEDs. It's
-  a closed loop right round both: over the top, down the head-side face,
-  under both bottom edges, up the temple's outer face and the hook's lip.
-  However soft the flex, a closed loop can't spring off the way an open clip
-  can. It's about 7% smaller than what it goes round, so it stretches on
-  snugly. It sits in 0.5 mm grooves in the part's top, the hook's lip and the
-  plate's bottom edge, so it can't slide along. There's no groove in the
-  head-side face, because the LED wall there is only 0.8 mm; the band stands
-  1.2 mm proud on that side. In front of the band, the hook and the part's
-  stiffness hold it.
-- **Fitting.** The bands can't go on from the front (the hinge and frame are
-  in the way), so they go on over the tip:
-  1. Take the pod off the tip.
-  2. Slide the band onto the temple over the tip. It's loose on the bare
-     temple; the tip paddle is smaller than it is. Then the pod's band (see
-     Pods).
-  3. Hook the part over the temple's top edge and swing its bottom in.
-  4. Roll the band forward onto the part's back end and into its grooves,
-     just behind the last LED.
-  5. Put the pod back on and roll its band back into its groove.
-  To remove, reverse it. Nothing is stuck to the glasses.
-- **Nothing springy in the PETG.** All the give is in the soft-flex band, so
-  the PETG part has nothing thin to snap.
-- **Printing.** PETG, top edge down on the bed, no supports. The band prints
-  in soft flex, lying flat (standing on one end), no supports.
+- **Grip.** The same wedge as the pods' pockets. Along the rail the part is a
+  rigid channel, open underneath: a top over the temple's top edge, and a leg
+  4 mm down its outer face. A soft-flex L (`onepiece_liner`) lines those two
+  sides: 0.8 mm on the top, 1.0 mm on the outer face. It squeezes the temple
+  0.35 mm against the PETG plate on its inner face. On top it barely
+  squeezes (0.1 mm), because the part hangs there anyway. The temple thickens
+  toward the hinge, so the part tightens if it's pushed forward. Nothing goes
+  round the LEDs, and nothing is on the head side but the PETG.
+- **Liner.** It presses up into the channel from below. A small return along
+  the leg's foot, under its outer edge, stops it dropping out when the part is
+  off, and a stop closes the channel's front end. A drop of glue holds it if
+  it's loose: it's on the part, not the glasses. Its bottom inside edge is
+  chamfered so the temple slides in past it. There's a right and a left one.
+- **Fitting.** Push the part straight down onto the temple, with the curve
+  against the frame front's back face. Nothing else is needed, and the pod
+  can stay on. To remove, pull it straight up.
+- **Band variant.** The earlier grip is kept as `part(grip="band")`: a short
+  rigid hook over the top edge, and a closed soft-flex band
+  (`onepiece_band`, 6 mm wide) round the part and the temple just behind the
+  last LED, in grooves. It goes on over the tip with the pod off: band onto
+  the temple, hook the part over the top, swing its bottom in, roll the band
+  forward into its grooves.
+- **Nothing springy in the PETG.** All the give is in the soft flex, so the
+  PETG part has nothing thin to snap.
+- **Printing.** PETG, top edge down on the bed, no supports (the only
+  overhang is a short bridge over the temple's top). The liner prints in soft
+  flex on its top face, with the outer pad standing up. The band variant's band
+  prints lying flat.
 - **No separate test piece.** The part is short enough to print whole as the
   first test, about 2 g. Check that the curve sits against the frame front,
   clears the hinge and stays above the lens, that the strip drops in, and
-  that the band holds.
+  that the liner holds it on the temple.
 
 **Measurements to check.** These come from photos or are guesses:
 - Where the lens starts below the frame front's top, near the corner
@@ -487,8 +501,8 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   ear-side edge, 0.3 mm on the walls' top edges), so it stands only 0.5 mm
   proud on the side against your head. It's 8 mm wide, 11–19 mm back from the
   paddle's end, where the edge is nearly straight.
-  1. Slide the band onto the temple over its bare tip (it's loose there),
-     after the one-piece part's band.
+  1. Slide the band onto the temple over its bare tip (it's loose there).
+     With the band-variant one-piece part, its band goes on first.
   2. Put the pod on the paddle.
   3. Roll the band back along the paddle onto the pocket and into its
      groove, 3 mm in from the pocket's open end.
@@ -627,7 +641,7 @@ shape doesn't have to match the lobe.
 
 `nose_clip.py` makes a small U-shaped band of soft flex (4 mm wide, 1.2 mm
 thick, about 9 mm tall) that goes over the rim of the right nostril's wing
-and holds the breath thermistor upright just inside it. It's held by the
+and holds the breath thermistor upright at its entrance. It's held by the
 nose, not the glasses, so it stays put when the glasses move.
 
 - **The band:** one leg inside the nostril, one on the skin outside, the bend
@@ -644,15 +658,18 @@ nose, not the glasses, so it stays put when the glasses move.
 - **Why not PETG:** the earlier PETG ring sprang open from under a 1 mm gap
   onto the wing and pinched hard. PETG is too stiff for a band this short:
   even 0.3 mm of squeeze would press about 3 N.
-- **Thermistor:** a stalk off the top of the inside leg holds the bead
-  upright, 2.5 mm off the wing's inner face and 1.5 mm above the legs, in
-  the airflow; touching skin, it would read skin temperature.
+- **Thermistor:** a short post joined to the inside of the bend holds the
+  bead upright at the nostril's entrance: about 1 mm above the lowest point
+  of the wing's rim, and 2.5 mm off its inner face, in the airflow. Higher up
+  the nostril (it used to be 7–8 mm up, on a stalk off the top of the inside
+  leg), it didn't cool fast enough to register the end of an out-breath.
+  Touching skin, it would read skin temperature.
 - **Wiring:** sleeve the bead's two leads (they're bare) in 0.5 mm tubing
-  and slot them down the tunnel from the top of the stalk. It runs straight
-  down the stalk and the post on the inside leg, 1 mm across, a snug fit for
-  the two sleeved leads. The bead stays on top, in the airflow; pull the leads
-  from below to set its height. They come out at the post's foot, under the
-  rim. Solder them to a twisted pair of 30 AWG silicone wires there
+  and slot them down the tunnel from the top of the post. It runs straight
+  down the post, 1 mm across, a snug fit for the two sleeved leads. The bead
+  stays on top, in the airflow; pull the leads from below to set its height
+  (it's at the entrance with its leads just showing). They come out at the
+  post's foot, about 2 mm below the rim, outside the nose. Solder them to a twisted pair of 30 AWG silicone wires there
   (heat-shrink each joint); the pair heads back toward the ear.
 - **Printing:** flat on its back face, no supports: the tunnel is a diamond
   with a 45° roof, so it needs no bridge. 100% infill, slow, brim.

@@ -1,5 +1,5 @@
 """
-Both sides as worn, in one STEP for Fusion: the one-piece temple parts and their clips, the pods
+Both sides as worn, in one STEP for Fusion: the one-piece temple parts and their liners, the pods
 hanging off the temple tips' ends (turned down to their 40 degree slope), their lids and liners, and the MAX30101 earlobe
 clip folded onto a reference earlobe (with the smallest and largest lobes it's sized for), the
 nose clip on a reference nostril wing with its wire across the cheek, with simple reference glasses (temples, tips, frame front) to show where it all sits. Each
@@ -160,7 +160,7 @@ def side(right, sensor="lobe"):
     bat, blid, bd = hp.battery_pod()
     s = "right" if right else "left"
     items = [(f"onepiece_{s}", place(op.part(), right))]
-    items += [(f"clip_{s}_{i + 1}", place(op.clip(x), right)) for i, x in enumerate(op.CLIPS)]
+    items += [(f"onepiece_liner_{s}", place(op.liner(), right))]
     if right:
         pods = [("pod_board", pod), ("lid_board", lid), (f"back_clip_{s}", hp.back_clip(d["y0"], d["y1"]))]
         pods += [(f"liner_{s}", hp.liner_head() if sensor == "head" else hp.liner())]

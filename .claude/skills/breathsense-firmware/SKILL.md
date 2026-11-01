@@ -102,7 +102,7 @@ constant with v1 names/values.
   timestamps absolutely; build the host test with -ffp-contract=off; v1's hide_all() leaves
   _show_pixels' cache stale (the C++ shows the frame v1 skipped).
 - **Board build (1 Nov 2026):** compiles for the XIAO nRF52840 Plus (Seeed nRF52 Boards 1.1.13,
-  fqbn `Seeeduino:nrf52:xiaonRF52840Plus`): 154.6 KB flash, 16.3 KB RAM; and for the ItsyBitsy
+  fqbn `Seeeduino:nrf52:xiaonRF52840Plus`): 159.5 KB flash, 16.3 KB RAM; and for the ItsyBitsy
   (Adafruit 1.7.0, `adafruit:nrf52:itsybitsy52840:softdevice=s140v6,debug=l0`) with no warnings in
   this code. This Mac's installed toolchain lacks newlib headers, so builds use ARM GCC 9-2019-q4
   unpacked in the scratchpad, Seeed's core cloned into `<scratchpad>/hw/Seeeduino/nrf52`, and
@@ -142,7 +142,7 @@ reference for detectors and displays, not pins.
   penalty; focus 0-10 from cycle CV; meditation 0-10 from cycle length × stability; 6-breath
   calibration, 2%/breath baseline drift). Use the app settings' weights as defaults
   (`lib/models/settings.dart`), not the analyzer's own field defaults, where they differ.
-- Nose clip worn = A0 not near full scale (pogo plugged) + bead temp ~30-34 °C (well above room)
+- Nose clip worn = A0 not near full scale (pogo plugged) + bead temp ~30-34 °C (well above room; the bead moved to the nostril's entrance on 1 Nov 2026, where each in-breath cools it more - recheck `NOSE_WARM_C` 28 / `NOSE_COOL_C` 26.5 on hardware)
   + a breath rhythm in the last few seconds. Heart worn = MAX3010x skin level (exists).
 - Combined stress (app only; LEDs keep their rules) = 0.6 heart + 0.4 breath when the nose clip
   is worn, heart alone otherwise; heart part here = 0.5 rate + 0.5 HRV (the LEDs keep 0.7/0.3).

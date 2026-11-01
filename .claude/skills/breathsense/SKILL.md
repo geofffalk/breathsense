@@ -42,8 +42,9 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
   thermistor for breath. The firmware in `firmware/` targets this.
 - **v2 (proposal, being designed on `hardware-v2`):** XIAO nRF52840 Plus in a pod hanging off the
   right temple tip, battery pod on the left, cord behind the head; one PETG part per temple
-  carrying the LED strip round the hinge onto the frame front; magnetic earlobe clip for the
-  MAX30101; soft-flex U band (nose clip) holding the thermistor inside the right nostril, wired to the pod by a
+  carrying the LED strip round the hinge onto the frame front, held by a soft-flex liner wedge on the
+  temple's top and outer face (no band round the LEDs); magnetic earlobe clip for the
+  MAX30101; soft-flex U band (nose clip) holding the thermistor at the right nostril's entrance, wired to the pod by a
   magnetic pogo plug. Firmware to move to Arduino C++ (decided 1 Nov 2026), with a few protocol additions.
 
 ## Agreed behaviour (spec, 1 Nov 2026)

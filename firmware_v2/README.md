@@ -6,7 +6,7 @@ It's a port of the v1 CircuitPython firmware in `firmware/`, which was written f
 nRF52840 and stays the reference for the detectors and displays.
 
 **Status:** checked against the originals on a computer, and compiles for the board.
-- **XIAO nRF52840 Plus** (Seeed nRF52 Boards 1.1.13): 154.6 KB of 811 KB flash, 16.3 KB of 238 KB
+- **XIAO nRF52840 Plus** (Seeed nRF52 Boards 1.1.13): 159.5 KB of 811 KB flash, 16.3 KB of 238 KB
   RAM.
 - **ItsyBitsy nRF52840** (Adafruit's core 1.7.0, compile check only): no warnings in this code.
 
@@ -97,7 +97,8 @@ through the Boards Manager.
   the Bluetooth stack running.
 - Battery reading: the XIAO's divider factor and reference are from its schematic. Check against
   a meter.
-- Thermistor: `BETA`, and the wear thresholds (`NOSE_WARM_C` 28, `NOSE_COOL_C` 26.5).
+- Thermistor: `BETA`, and the wear thresholds (`NOSE_WARM_C` 28, `NOSE_COOL_C` 26.5). The bead now sits at
+  the nostril's entrance, where each in-breath cools it further than it did higher up.
 - MAX30101 at the head site: raise `MAX3010X_IR_CURRENT`; consider the green LED.
 - Breath start indices (9/8/6/5/5) on the real glasses.
 
