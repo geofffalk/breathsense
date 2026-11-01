@@ -27,6 +27,7 @@ the side toward it. No z-flip is needed (unlike mount_v2's pods).
 Run:  python hang_pods.py   -> out/step/hang_*.step, out/stl/hang_*.stl
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -35,6 +36,7 @@ from build123d import Cylinder, Plane, Pos, Rot, export_step, export_stl, mirror
 sys.path.insert(0, str(Path(__file__).parent.parent / "glasses"))
 sys.path.insert(0, str(Path(__file__).parent))
 import glasses_mount as gm   # noqa: E402
+import lobe_clip as lc       # noqa: E402
 import mount_v2 as mv        # noqa: E402
 from glasses_mount import box, xz_prism, yz_prism   # noqa: E402
 
@@ -82,6 +84,29 @@ LEAD_HOLE = 4.0          # Earlobe lead's 4 wires (1 mm), loose, out through the
 POGO = (4.0, 4.0)        # Nose clip's 2-pin magnetic pogo socket, flush in the ear-side wall: diameter, length (check yours)
 POGO_FIT = 0.1           # Hole this much over its diameter (press it in; a drop of glue if loose)
 POGO_BACK = 7.0          # This far behind the earlobe lead's hole, toward the far end
+BAY = 8.0                # Board pod's cavity this much longer, at its front beside the XIAO: the LED switch's
+                         # two transistors and resistors, free-wired
+BOARD_LIFT = 1.0         # XIAO raised this much on two rails under its ends: room for the battery wires on its back pads
+RAIL_W = 1.5             # ... rails this wide along its length
+BUTTON = (5.0, 3.0)      # Omron B3F: base across the cavity's depth, and along the back wall (check yours) ...
+PLUNGER_HOLE = 3.8       # ... its round plunger (about 3.5 mm) out through the back wall
+
+# ---------------------------------------------------------------- head-side sensor (board_pod(sensor="head"))
+# The MAX30101 in a soft-flex carrier (lobe_clip's pad, thinner lips) pokes out of a window in the
+# board pod's head-side wall, chip toward the ear, pressed onto the skin behind the ear by two
+# soft-flex bows on the board's back; the bows push off a PETG shelf, and the XIAO sits on the shelf.
+CARRIER_LIP_T = 0.8      # Carrier's back lips (lobe clip: 1.4)
+CARRIER_FLANGE = (1.0, 0.8)   # Flange round the carrier's back face, inside the wall, stops it falling out: width, thickness
+WINDOW_FIT = 0.2         # Window over the carrier, each side
+BOW = (18.0, 1.5, 5.0, 3.4)   # Each bow: span along x, thickness, width, height from the board's back to the shelf
+                         # (1.9 mm travel before flat: more than SENSOR_PROUD, so it never bottoms out)
+BOW_Z = (1.5, 8.0)       # Bows' centres from the chip, across the board (clear of the pin tab)
+E_FLEX = 25.0            # MPa, soft flex, for the force estimate (check yours)
+SHELF_T = 1.2            # PETG shelf between the bows and the XIAO, dropped onto ledges ...
+LEDGE = 0.8              # ... this wide round the cavity walls
+SHELF_FIT = 0.15
+CARRIER_Y_LIPS = lc.Y_BOARD[0] - CARRIER_LIP_T
+SENSOR_PROUD = -CARRIER_Y_LIPS - CARRIER_FLANGE[1] - W   # Carrier's skin face proud of the head-side face at rest (chip 0.5 more)
 
 
 def ys():
@@ -186,32 +211,150 @@ def lid_for(xf, x_end, zb0, zb1, y1):
                zb0 + 0.6 - mv.LID_FIT, zb1 - 0.6 + mv.LID_FIT)
 
 
-def board_pod():
-    """Right pod. Returns (pod, lid, dims); dims["lead_exit"] is where the earlobe lead leaves."""
+def bow_force(push):
+    """Newtons from both bows with the carrier pushed in this far: each a simply supported strip
+    loaded at its middle."""
+    span, t, w, _ = BOW
+    return 2 * 48 * E_FLEX * (w * t ** 3 / 12) * push / span ** 3
+
+
+def head_frame(d):
+    """Lobe-clip pad frame (skin face y = 0 toward +y, chip at x = z = 0, board below it) -> pod
+    frame: skin face toward the head (-y), SENSOR_PROUD out of the head-side face, chip edge toward
+    the ear-side wall, against the front wall's end of the cavity."""
+    fw, _ = CARRIER_FLANGE
+    cx = d["x_end"] - W - WINDOW_FIT - fw - lc.PX1
+    cz = d["zb"][0] + W + 0.1 + fw + lc.PZ1
+    ty = d["y0"] - SENSOR_PROUD
+    return lambda shape: Pos(cx, ty, cz) * (Rot(180, 0, 0) * shape), (cx, ty, cz)
+
+
+def carrier():
+    """The soft-flex carrier in the lobe-clip pad frame: the pad with thinner lips and a flange
+    round its back face, which rests on the inside of the pod's wall."""
+    fw, ft = CARRIER_FLANGE
+    y_lips = CARRIER_Y_LIPS
+    c = lc.pad(y_lips)
+    ring = box(lc.PX0 - fw, lc.PX1 + fw, y_lips, y_lips + ft, lc.PZ0 - fw, lc.PZ1 + fw)    # On the back face
+    ring -= box(lc.PX0 + 0.5, lc.PX1 - 0.5, y_lips - 1, y_lips + ft + 1, lc.PZ0 + 0.5, lc.PZ1 - 0.5)
+    c += ring
+    zl = lc.LEAD_OUT[2]
+    c -= box(lc.PX0 - fw - 1, lc.PX0 + 0.01, y_lips - 1, y_lips + ft + 0.01, zl - lc.LEAD_SLOT / 2, zl + lc.LEAD_SLOT / 2)
+    return c
+
+
+def bow():
+    """One bow, centred on x = 0, in the lobe-clip frame's x-y (apex on the board's back at y = 0,
+    ends at y = -height, toward the pod's inside), width along z from 0."""
+    span, t, w, h = BOW
+    s_ = h - t                                             # Sagitta of the centreline
+    r = (span ** 2 / 4 + s_ ** 2) / (2 * s_)
+    a = math.asin(span / 2 / r)
+    n = 30
+    yc = -t / 2 - r                                        # Centre: the apex's centreline is at y = -t/2
+    ro, ri = r + t / 2, r - t / 2
+    pts = [(ro * math.sin(-a + 2 * a * k / n), yc + ro * math.cos(-a + 2 * a * k / n)) for k in range(n + 1)]
+    pts += [(ri * math.sin(a - 2 * a * k / n), yc + ri * math.cos(a - 2 * a * k / n)) for k in range(n + 1)]
+    # Profile (x, y) extruded along z: xz_prism extrudes along y, so draw it as (x, -y) and turn it
+    return Rot(90, 0, 0) * xz_prism([(x, -y) for x, y in pts], 0, w)
+
+
+def bows():
+    """Both bows in the lobe-clip pad frame, apexes on the board's back."""
+    out = None
+    for zc in BOW_Z:
+        b = Pos(0, lc.Y_PCB_BACK, -zc - BOW[2] / 2) * bow()
+        out = b if out is None else out + b
+    return out
+
+
+def xiao_rails(xs, bz, y):
+    """Two rails under the XIAO's ends, from y up BOARD_LIFT."""
+    w_, length = mv.XIAO[0], mv.XIAO[1] + 0.2
+    out = None
+    for x0 in (xs, xs + length - RAIL_W):
+        r = box(x0, x0 + RAIL_W, y - 0.01, y + BOARD_LIFT, bz - w_ / 2, bz + w_ / 2)
+        out = r if out is None else out + r
+    return out
+
+
+def shelf_ledges(x0, x1, z0, z1, y):
+    """Ledges round the cavity's walls (x0..x1, z0..z1) for the shelf to rest on at y, with 45 deg
+    undersides so they print without overhangs (the pod prints head-side face down)."""
+    e = LEDGE
+    out = None
+    for xa, s_ in ((x0, 1), (x1, -1)):                    # Front and far walls: profile in x-y, along z
+        tri = [(xa - s_ * 0.01, -y), (xa + s_ * e, -y), (xa - s_ * 0.01, -(y - e - 0.01))]
+        l_ = Rot(90, 0, 0) * xz_prism(tri, z0, z1)
+        out = l_ if out is None else out + l_
+    for za, s_ in ((z0, 1), (z1, -1)):                    # Ear-side and back walls: profile in y-z, along x
+        out += yz_prism([(y, za - s_ * 0.01), (y, za + s_ * e), (y - e - 0.01, za - s_ * 0.01)], x0, x1)
+    return out
+
+
+def board_pod(sensor="lobe"):
+    """Right pod. Returns (pod, lid, dims); dims["lead_exit"] is where the earlobe lead leaves.
+    sensor="lobe": the MAX30101 is on the earlobe clip, its lead out of the ear-side wall.
+    sensor="head": it pokes out of the head-side wall in a soft-flex carrier (see head_parts());
+    the pod is thicker on its outer side to stack carrier, bows, shelf and XIAO."""
     w_, length, pcb, usb_h = mv.XIAO
-    depth = pcb + usb_h + 0.4
+    y0 = ys()[3][0]
+    cy0 = y0 + W
+    if sensor == "head":
+        bow_top = y0 - SENSOR_PROUD + (-lc.Y_PCB_BACK) + BOW[3]     # Bows' ends (pod frame)
+        board_y = bow_top + SHELF_T + BOARD_LIFT                     # XIAO's underside
+    else:
+        board_y = cy0 + BOARD_LIFT
+    depth = board_y - cy0 + pcb + usb_h + 0.4
     p, d = pocket(depth)
     height = 2 * W + FLANGE_ZONE + (w_ + 0.4) + 3.6       # Ear-side wall, lead's knot, board, button, back wall
-    b, cav, (xf, zb0, zb1) = body(depth, height, length + 0.2 + 2 * W, d)
+    b, cav, (xf, zb0, zb1) = body(depth, height, length + 0.2 + 2 * W + BAY, d)
     p += b
     y0, y1, x_end = d["y0"], d["y1"], d["x_end"]
-    cy0 = y0 + W
     bz = zb0 + W + FLANGE_ZONE + (w_ + 0.4) / 2            # Board's centre (across)
-    cav += box(xf - 1, xf + W + 0.1, cy0 + pcb - 0.2, cy0 + pcb + usb_h + 0.4,
+    xs = xf + W                                            # Board's far end (USB-C end)
+    cav += box(xf - 1, xf + W + 0.1, board_y + pcb - 0.2, board_y + pcb + usb_h + 0.4,
                bz - mv.USB_W / 2 - 0.2, bz + mv.USB_W / 2 + 0.2)                                 # USB-C, far end
     bx = xf + W + 8.0
-    cav += box(bx - 1.6, bx + 1.6, cy0 + 0.5, cy0 + 3.7, zb1 - W - 0.1, zb1 + 1)               # Button plunger, back wall
-    lx = x_end - W - 6.4                                   # Lead near the body's front: closest to the earlobe
-    ly = (cy0 + y1 - mv.LID_T) / 2
-    cav += Pos(lx, ly, zb0 + W / 2) * Cylinder(LEAD_HOLE / 2, W + 0.4)                          # Earlobe lead
+    floor_y = cy0 if sensor == "lobe" else board_y - BOARD_LIFT          # What the button's base sits on
+    cav += Pos(bx, floor_y + BUTTON[0] / 2, zb1 - W / 2) * Cylinder(PLUNGER_HOLE / 2, W + 0.4)   # Button plunger, back wall
+    lx = x_end - W - 6.4 - BAY                             # Lead near the board's front: closest to the earlobe
     px = lx - POGO_BACK
+    if sensor == "head":
+        ly = board_y - BOARD_LIFT + 0.3 + (POGO[0] + POGO_FIT) / 2     # Pogo socket above the shelf
+    else:
+        ly = (cy0 + y1 - mv.LID_T) / 2
+        cav += Pos(lx, ly, zb0 + W / 2) * Cylinder(LEAD_HOLE / 2, W + 0.4)                     # Earlobe lead
     cav += Pos(px, ly, zb0 + W / 2) * Cylinder((POGO[0] + POGO_FIT) / 2, W + 0.4)               # Nose clip's socket
+    d.update(xf=xf, zb=(zb0, zb1), cy0=cy0, bz=bz, board_y=board_y, sensor=sensor,
+             lead_exit=(lx, ly, zb0), pogo=(px, ly, zb0))
+    if sensor == "head":
+        place, (cx, ty, cz) = head_frame(d)
+        f = WINDOW_FIT
+        cav += box(cx + lc.PX0 - f, cx + lc.PX1 + f, y0 - 1, cy0 + 0.01, cz - lc.PZ1 - f, cz - lc.PZ0 + f)   # Window
+        shelf_y = board_y - BOARD_LIFT - SHELF_T
+        ledges = shelf_ledges(xf + W, x_end - W, zb0 + W, zb1 - W, shelf_y)
+        d.update(chip=(cx, ty - lc.CHIP_PROUD, cz), shelf_y=shelf_y)
     p -= cav
+    p += ledges if sensor == "head" else xiao_rails(xs, bz, cy0)
     lid = lid_for(xf, x_end, zb0, zb1, y1)
     rst = (xf + W + 4.0, bz + 5.0)                         # XIAO reset button, next to the USB-C (check yours)
     lid -= box(rst[0] - 0.6, rst[0] + 0.6, y1 - mv.LID_T - 1, y1 + 1, rst[1] - 0.6, rst[1] + 0.6)
-    d.update(xf=xf, zb=(zb0, zb1), cy0=cy0, bz=bz, lead_exit=(lx, ly, zb0), pogo=(px, ly, zb0))
     return p, lid, d
+
+
+def head_parts(d):
+    """For board_pod(sensor="head")'s dims: (carrier, bows, shelf) in place in the pod frame. The
+    shelf has a notch at the far end by the back wall for the MAX30101's wires, and the XIAO's
+    rails on top."""
+    place, _ = head_frame(d)
+    xf, x_end = d["xf"], d["x_end"]
+    zb0, zb1 = d["zb"]
+    f, y = SHELF_FIT, d["shelf_y"]
+    shelf = box(xf + W + f, x_end - W - f, y, y + SHELF_T, zb0 + W + f, zb1 - W - f)
+    shelf -= box(xf + W, xf + W + 4.0, y - 1, y + SHELF_T + 1, zb1 - W - 3.4, zb1)          # MAX30101 wires
+    shelf += xiao_rails(xf + W, d["bz"], y + SHELF_T)
+    return place(carrier()), place(bows()), shelf
 
 
 def battery_pod():
@@ -242,6 +385,11 @@ def print_orient_liner(p):
     return mv._to_bed(Rot(180, 0, 0) * p)
 
 
+def print_orient_shelf(p):
+    """Flat face down, the XIAO's rails up."""
+    return mv._to_bed(p)
+
+
 def print_orient_clip(p):
     """On its end: the loop flat on the bed."""
     return mv._to_bed(Rot(0, 90, 0) * p)
@@ -257,13 +405,20 @@ if __name__ == "__main__":
     # Modelled with y outward, which in a right-handed frame is the left temple: the board pod
     # (right) is exported mirrored, the battery pod (left) as modelled. The lids, liner and band
     # are symmetric through their thickness, so one of each fits either side.
+    hpod, _, hd = board_pod("head")
+    carr, bw, shelf = head_parts(hd)
     items = [("hang_pod_board", mirror(pod, Plane.XZ), print_orient_head_down_mirrored),
+             ("hang_pod_board_head", mirror(hpod, Plane.XZ), print_orient_head_down_mirrored),
+             ("hang_shelf_head", shelf, print_orient_shelf),
+             ("hang_carrier_head", carrier(), lc.print_orient),
+             ("hang_bow_head", Pos(0, 0, 0) * bow(), mv._to_bed),
+             ("hang_back_clip_head", back_clip(hd["y0"], hd["y1"]), print_orient_clip),
              ("hang_pod_battery", bat, print_orient_head_down),
              ("hang_lid_board", lid, mv.print_orient_lid), ("hang_lid_battery", blid, mv.print_orient_lid),
              ("hang_liner", liner(), print_orient_liner),
              ("hang_back_clip", back_clip(d["y0"], d["y1"]), print_orient_clip)]
     for name, shape, orient in items:
         export_step(shape, str(OUT / "step" / f"{name}.step"))
-        material = "petg" if name.startswith("hang_pod_") else "flex"
+        material = "petg" if name.startswith(("hang_pod_", "hang_shelf")) else "flex"
         export_stl(orient(shape), str(OUT / "stl" / f"{name}_{material}.stl"))
         print("wrote", name, f"{shape.volume:.0f} mm3")

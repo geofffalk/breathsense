@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 860" width="1150" height="860" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <style>
+    .box { fill: #f7f7f4; stroke: #333; stroke-width: 1.5; }
+    .ext { fill: #fff; stroke: #333; stroke-width: 1.5; }
+    .area { fill: none; stroke: #999; stroke-width: 1.2; stroke-dasharray: 6 4; }
+    .cord { fill: #eeeeea; stroke: none; }
+    .title { font-size: 15px; font-weight: bold; }
+    .area-label { font-size: 13px; font-weight: bold; fill: #666; }
+    .note { font-size: 11.5px; fill: #555; }
+    .notes { font-size: 12px; fill: #333; }
+    .pin { font-size: 12px; font-weight: bold; }
+    .wl { font-size: 11px; fill: #555; }
+    .w { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .red { stroke: #d32f2f; } .blk { stroke: #222; } .led { stroke: #6a1b9a; }
+    .sig { stroke: #1565c0; } .i2c { stroke: #2e7d32; } .v3 { stroke: #ef6c00; } .ntc { stroke: #8d6e63; }
+    .dot { fill: #222; }
+    .gnd { fill: none; stroke: #222; stroke-width: 2; }
+  </style>
+  <defs>
+    <g id="gnd"><path class="gnd" d="M0 0 V8 M-8 8 H8 M-5 12 H5 M-2 16 H2"/></g>
+  </defs>
+  <rect width="1150" height="860" fill="#fff"/>
+  <text x="20" y="28" font-size="18" font-weight="bold">BreathSense v2: wiring (proposed)</text>
+  <text x="20" y="48" class="note">All GND pins and ground symbols are one net. A dot marks a join; wires that cross without a dot are not connected.</text>
+  <text x="20" y="63" class="note">Pins are drawn by function, not where they sit on the board.</text>
+
+  <!-- ===== Left side ===== -->
+  <rect class="area" x="10" y="72" width="275" height="252" rx="8"/>
+  <text x="18" y="88" class="area-label">LEFT</text>
+
+  <rect class="ext" x="20" y="96" width="240" height="76" rx="6"/>
+  <text x="32" y="118" class="title">Left LED strip</text>
+  <text x="32" y="136" class="note">10 × SK6805-EC15, left temple</text>
+  <text x="252" y="114" class="pin" text-anchor="end">+</text>
+  <text x="252" y="134" class="pin" text-anchor="end">DIN</text>
+  <text x="252" y="154" class="pin" text-anchor="end">GND</text>
+
+  <rect class="box" x="20" y="228" width="240" height="84" rx="6"/>
+  <text x="32" y="250" class="title">LiPo 502030</text>
+  <text x="32" y="268" class="note">3.7 V 250 mAh, in the left pod</text>
+  <text x="32" y="286" class="note">Thermistor (T) wire unused:</text>
+  <text x="32" y="300" class="note">insulate it</text>
+  <text x="252" y="259" class="pin" text-anchor="end">+</text>
+  <text x="252" y="289" class="pin" text-anchor="end">−</text>
+
+  <path class="w blk" d="M260 150 H278 V285"/>
+  <circle class="dot" cx="278" cy="285" r="4"/>
+
+  <!-- ===== Cord ===== -->
+  <rect class="cord" x="300" y="96" width="140" height="210" rx="8"/>
+  <text x="370" y="324" class="area-label" text-anchor="middle">cord behind the head</text>
+  <text x="370" y="340" class="note" text-anchor="middle">4 wires</text>
+  <text x="306" y="104" class="wl">LED+ (switched)</text>
+  <text x="306" y="124" class="wl">DIN left</text>
+  <text x="306" y="250" class="wl">BAT+</text>
+  <text x="306" y="280" class="wl">GND</text>
+
+  <path class="w led" d="M260 110 H940"/>
+  <path class="w sig" d="M260 130 H495 V420 H720"/>
+  <path class="w red" d="M260 255 H520"/>
+  <path class="w red" d="M480 255 V330 H720"/>
+  <circle class="dot" cx="480" cy="255" r="4"/>
+  <path class="w blk" d="M260 285 H460 V355 H720"/>
+
+  <!-- ===== Right side ===== -->
+  <rect class="area" x="470" y="72" width="660" height="634" rx="8"/>
+  <text x="478" y="88" class="area-label">RIGHT: board pod (strip on the temple)</text>
+
+  <!-- LED power switch -->
+  <rect class="box" x="520" y="170" width="190" height="122" rx="6"/>
+  <text x="530" y="190" class="title" font-size="13">LED power switch</text>
+  <text x="530" y="206" class="note">S8550 PNP: E = BAT+, C = LED+,</text>
+  <text x="530" y="220" class="note">10k base–emitter, 2.2k from</text>
+  <text x="530" y="234" class="note">its base to an S8050 NPN's</text>
+  <text x="530" y="248" class="note">collector. S8050: base ← D3</text>
+  <text x="530" y="262" class="note">via 10k, 100k base–GND.</text>
+  <text x="530" y="276" class="note">D3 high = LEDs on, low = off</text>
+  <path class="w led" d="M600 170 V110"/>
+  <circle class="dot" cx="600" cy="110" r="4"/>
+  <path class="w sig" d="M620 292 V390 H720"/>
+  <path class="w blk" d="M670 292 V355"/>
+  <circle class="dot" cx="670" cy="355" r="4"/>
+  <text x="604" y="160" class="wl">C</text>
+  <text x="510" y="250" class="wl" text-anchor="end">E</text>
+
+  <!-- Right strip -->
+  <rect class="ext" x="940" y="96" width="180" height="94" rx="6"/>
+  <text x="1000" y="120" class="title">Right LED strip</text>
+  <text x="1000" y="138" class="note">10 × SK6805-EC15,</text>
+  <text x="1000" y="152" class="note">right temple</text>
+  <text x="948" y="114" class="pin">+</text>
+  <text x="948" y="144" class="pin">DIN</text>
+  <text x="948" y="174" class="pin">GND</text>
+  <path class="w sig" d="M900 330 H920 V140 H940"/>
+  <path class="w blk" d="M940 170 H930 V355"/>
+  <circle class="dot" cx="930" cy="355" r="4"/>
+
+  <!-- XIAO -->
+  <rect class="box" x="720" y="290" width="180" height="262" rx="6"/>
+  <text x="810" y="312" class="title" text-anchor="middle">XIAO nRF52840 Plus</text>
+  <text x="728" y="334" class="pin">BAT+ pad</text>
+  <text x="728" y="359" class="pin">BAT− pad</text>
+  <text x="728" y="394" class="pin">D3</text>
+  <text x="728" y="424" class="pin">D2</text>
+  <text x="728" y="459" class="pin">D6</text>
+  <text x="728" y="489" class="pin">D7</text>
+  <text x="728" y="514" class="pin">A0</text>
+  <text x="892" y="334" class="pin" text-anchor="end">D1</text>
+  <text x="892" y="359" class="pin" text-anchor="end">GND</text>
+  <text x="892" y="394" class="pin" text-anchor="end">3V3</text>
+  <text x="892" y="424" class="pin" text-anchor="end">D4 SDA</text>
+  <text x="892" y="449" class="pin" text-anchor="end">D5 SCL</text>
+  <text x="892" y="532" class="note" text-anchor="end">USB-C: power, charging</text>
+  <text x="892" y="546" class="note" text-anchor="end">battery voltage read on-board</text>
+
+  <!-- Button -->
+  <rect class="box" x="540" y="436" width="110" height="38" rx="6"/>
+  <text x="595" y="452" class="pin" text-anchor="middle">Button</text>
+  <text x="595" y="467" class="note" text-anchor="middle">6×6, back wall</text>
+  <path class="w sig" d="M650 455 H720"/>
+  <path class="w blk" d="M540 455 H520 V462"/>
+  <use href="#gnd" x="520" y="462"/>
+
+  <!-- Thermistor divider -->
+  <path class="w ntc" d="M720 485 H660 V530"/>
+  <rect x="652" y="530" width="16" height="40" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="646" y="555" class="pin" text-anchor="end">10k</text>
+  <path class="w ntc" d="M660 570 V600 H690"/>
+  <path class="w ntc" d="M720 510 H690 V640"/>
+  <circle class="dot" cx="690" cy="600" r="4"/>
+
+  <!-- Pogo socket -->
+  <rect class="box" x="640" y="640" width="160" height="44" rx="6"/>
+  <text x="720" y="658" class="pin" text-anchor="middle">2-pin magnetic pogo</text>
+  <text x="720" y="674" class="note" text-anchor="middle">socket, ear-side wall</text>
+  <path class="w blk" d="M750 640 V626 H816 V634"/>
+  <use href="#gnd" x="816" y="634"/>
+
+  <!-- MAX30101 fan-out -->
+  <path class="w blk" d="M900 355 H1070 V760"/>
+  <path class="w v3" d="M900 390 H1030 V760"/>
+  <path class="w i2c" d="M900 420 H990 V760"/>
+  <path class="w i2c" d="M900 445 H950 V760"/>
+
+  <!-- ===== Off the pod ===== -->
+  <path class="w ntc" d="M690 684 V760"/>
+  <path class="w ntc" d="M750 684 V760"/>
+  <text x="760" y="728" class="wl">pair, 230 mm</text>
+  <text x="760" y="742" class="wl">loose along the cheek</text>
+  <text x="944" y="728" class="wl" text-anchor="end">lead, 70 mm</text>
+
+  <rect class="ext" x="600" y="760" width="260" height="72" rx="6"/>
+  <text x="730" y="782" class="title" text-anchor="middle">10k NTC glass bead</text>
+  <text x="730" y="800" class="note" text-anchor="middle">nose clip, just inside the right nostril</text>
+  <text x="730" y="816" class="note" text-anchor="middle">set BETA in the firmware to its B value</text>
+
+  <rect class="ext" x="920" y="760" width="200" height="80" rx="6"/>
+  <text x="950" y="778" class="pin" text-anchor="middle">SCL</text>
+  <text x="990" y="778" class="pin" text-anchor="middle">SDA</text>
+  <text x="1030" y="778" class="pin" text-anchor="middle">3-5V</text>
+  <text x="1070" y="778" class="pin" text-anchor="middle">GND</text>
+  <text x="1020" y="806" class="title" text-anchor="middle">MAX30101 (Pimoroni)</text>
+  <text x="1020" y="824" class="note" text-anchor="middle">earlobe clip; INT unused</text>
+
+  <!-- ===== Notes ===== -->
+  <g class="notes">
+    <text x="20" y="384" font-weight="bold">Notes</text>
+    <text x="20" y="406">• No power switch. A long press on the button puts the XIAO</text>
+    <text x="20" y="422">   into System OFF (a few µA) with the LED supply cut; a press</text>
+    <text x="20" y="438">   or USB wakes it. It also sleeps after ~2 min idle.</text>
+    <text x="20" y="460">• Battery to the XIAO's BAT+/BAT− pads on its back. The XIAO</text>
+    <text x="20" y="476">   charges it from USB-C and reads its voltage itself, so</text>
+    <text x="20" y="492">   there's no A2 divider as in v1.</text>
+    <text x="20" y="514">• The S8050 is needed: the S8550 only turns fully off with its</text>
+    <text x="20" y="530">   base at BAT+ (up to 4.2 V), which a 3.3 V pin can't reach.</text>
+    <text x="20" y="546">   Drive D1 and D2 low before turning LED+ off, or the strips</text>
+    <text x="20" y="562">   power up through their data pins.</text>
+    <text x="20" y="584">• The thermistor divider runs from D7, not 3V3: set D7 high</text>
+    <text x="20" y="600">   only to read. From 3V3 it would draw 165 µA all the time,</text>
+    <text x="20" y="616">   emptying the cell in about 2 months of sleep.</text>
+    <text x="20" y="638">• Put the MAX30101 in shutdown over I2C before sleeping.</text>
+    <text x="20" y="654">   Twist SDA and SCL with GND in its lead.</text>
+    <text x="20" y="676">• Button: D6 to GND, internal pull-up; wakes from System OFF.</text>
+    <text x="20" y="698">• Wire: 28-30 AWG silicone. Pins are proposed: the v2</text>
+    <text x="20" y="714">   firmware isn't written yet (v1: strips on D7/D9, battery A2).</text>
+  </g>
+</svg>

@@ -52,13 +52,15 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Fast 10k glass-bead NTC thermistor (1 mm or smaller) | Breath sensor, just inside the right nostril on the nose clip | ~$2 |
 | 2-pin 4 mm magnetic pogo connector (on hand) | Nose clip's plug at the board pod | $0 |
 | 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
-| P-MOSFET (e.g. AO3401) and 100k gate pull-up | Cuts all LED power when the display is off or the battery is low | ~$0.50 |
-| 6×6 mm or smaller tactile button | Wake, sleep and mode | ~$0.50 |
+| S8550 PNP and S8050 NPN (TO-92, from a transistor kit: bought), 10k, 2.2k, 10k and 100k resistors (on hand) | LED power switch: cuts all LED power when the display is off or the battery is low. 2N2907A or BC327 also do for the PNP | ~$3 |
+| Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base about 5 × 3 mm against the back wall; its round plunger (about 3.5 mm) goes out through a 3.8 mm hole. Use two diagonal pins | $0 |
+| 10k resistor | Thermistor divider, from D7 to A0 (see Wiring) | ~$0.05 |
+| 28–30 AWG silicone wire, 0.5 mm sleeving, small heat-shrink | Cord, earlobe lead, nose pair; sleeving for the bead's bare leads in the nose clip's tunnel; heat-shrink on wire joints only | ~$3 |
 | Natural (translucent) PETG (on hand) | The one-piece temple parts: the LEDs shine through the wall (see Mount) | $0 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
-| **Total** | | **about $11, or $26 with natural PETG** |
+| **Total** | | **about $15, or $30 with natural PETG** |
 
-About $37 of the budget is left. If 5 visible LEDs per side look too coarse,
+About $33 of the budget is left. If 5 visible LEDs per side look too coarse,
 the best use is a custom flex PCB with about 12–14 tiny LEDs for the front
 section only.
 
@@ -82,11 +84,59 @@ Strip sources:
   nostril. Its two wires run loose along the cheek and under the ear to a
   magnetic pogo socket on the board pod (see Nose clip).
 
+## Wiring
+
+![Wiring diagram](wiring.svg)
+
+| XIAO pin | Use |
+|---|---|
+| BAT+ / BAT− pads (back) | LiPo, through the cord. The XIAO charges it from USB-C and reads its voltage on-board |
+| D1 | Right strip DIN |
+| D2 | Left strip DIN, through the cord |
+| D3 | LED power switch: high = LEDs on (the S8050 pulls the S8550's base low) |
+| D4 SDA, D5 SCL | MAX30101, on the earlobe clip's 4-wire lead |
+| D6 | Button to GND (internal pull-up; wakes from System OFF) |
+| D7 | Feeds the thermistor divider's 10k, high only while reading |
+| A0 | Divider midpoint: 10k from D7, thermistor (via the pogo plug) to GND |
+| 3V3, GND | MAX30101 power |
+
+These are proposed: the v2 firmware isn't written yet. The cord behind the head
+carries BAT+, GND, the switched LED supply and the left strip's data.
+
+**LED power switch** (all through-hole, from the DollaTek transistor kit: S8550
+PNP, S8050 NPN; a 2N3906 also does for the PNP):
+
+```
+BAT+ ──┬─────────── E  S8550 (PNP)
+       │                C ─────────── LED+ (both strips)
+      10k               B
+       │                │
+       └────────────────┤
+                       2.2k
+                        │
+                        C  S8050 (NPN)
+D3 ──── 10k ──────┬──── B
+                 100k   E ─── GND
+                  │
+                 GND
+```
+
+- D3 high: the S8050 pulls the S8550's base low through the 2.2k, and the
+  LEDs get power. D3 low: the 10k pulls the base up to BAT+ and they're off.
+- The S8050 is needed because a 3.3 V pin can't pull the S8550's base up to
+  the battery's 4.2 V to turn it off.
+- Check each transistor's pinout (E-B-C order varies by maker): on a meter's
+  diode setting, the base conducts to both other pins.
+- Before turning the LEDs off, drive D1 and D2 low, or the strips power up
+  through their data pins.
+
 ## Power and switching
 
 There is no power switch.
 
-- **LED power** comes from the battery through the P-MOSFET. The MOSFET is off
+- **LED power** comes from the battery through an S8550 PNP transistor, driven
+  by an S8050 from D3 (see Wiring). It loses about 0.1 V and draws about
+  1.5 mA of base current while lit, about 5% of runtime. It's off
   whenever the LEDs are dark, because each NeoPixel draws about 1 mA even when
   showing black.
 - **LED low-voltage cut-off at 3.6 V.** The SK6805 is rated for 3.7–5.5 V.
@@ -140,7 +190,7 @@ voltage drops. Red and green still work at 3.6 V.
 |---|---|---|
 | XIAO with BLE | ~5 mA | ~3 µA |
 | MAX30101 | ~3 mA | ~1 µA |
-| 20 NeoPixels at indoor brightness, including their idle draw | ~30–45 mA | 0 (MOSFET off) |
+| 20 NeoPixels at indoor brightness, including their idle draw, plus ~1.5 mA switch drive | ~30–45 mA | 0 (switch off) |
 
 Runtime is about 3–3.5 h on 250 mAh, down to the 3.6 V cut-off. Standby is
 months.
@@ -163,6 +213,19 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 | `hang_lid_board_flex`, `hang_lid_battery_flex` | Soft flex | 1 each | Press-in pod lids |
 | `lobe_clip_flex` | Soft flex | 1 | Magnetic earlobe clip (see Earlobe clip) |
 | `nose_clip_w25_flex` … `w40_flex` | Soft flex | 1 of your size | Thermistor band for the nostril, one per wing thickness (see Nose clip) |
+
+**Head-side sensor variant** (see Pods): to try the MAX30101 pressing on the
+skin behind the ear instead of on the earlobe, print these in place of
+`hang_pod_board_petg`, one of the `hang_back_clip_flex` and `lobe_clip_flex`.
+They're the third row of `print_layout.step`.
+
+| File (`out/stl/`) | Material | Qty | What it is |
+|---|---|---|---|
+| `hang_pod_board_head_petg` | PETG | 1 | Right pod with a window in its head-side wall |
+| `hang_shelf_head_petg` | PETG | 1 | Drops in over the sensor; the XIAO sits on it |
+| `hang_carrier_head_flex` | Soft flex | 1 | Holds the MAX30101 in the window |
+| `hang_bow_head_flex` | Soft flex | 2 | Springs between the board's back and the shelf |
+| `hang_back_clip_head_flex` | Soft flex | 1 | The right pod's band (this pod is thicker) |
 
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
@@ -265,7 +328,8 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 
 | File (`out/stl/`) | Material | What it is |
 |---|---|---|
-| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn), button in the back wall, earlobe lead out of the ear-side wall |
+| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn) on two 1 mm rails, an 8 mm bay at the front for the LED switch, button in the back wall, earlobe lead out of the ear-side wall |
+| `hang_pod_board_head` + `hang_shelf_head`, `hang_carrier_head`, `hang_bow_head` (×2), `hang_back_clip_head` | PETG / soft flex | Head-side sensor variant of the right pod (see below) |
 | `hang_pod_battery` | PETG | Left pod: 502030 cell; cord out of the far end |
 | `hang_liner` | Soft flex | Lines each pod's pocket. Print 2 |
 | `hang_back_clip` | Soft flex | Closed band round each pod's pocket and the paddle, in a groove. Print 2 |
@@ -305,6 +369,45 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   outer wall bridges over the paddle's space). The liner prints open edge
   down, and the bands lying flat. The band's groove on the head-side face
   makes an 8 mm bridge 0.7 mm up.
+- **Board pod inside:** 54 × 8.7 × 27.8 mm overall. The XIAO sits on two 1 mm
+  rails under its ends, leaving room under it for the battery wires on its
+  back pads. In front of it is an 8 × 25 mm bay, 4.6 mm deep, for the LED
+  switch's two transistors and resistors (see Wiring), free-wired with a dab
+  of glue and Kapton tape or heat-shrink over the joints.
+
+#### Head-side sensor variant (to try)
+
+The MAX30101 pokes out of a window in the board pod's head-side wall,
+pressing on the skin behind the ear, in place of the earlobe clip.
+
+- **Carrier:** a soft-flex frame that's the earlobe clip's board pocket with
+  thinner back lips (same rims, corner tabs, tab cover; chip 0.5 mm proud of
+  it). A flange round its back face rests on the inside of the wall, so it
+  can't fall out. At rest it stands **1.55 mm proud** of the pod's head-side
+  face (the chip 2.05 mm).
+- **Springs:** two soft-flex bows press on the board's back, right behind the
+  chip, and push off a PETG shelf. Pushed in 0.5 / 1.0 / 1.5 mm they press
+  about 0.3 / 0.6 / 0.9 N (estimate, soft flex at 25 MPa); they go flat at 1.9 mm,
+  past the carrier's travel, so it never bottoms out hard. Too firm or too
+  soft: change the bows' `BOW` thickness (force goes with its cube).
+  Not a solid soft-flex block: at 100% infill it barely compresses.
+- **Shelf:** drops onto ledges round the cavity over the bows; the XIAO sits
+  on its two rails. A notch at the far end by the back wall lets the
+  MAX30101's 4 wires (from its pins at the tab, out of the carrier's side)
+  up to the XIAO. Assemble: carrier (board in it) into the window from inside,
+  bows on the board's back, shelf, XIAO, lid.
+- **Where it lands:** chip toward the ear-side wall and the pod's front, as
+  near the ear as the cavity allows. On the stand-in head that's about 3.4 cm
+  behind the back of the earlobe, level with its top: behind the ear rather
+  than in the groove where it joins the head (the pocket over the paddle sits
+  there). The stand-in ear is only good to ±5 mm, so check for hair where it
+  touches; the sensor needs bare skin.
+- **Size:** the pod is 11.9 mm thick instead of 8.7: all of the extra is on
+  the outer side, plus the carrier proud on the head side. It needs its own
+  band (`hang_back_clip_head`). No earlobe lead hole; the nose clip's pogo
+  socket stays in the ear-side wall, above the shelf.
+- **Unproven:** whether this spot gives a clean pulse on every beat (the
+  LEDs need every one, live). Try it against the earlobe clip.
 
 ### Earlobe clip (current)
 
@@ -315,7 +418,7 @@ shape doesn't have to match the lobe.
 
 ![Clip folded onto a lobe](renders/lobe_clip_worn.png)
 
-- **Back pad:** 21.6 × 21.6 × 5.8 mm, behind the lobe, sensor window facing it.
+- **Back pad:** 21.6 × 21.6 × 6.4 mm, behind the lobe, sensor window facing it.
   Sized for the Pimoroni MAX30101 breakout: 19 × 19 mm, narrowing to 15 mm
   over the bottom 5 mm where the pin holes are, every part on the sensor face,
   chip centred at the top edge.
@@ -395,15 +498,17 @@ nose, not the glasses, so it stays put when the glasses move.
 - **Thermistor:** a stalk off the top of the inside leg holds the bead
   upright, 2.5 mm off the wing's inner face and 1.5 mm above the legs, in
   the airflow; touching skin, it would read skin temperature.
-- **Wiring:** sleeve the bead's two leads (they're bare) and lay them in the
-  open groove down the stalk (1 mm wide; a dab of glue holds them and the
-  bead), then down through the eyelet (1.4 mm hole) on the inside leg and out
-  under the rim. Solder them to a twisted pair of 30 AWG silicone wires there
+- **Wiring:** sleeve the bead's two leads (they're bare) in 0.5 mm tubing
+  and slot them down the tunnel from the top of the stalk. It runs straight
+  down the stalk and the post on the inside leg, 1 mm across, a snug fit for
+  the two sleeved leads. The bead stays on top, in the airflow; pull the leads
+  from below to set its height. They come out at the post's foot, under the
+  rim. Solder them to a twisted pair of 30 AWG silicone wires there
   (heat-shrink each joint); the pair heads back toward the ear.
-- **Printing:** flat on its back face, no supports: the groove opens upward
-  and the eyelet's hole is vertical. 100% infill, slow, brim.
-- **Wire:** 230 mm, loose: down behind the earlobe, under its clip, along the
-  cheek. The path on the stand-in head is 183 mm, plus 40 mm slack. It ends in
+- **Printing:** flat on its back face, no supports: the tunnel is a diamond
+  with a 45° roof, so it needs no bridge. 100% infill, slow, brim.
+- **Wire:** 220 mm, loose: down behind the earlobe, under its clip, along the
+  cheek. The path on the stand-in head is 179 mm, plus 40 mm slack. It ends in
   the plug half of a 2-pin 4 mm magnetic pogo connector; the socket half
   presses into the board pod's ear-side wall, 7 mm behind the earlobe lead's
   hole, and its tails solder to A0 and ground (the

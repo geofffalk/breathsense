@@ -122,13 +122,14 @@ def strap_len():
 STRAP_L = strap_len()
 
 
-def pad():
-    """Back pad, flap open (not included). The board sits in it sensor face first, held in front
+def pad(y_lips=Y_LIPS):
+    """Back pad, flap open (not included), its back face at y_lips (hang_pods' head-side sensor
+    carrier reuses it with thinner lips). The board sits in it sensor face first, held in front
     by rims along its side edges, tabs over its top corners and a cover over its pin tab, and behind
     by lips along its side edges; the window is open over the chip and the parts. Beside the tab
     the pocket is open behind the board but closed in front: the wires come off the pins' backs,
     along behind the tab and out through the rear wall."""
-    p = box(PX0, PX1, Y_LIPS, 0, PZ0, PZ1)
+    p = box(PX0, PX1, y_lips, 0, PZ0, PZ1)
     p -= box(BCX - HL, BCX + HL, *Y_BOARD, BCZ - HH, BCZ + HH)                               # Board
     z0 = BCZ - HH + POCKET_FIT + TAB_COVER
     cw, cd = CORNER
@@ -140,10 +141,10 @@ def pad():
     rh, rd = PIN_RECESS
     zp = BCZ - HH + POCKET_FIT + PIN_ROW
     p -= box(BCX - TW + 0.5, BCX + TW - 0.5, Y_BOARD[1] - 0.01, Y_BOARD[1] + rd, zp - rh / 2, zp + rh / 2)   # Pins' solder
-    p -= box(BCX - HL + LIP_W, BCX + HL - LIP_W, Y_LIPS - 1, Y_BOARD[0] + 0.01, Z_SHOULDER, BCZ + HH)   # Back opening ...
-    p -= box(BCX - HL, BCX + HL, Y_LIPS - 1, Y_BOARD[0] + 0.01, BCZ - HH, Z_SHOULDER + 0.01)          # ... behind the tab
+    p -= box(BCX - HL + LIP_W, BCX + HL - LIP_W, y_lips - 1, Y_BOARD[0] + 0.01, Z_SHOULDER, BCZ + HH)   # Back opening ...
+    p -= box(BCX - HL, BCX + HL, y_lips - 1, Y_BOARD[0] + 0.01, BCZ - HH, Z_SHOULDER + 0.01)          # ... behind the tab
     zl = LEAD_OUT[2]
-    p -= box(PX0 - 1, BCX - HL + 0.01, Y_LIPS - 1, Y_BOARD[1], zl - LEAD_SLOT / 2, zl + LEAD_SLOT / 2)  # Lead, rear wall
+    p -= box(PX0 - 1, BCX - HL + 0.01, y_lips - 1, Y_BOARD[1], zl - LEAD_SLOT / 2, zl + LEAD_SLOT / 2)  # Lead, rear wall
     return p
 
 

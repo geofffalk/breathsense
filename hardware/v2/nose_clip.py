@@ -8,14 +8,14 @@ breath thermistor upright just inside the nostril.
   (FITS: pinch the wing gently with calipers). An earlier PETG ring sprang open from under 1 mm
   onto the wing and pinched hard; PETG is too stiff for a short U (0.3 mm of squeeze would be 3 N).
 - Thermistor: a stalk off the top of the inside leg holds the glass bead upright in the airflow,
-  STALK_OFF from the wing's inner face so it reads breath, not skin. The leads lie in an open
-  groove down the stalk (a dab of glue holds them), drop to an eyelet on the inside leg, and come
-  out under the rim, where they're soldered to a twisted pair of 30 AWG silicone wires (heat-shrink
+  STALK_OFF from the wing's inner face so it reads breath, not skin. The stalk carries on down as
+  a post on the inside leg, with one straight tunnel down both: the sleeved leads slot in from the
+  top, the bead stays on top, and the leads come out at the post's foot, under the rim, where they're soldered to a twisted pair of 30 AWG silicone wires (heat-shrink
   each joint). The pair runs loose along the cheek to a 2-pin magnetic pogo plug that snaps onto
   the board pod (see hang_pods.py).
 - Prints flat on its back face (x = X0): the U's profile is on the bed, so the lines run round the
-  band and take its bending along their length; the groove opens upward and the eyelet's hole is
-  vertical, so there are no bridges.
+  band and take its bending along their length; the tunnel's diamond section has a 45 deg roof,
+  so there are no bridges.
 
 Coordinates (worn, right nostril): x forward, y outward (from inside the nostril through the
 wing to the skin outside), z up. The wing's inner face is y = 0, its rim's bottom z = -gap / 2.
@@ -50,11 +50,10 @@ E_FLEX = 25.0                # MPa, soft flex (TPE/TPU about 85-95A), for the gr
 
 STALK_OFF = 2.5              # Bead's axis this far from the wing's inner face
 STALK_UP = 1.5               # Bead's centre this far above the legs' top
-STALK = (2.5, 2.2)           # Stalk's size along x and y
-ARM_H = 1.5                  # Arm from the inside leg's top to the stalk: height
-LEAD_GROOVE = (1.0, 0.8)     # Leads' open groove down the stalk's top face (as printed): width, depth
-EYE_HOLE = 1.4               # Lead eyelet's hole (vertical as printed), on the inside leg below the stalk
-EYE_WALL = 0.6               # ... with this much round it
+STALK = (2.8, 2.8)           # Stalk's size along x and y
+LEAD_TUNNEL = 1.0            # Leads' tunnel straight down the stalk and post: a diamond (45 deg roof as printed, no
+                             # bridge) this wide across its flats, a snug fit for two leads in 0.5 mm sleeving
+POST_Z0 = 1.0                # The stalk carries on down as a post to here, solid with the inside leg
 
 X0, X1 = -BAND_W / 2, BAND_W / 2
 
@@ -85,22 +84,17 @@ def u_half(g, side):
 
 def halves(fit=WING):
     """The clip as printed, the bend centred on the origin. Returns (inside half with the stalk and
-    eyelet, outside half)."""
+    post, outside half)."""
     g = (fit - SQUEEZE) / 2
     inner, outer = u_half(g, -1), u_half(g, 1)
     sx, sy = STALK
     ys = -g - STALK_OFF
     leg_out = -g - BAND_T
     z_top = LEG_H + STALK_UP - BEAD_D / 2 - 0.1
-    inner += box(X0, X0 + sx, ys - sy / 2, leg_out + 0.05, LEG_H - ARM_H, LEG_H)            # Arm
-    inner += box(X0, X0 + sx, ys - sy / 2, ys + sy / 2, LEG_H - ARM_H, z_top)               # Stalk
-    gw, gd = LEAD_GROOVE
-    inner -= box(X0 + sx - gd, X0 + sx + 1, ys - gw / 2, ys + gw / 2, LEG_H - ARM_H - 1, z_top + 1)
-    e = EYE_HOLE / 2 + EYE_WALL
-    ze = 1.0 + e
-    inner += box(X0, X0 + sx, ys - e, leg_out + 0.05, ze - e, ze + e)                        # Eyelet
-    inner -= box(X0 - 1, X0 + sx + 1, ys - EYE_HOLE / 2, ys + EYE_HOLE / 2,
-                 ze - EYE_HOLE / 2, ze + EYE_HOLE / 2)
+    inner += box(X0, X0 + sx, ys - sy / 2, leg_out + 0.05, POST_Z0, LEG_H)                  # Post, on the leg
+    inner += box(X0, X0 + sx, ys - sy / 2, ys + sy / 2, LEG_H - 0.05, z_top)                # Stalk
+    w = LEAD_TUNNEL
+    inner -= Pos(X0 + sx / 2, ys, 0) * (Rot(0, 0, 45) * box(-w / 2, w / 2, -w / 2, w / 2, POST_Z0 - 1, z_top + 1))
     return inner, outer
 
 
@@ -130,11 +124,10 @@ def wing(t, h=10.0, w=12.0):
 
 
 def wire_out(gap, fit=WING):
-    """Where the leads come out of the eyelet, toward the pair's joint (clip frame, worn)."""
+    """Where the leads come out of the groove's bottom, toward the pair's joint (clip frame, worn)."""
     rest = fit - SQUEEZE
     s = max(gap - rest, 0.0) / 2
-    e = EYE_HOLE / 2 + EYE_WALL
-    return X0, gap / 2 - s - rest / 2 - STALK_OFF, 1.0 + e - drop(gap, fit)
+    return X0 + STALK[0] / 2, gap / 2 - s - rest / 2 - STALK_OFF, POST_Z0 - drop(gap, fit)
 
 
 def print_orient(p):

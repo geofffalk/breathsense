@@ -153,17 +153,25 @@ def place(shape, right, flipped_pod=False):
     return Pos(0, -HALF_WIDTH, 0) * mirror(shape, Plane.XZ)
 
 
-def side(right):
-    pod, lid, d = hp.board_pod()
-    bat, blid, _ = hp.battery_pod()
+def side(right, sensor="lobe"):
+    """One side's parts. sensor="lobe": MAX30101 on the earlobe clip; "head": in the board pod's
+    head-side wall (right side only differs)."""
+    pod, lid, d = hp.board_pod(sensor)
+    bat, blid, bd = hp.battery_pod()
     s = "right" if right else "left"
     items = [(f"onepiece_{s}", place(op.part(), right))]
     items += [(f"clip_{s}_{i + 1}", place(op.clip(x), right)) for i, x in enumerate(op.CLIPS)]
-    pods = [("pod_board", pod), ("lid_board", lid)] if right else [("pod_battery", bat), ("lid_battery", blid)]
-    pods += [(f"liner_{s}", hp.liner()), (f"back_clip_{s}", hp.back_clip(d["y0"], d["y1"]))]
+    if right:
+        pods = [("pod_board", pod), ("lid_board", lid), (f"back_clip_{s}", hp.back_clip(d["y0"], d["y1"]))]
+        if sensor == "head":
+            carrier, bows, shelf = hp.head_parts(d)
+            pods += [("max_carrier", carrier), ("max_bows", bows), ("shelf", shelf)]
+    else:
+        pods = [("pod_battery", bat), ("lid_battery", blid), (f"back_clip_{s}", hp.back_clip(bd["y0"], bd["y1"]))]
+    pods += [(f"liner_{s}", hp.liner())]
     items += [(n, place(onto_tip(p), right)) for n, p in pods]
     if right:
-        items += [(n, place(p, right)) for n, p in earlobe_items() + nose_items()]
+        items += [(n, place(p, right)) for n, p in (earlobe_items() if sensor == "lobe" else []) + nose_items()]
     return items
 
 
@@ -193,13 +201,14 @@ def glasses():
 
 
 if __name__ == "__main__":
-    parts = []
-    for name, shape in side(True) + side(False) + glasses():
-        shape.label = name
-        parts.append(shape)
-    export_step(Compound(children=parts, label="BreathSense v2, both sides on reference glasses"),
-                str(op.OUT / "assembly_onepiece.step"))
-    print("wrote", op.OUT / "assembly_onepiece.step", len(parts), "parts")
+    for sensor, fname in (("lobe", "assembly_onepiece.step"), ("head", "assembly_onepiece_head.step")):
+        parts = []
+        for name, shape in side(True, sensor) + side(False, sensor) + glasses():
+            shape.label = name
+            parts.append(shape)
+        export_step(Compound(children=parts, label=f"BreathSense v2, both sides on reference glasses ({sensor} sensor)"),
+                    str(op.OUT / fname))
+        print("wrote", op.OUT / fname, len(parts), "parts")
     worst, length = lead_length()
     print(f"earlobe lead: farthest {worst:.1f} mm; cut it {length:.0f} mm")
     run, length = nose_length()

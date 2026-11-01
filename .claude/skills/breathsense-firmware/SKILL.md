@@ -90,6 +90,6 @@ unchanged. Same breath detector and metrics, trimmed.
 Port to Arduino C++ on the nRF52 core for the XIAO nRF52840 Plus: same detectors, same BLE
 protocol, 100+ fps sub-pixel LED animation (wave crest cross-faded between LEDs), button (short =
 mode, long = sleep), auto sleep after ~2 min with no breath or pulse into System OFF, wake on button
-or USB, hardware watchdog, P-MOSFET cutting LED power when dark, 3.6 V LED cut-off with amber
+or USB, hardware watchdog, S8550 PNP switch (driven by an S8050 on D3) cutting LED power when dark, 3.6 V LED cut-off with amber
 warnings. The LED state language is tabled in `hardware/v2/README.md` ("What the LEDs show for
 each state"). On v2 the thermistor arrives through the nose clip's pogo socket, still on A0/GND.
