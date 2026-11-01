@@ -147,12 +147,12 @@
   <text x="908" y="444" class="pin">BAT− (back)</text>
   <text x="908" y="474" class="pin">D6</text>
   <text x="908" y="524" class="pin">D2</text>
-  <text x="1092" y="304" class="pin" text-anchor="end">D1</text>
+  <text x="1092" y="304" class="pin" text-anchor="end">D7</text>
   <text x="1092" y="334" class="pin" text-anchor="end">GND</text>
   <text x="1092" y="404" class="pin" text-anchor="end">3V3</text>
   <text x="1092" y="434" class="pin" text-anchor="end">D4 SDA</text>
   <text x="1092" y="464" class="pin" text-anchor="end">D5 SCL</text>
-  <text x="1092" y="564" class="pin" text-anchor="end">D7</text>
+  <text x="1092" y="564" class="pin" text-anchor="end">D1</text>
   <text x="1092" y="614" class="pin" text-anchor="end">D0 (A0)</text>
   <text x="1000" y="380" class="small" text-anchor="middle">USB-C: power and charging</text>
 
@@ -172,7 +172,7 @@
   <path class="w i2c" d="M1100 430 H1260 V775"/>
   <path class="w i2c" d="M1100 460 H1220 V775"/>
 
-  <!-- Thermistor divider: R5 straight across D7 and A0 -->
+  <!-- Thermistor divider: R5 straight across D1 and A0 (neighbouring pads) -->
   <path class="w ntc" d="M1100 560 H1130 V570"/>
   <rect class="res" x="1122" y="570" width="16" height="36"/>
   <text x="1144" y="593" class="pin">R5 10k</text>
@@ -267,10 +267,10 @@
 
     <text x="20" y="907" class="tblh">XIAO pads</text>
     <text x="20" y="923" class="tbl">12 BAT+ (back): wire from 6       13 D3: R3's right leg       14 BAT− (back): wire from 11</text>
-    <text x="20" y="938" class="tbl">15 D6: button      16 D2: cord's DIN wire      17 D1: wire to the right strip's DIN</text>
+    <text x="20" y="938" class="tbl">15 D6: button      16 D2: cord's DIN wire      17 D7: wire to the right strip's DIN</text>
     <text x="20" y="953" class="tbl">18 GND: right strip's GND and the MAX30101's GND      19 3V3: MAX30101 3-5V</text>
-    <text x="20" y="968" class="tbl">20 D4 SDA: MAX30101 SDA      21 D5 SCL: MAX30101 SCL      22 D7: R5's top leg</text>
-    <text x="20" y="983" class="tbl">23 D0 (A0, the analog input): R5's other leg and the wire to pogo pin 1 (R5 bridges D7 and D0, no wire)</text>
+    <text x="20" y="968" class="tbl">20 D4 SDA: MAX30101 SDA      21 D5 SCL: MAX30101 SCL      22 D1: R5's top leg</text>
+    <text x="20" y="983" class="tbl">23 D0 (A0): R5's other leg, wire to pogo pin 1 (R5 bridges D0 and D1, neighbours)</text>
 
     <text x="660" y="907" class="tblh">Elsewhere</text>
     <text x="660" y="923" class="tbl">24, 25 Button: two diagonal pins (to D6 and the star)</text>
@@ -281,7 +281,7 @@
     <text x="660" y="998" class="tbl">37, 38 Thermistor's two leads to the nose pair (heat-shrink each)</text>
 
     <text x="20" y="1012" class="note">S8550 and S8050 come in TO-92; their E-B-C pin order varies by maker. Check the datasheet, or find the base with a meter's diode setting: it conducts to both other legs.</text>
-    <text x="20" y="1028" class="note">Before switching LED power off, drive D1 and D2 low, or the strips power up through their data pins. Wire: 28-30 AWG silicone (1 mm), sized for the pod's passages.</text>
+    <text x="20" y="1028" class="note">Before switching LED power off, drive D7 and D2 low, or the strips power up through their data pins. Wire: 28-30 AWG silicone (1 mm), sized for the pod's passages.</text>
     <text x="20" y="1044" class="note">No power switch: a long press sleeps the XIAO (System OFF, a few µA) with the LEDs cut; a press or USB wakes it. Pins match firmware_v2/wearable/config.h (not yet tested on hardware).</text>
   </g>
 </svg>

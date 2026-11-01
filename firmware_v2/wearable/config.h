@@ -25,11 +25,12 @@
 #endif
 
 #if BOARD_XIAO
-#define PIN_LED_RIGHT     1      // D1: right strip DIN
+#define PIN_LED_RIGHT     7      // D7: right strip DIN
 #define PIN_LED_LEFT      2      // D2: left strip DIN, through the cord
 #define PIN_LED_POWER     3      // D3: S8050 base (high = LED power on)
 #define PIN_BUTTON        6      // D6: button to GND
-#define PIN_THERM_POWER   7      // D7: top of the thermistor divider (high only while sensing)
+#define PIN_THERM_POWER   1      // D1: top of the thermistor divider (high only while sensing), next
+                                 // to D0 so the 10k bridges the two pads
 #define PIN_THERM         A0     // The D0 pad: divider midpoint (thermistor through the pogo plug)
 #define HAS_BUTTON        1
 #define HAS_LED_SWITCH    1

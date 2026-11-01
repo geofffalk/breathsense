@@ -50,13 +50,13 @@ Sources: `hardware/glasses/README.md` (v1 wiring section), `hardware/glasses/wir
 | Magnets | Earlobe clip: one 12 × 3 mm neodymium disc each side (N35 or better; black ferrite is too weak). Nose clip: none (its soft-flex band grips by a light squeeze) |
 
 - **v2 pins (proposed, `hardware/v2/wiring.svg`):** BAT+/BAT− pads ← LiPo via the cord (on-board
-  charger and battery reading, no A2 divider); D1 right DIN; D2 left DIN (cord); D3 → 10k → S8050 base
+  charger and battery reading, no A2 divider); D7 right DIN; D2 left DIN (cord); D3 → 10k → S8050 base
   (100k base-GND), its collector → 2.2k → S8550 base (10k base-emitter, emitter BAT+, collector
   LED+); a 3.3 V pin alone can't turn a PNP on a 4.2 V rail off. D3 high = LEDs on. ~0.1 V drop,
   ~1.5 mA base drive while lit. Chosen because the user has only through-hole parts (no SMD
   AO3401; it would be better: ~0 V drop) and wants simple wiring, little to buy. Not low-side: a
   cut NeoPixel ground makes the strips power through their data pins; D4/D5 SDA/SCL MAX30101 (3V3 power); D6 button to GND, wakes
-  from System OFF; D7 feeds the thermistor divider's 10k (high only to read; from 3V3 it would draw
+  from System OFF; D1 feeds the thermistor divider's 10k (high only to read; D1 not D7 because it neighbours D0, so the 10k bridges the pads - D0 and D7 are diagonally opposite corners; from 3V3 it would draw
   165 µA asleep); A0 (= the D0 pad: XIAO A0-A5 are D0-D5, the board only labels D0) divider midpoint, NTC via the pogo plug to GND. Drive DINs low before cutting
   LED+ (else the strips power through data). No power switch: button + System OFF.
 - **Cord behind the head** between pods: battery +, ground, switched LED supply, left strip data.

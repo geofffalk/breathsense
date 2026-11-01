@@ -188,7 +188,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
 | S8550 PNP and S8050 NPN (TO-92, from a transistor kit: bought), 10k, 2.2k, 10k and 100k resistors (on hand) | LED power switch: cuts all LED power when the display is off or the battery is low. 2N2907A or BC327 also do for the PNP | ~$3 |
 | Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base about 5 × 3 mm against the back wall; its round plunger (about 3.5 mm) goes out through a 3.8 mm hole. Use two diagonal pins | $0 |
-| 10k resistor | Thermistor divider, from D7 to D0 (A0) (see Wiring) | ~$0.05 |
+| 10k resistor | Thermistor divider, from D1 to D0 (A0), the neighbouring pad (see Wiring) | ~$0.05 |
 | 28–30 AWG silicone wire, 0.5 mm sleeving, small heat-shrink | Cord, earlobe lead, nose pair; sleeving for the bead's bare leads in the nose clip's tunnel; heat-shrink on wire joints only | ~$3 |
 | Natural (translucent) PETG (on hand) | The one-piece temple parts: the LEDs shine through the wall (see Mount) | $0 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
@@ -225,13 +225,13 @@ Strip sources:
 | XIAO pin | Use |
 |---|---|
 | BAT+ / BAT− pads (back) | LiPo, through the cord. The XIAO charges it from USB-C and reads its voltage on-board |
-| D1 | Right strip DIN |
+| D7 | Right strip DIN |
 | D2 | Left strip DIN, through the cord |
 | D3 | LED power switch: high = LEDs on (the S8050 pulls the S8550's base low) |
 | D4 SDA, D5 SCL | MAX30101, on the earlobe clip's 4-wire lead |
 | D6 | Button to GND (internal pull-up; wakes from System OFF) |
-| D7 | Feeds the thermistor divider's 10k, high only while reading |
-| D0 (A0) | Divider midpoint: 10k from D7, thermistor (via the pogo plug) to GND. A0 is the D0 pad: the XIAO's analog inputs A0–A5 are D0–D5 |
+| D1 | Feeds the thermistor divider's 10k, high only while reading. Next to D0, so the 10k bridges the two pads with no wire |
+| D0 (A0) | Divider midpoint: 10k from D1, thermistor (via the pogo plug) to GND. A0 is the D0 pad: the XIAO's analog inputs A0–A5 are D0–D5 |
 | 3V3, GND | MAX30101 power |
 
 These match the v2 firmware (`firmware_v2/wearable/config.h`); not yet tested on the
@@ -265,7 +265,7 @@ D3 ──── 10k ──────┬──── B
   the battery's 4.2 V to turn it off.
 - Check each transistor's pinout (E-B-C order varies by maker): on a meter's
   diode setting, the base conducts to both other pins.
-- Before turning the LEDs off, drive D1 and D2 low, or the strips power up
+- Before turning the LEDs off, drive D7 and D2 low, or the strips power up
   through their data pins.
 
 ## Power and switching
@@ -661,7 +661,7 @@ nose, not the glasses, so it stays put when the glasses move.
   the plug half of a 2-pin 4 mm magnetic pogo connector; the socket half
   presses into the board pod's ear-side wall, 7 mm behind the earlobe lead's
   hole, and its tails solder to D0 (A0) and ground (the
-  firmware's divider: 10k from D7 to D0, thermistor from D0 to ground). Set
+  firmware's divider: 10k from D1 to D0, thermistor from D0 to ground). Set
   `BETA` in `firmware/config.py` to your bead's B value (3435 now).
 - **Tugs:** the pogo connector's magnets probably hold harder than the clip
   grips, so a snag could pull the clip off the nose before the plug lets go.

@@ -20,7 +20,7 @@ void begin() {
 
   analogReadResolution(ADC_BITS);
 #if BOARD_XIAO
-  // Ratiometric thermistor: the divider is fed from D7 (VDD), so read against VDD
+  // Ratiometric thermistor: the divider is fed from D1 (VDD), so read against VDD
   analogReference(AR_VDD4);
   pinMode(PIN_THERM_POWER, OUTPUT);
   digitalWrite(PIN_THERM_POWER, LOW);

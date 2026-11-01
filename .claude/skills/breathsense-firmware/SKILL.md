@@ -112,7 +112,7 @@ constant with v1 names/values.
   ~/Library/Arduino15/packages/adafruit/tools/CMSIS/5.7.0 (Seeed's core needs CMSIS; without it:
   core_cm4.h not found). Running these needed the user's explicit per-command approval (auto-mode
   classifier). Core links `-u _printf_float`, so `%f` in snprintf works.
-- Gotchas handled: D7 (thermistor divider top) high whenever sensing, low in off/sleep - the
+- Gotchas handled: D1 (thermistor divider top) high whenever sensing, low in off/sleep - the
   unplugged check (A0 ≥ 97% full scale) needs it; `analogReference(AR_VDD4)` for the ratiometric
   divider, AR_INTERNAL_3_0 briefly for VBAT; P0.14 kept low (Seeed warning); data pins driven low
   before the LED switch turns off and NeoPixels re-`begin()` after power-on; LED power cut after 2 s

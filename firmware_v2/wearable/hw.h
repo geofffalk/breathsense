@@ -8,7 +8,7 @@ namespace hw {
 
 void begin();
 
-// Thermistor: power the divider (XIAO D7) only while breath sensing runs
+// Thermistor: power the divider (XIAO D1) only while breath sensing runs
 void therm_power(bool on);
 // One reading: temperature (C) and whether a thermistor is plugged in at all
 bool read_therm(float& temp_c);   // Returns plugged
