@@ -5,8 +5,12 @@ Firmware for the v2 wearable (Seeed XIAO nRF52840 Plus). Behaviour is set by the
 It's a port of the v1 CircuitPython firmware in `firmware/`, which was written for the ItsyBitsy
 nRF52840 and stays the reference for the detectors and displays.
 
-**Status:** written and checked against the originals on a computer. Not yet compiled for the
-board or run on hardware.
+**Status:** checked against the originals on a computer, and compiles for the board.
+- **XIAO nRF52840 Plus** (Seeed nRF52 Boards 1.1.13): 154.6 KB of 811 KB flash, 16.3 KB of 238 KB
+  RAM.
+- **ItsyBitsy nRF52840** (Adafruit's core 1.7.0, compile check only): no warnings in this code.
+
+Not yet run on hardware.
 
 ## What it does
 
@@ -77,7 +81,10 @@ early.
 3. Open `wearable/wearable.ino` and select the XIAO nRF52840 Plus board.
 
 The Adafruit nRF52 1.7.0 core installed on this Mac is incomplete (its ARM compiler has no C
-library headers), so it can't build anything until it's reinstalled.
+library headers), so it can't build anything until it's reinstalled. The builds above used the ARM
+GCC 9-2019-q4 toolchain unpacked separately, and pointed Seeed's core at the CMSIS 5.7.0 that
+Adafruit's core installed (`runtime.tools.CMSIS-5.7.0.path`), because Seeed's core wasn't installed
+through the Boards Manager.
 
 ## To test on the hardware
 

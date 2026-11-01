@@ -2,7 +2,7 @@
 // compare.py. Usage: dart mood_ref.dart breaths.txt
 import 'dart:io';
 
-import '../../lib/services/mood_analyzer.dart';
+import 'mood_analyzer_app.dart';
 
 void main(List<String> args) {
   final m = MoodAnalyzer()

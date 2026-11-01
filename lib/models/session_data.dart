@@ -1,13 +1,11 @@
 /// Session data model for tracking mood metrics over time
 class SessionData {
   final List<MoodSnapshot> snapshots = [];
-  final List<GuidedPeriod> guidedPeriods = []; // Track Guided mode periods
   final DateTime startTime;
   DateTime? endTime;
   
   int _breathCount = 0; // Actual breath count (incremented on each exhale)
-  
-  DateTime? _guidedStartTime; // Track current Guided period start
+
 
   SessionData() : startTime = DateTime.now();
   
@@ -35,29 +33,9 @@ class SessionData {
     ));
   }
 
-  /// Called when entering Guided mode
-  void startGuidedPeriod() {
-    _guidedStartTime = DateTime.now();
-  }
-
-  /// Called when leaving Guided mode
-  void endGuidedPeriod() {
-    if (_guidedStartTime != null) {
-      guidedPeriods.add(GuidedPeriod(
-        start: _guidedStartTime!,
-        end: DateTime.now(),
-      ));
-      _guidedStartTime = null;
-    }
-  }
-
   /// End the session
   void endSession() {
     endTime = DateTime.now();
-    // Close any open Guided period
-    if (_guidedStartTime != null) {
-      endGuidedPeriod();
-    }
   }
 
   /// Get session duration in minutes
@@ -363,7 +341,7 @@ class SessionData {
         buffer.writeln('• Movement Breaks: In longer sessions, try subtle movements (wiggling toes, rolling shoulders) every 5 minutes to maintain alertness.');
       }
       if (focusTrajectory == 'fluctuated') {
-        buffer.writeln('• Consistent Rhythm: Focus fluctuations often follow breath irregularity. Try using the Guided mode to establish a steady rhythm first.');
+        buffer.writeln('• Consistent Rhythm: Focus fluctuations often follow breath irregularity. Try a few minutes of slow, even breaths, matching the length of each in-breath and out-breath, to establish a steady rhythm first.');
       }
       buffer.writeln('');
     }
@@ -487,23 +465,5 @@ class MoodSnapshot {
   /// Seconds since session start
   double secondsSince(DateTime start) {
     return timestamp.difference(start).inMilliseconds / 1000.0;
-  }
-}
-
-/// A period of time spent in Guided mode
-class GuidedPeriod {
-  final DateTime start;
-  final DateTime end;
-
-  GuidedPeriod({required this.start, required this.end});
-
-  /// Start time in seconds since session start
-  double startSecondsSince(DateTime sessionStart) {
-    return start.difference(sessionStart).inMilliseconds / 1000.0;
-  }
-
-  /// End time in seconds since session start
-  double endSecondsSince(DateTime sessionStart) {
-    return end.difference(sessionStart).inMilliseconds / 1000.0;
   }
 }

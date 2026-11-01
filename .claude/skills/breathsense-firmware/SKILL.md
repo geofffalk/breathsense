@@ -101,11 +101,17 @@ constant with v1 names/values.
   must use doubles (float constants like 0.22f/0.35f cross thresholds a sample early); compare
   timestamps absolutely; build the host test with -ffp-contract=off; v1's hide_all() leaves
   _show_pixels' cache stale (the C++ shows the frame v1 skipped).
-- **Board build:** not done. This Mac's Adafruit nRF52 1.7.0 toolchain lacks newlib headers
-  (`arm-none-eabi-g++` missing, `stdio.h` not found); running a freshly downloaded toolchain was
-  blocked by the auto-mode classifier. The user should install Seeed nRF52 Boards + Adafruit
-  NeoPixel and compile in the IDE (or allow a scratchpad toolchain). Core links `-u _printf_float`,
-  so `%f` in snprintf works.
+- **Board build (1 Nov 2026):** compiles for the XIAO nRF52840 Plus (Seeed nRF52 Boards 1.1.13,
+  fqbn `Seeeduino:nrf52:xiaonRF52840Plus`): 154.6 KB flash, 16.3 KB RAM; and for the ItsyBitsy
+  (Adafruit 1.7.0, `adafruit:nrf52:itsybitsy52840:softdevice=s140v6,debug=l0`) with no warnings in
+  this code. This Mac's installed toolchain lacks newlib headers, so builds use ARM GCC 9-2019-q4
+  unpacked in the scratchpad, Seeed's core cloned into `<scratchpad>/hw/Seeeduino/nrf52`, and
+  Adafruit_NeoPixel 1.12.3 in `<scratchpad>/libs`, via arduino-builder
+  (/Applications/Arduino.app/Contents/Java) with `-prefs runtime.tools.arm-none-eabi-gcc.path=`,
+  `runtime.tools.arm-none-eabi-gcc-9-2019q4.path=` and `runtime.tools.CMSIS-5.7.0.path=`
+  ~/Library/Arduino15/packages/adafruit/tools/CMSIS/5.7.0 (Seeed's core needs CMSIS; without it:
+  core_cm4.h not found). Running these needed the user's explicit per-command approval (auto-mode
+  classifier). Core links `-u _printf_float`, so `%f` in snprintf works.
 - Gotchas handled: D7 (thermistor divider top) high whenever sensing, low in off/sleep - the
   unplugged check (A0 ≥ 97% full scale) needs it; `analogReference(AR_VDD4)` for the ratiometric
   divider, AR_INTERNAL_3_0 briefly for VBAT; P0.14 kept low (Seeed warning); data pins driven low

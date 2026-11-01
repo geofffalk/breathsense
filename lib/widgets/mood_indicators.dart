@@ -52,7 +52,7 @@ class _FocusIndicatorState extends State<FocusIndicator> {
   Widget build(BuildContext context) {
     return Consumer<BleService>(
       builder: (context, bleService, _) {
-        final analyzer = bleService.moodAnalyzer;
+        final k = bleService.scores;   // Computed on the headset
         
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -133,17 +133,17 @@ class _FocusIndicatorState extends State<FocusIndicator> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // Consistency CV: high CV (distracted, left) to low CV (focused, right)
+                      // From the headset: focus from breath-rhythm consistency, meditation from slow,
+                      // steady breathing (both 0-10)
                       MoodScaleBar(
-                        label: 'Consistency',
-                        value: _normalizeConsistency(analyzer.currentConsistency, analyzer.currentCycle),
-                        displayValue: '${(analyzer.currentConsistency / analyzer.currentCycle.clamp(0.1, 100)).toStringAsFixed(2)} CV',
+                        label: 'Focus',
+                        value: k.focus / 10.0,
+                        displayValue: '${k.focus}/10',
                       ),
-                      // Also show cycle duration as reference
                       MoodScaleBar(
-                        label: 'Cycle Time',
-                        value: _normalizeCycleForFocus(analyzer.currentCycle),
-                        displayValue: '${analyzer.currentCycle.toStringAsFixed(1)}s',
+                        label: 'Meditation',
+                        value: k.meditation / 10.0,
+                        displayValue: '${k.meditation}/10',
                       ),
                     ],
                   ),
@@ -154,21 +154,6 @@ class _FocusIndicatorState extends State<FocusIndicator> {
         );
       },
     );
-  }
-  
-  // Normalize consistency CV: 0.3 (left, distracted) to 0.15 (right, focused)
-  double _normalizeConsistency(double consistency, double cycle) {
-    final cv = consistency / cycle.clamp(0.1, 100);
-    // Invert: high CV = left (distracted), low CV = right (focused)
-    return 1.0 - ((cv - 0.15) / (0.30 - 0.15)).clamp(0.0, 1.0);
-  }
-  
-  // Normalize cycle for focus: moderate cycles (4-8s) are optimal
-  double _normalizeCycleForFocus(double cycle) {
-    // 4-8s is optimal range, showing as middle to right
-    if (cycle < 4) return 0.2;
-    if (cycle > 10) return 0.8;
-    return ((cycle - 4) / 6).clamp(0.0, 1.0);
   }
 }
 

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/settings.dart';
 import '../services/ble_service.dart';
 
-/// Mode selector widget with Open Breathing, Guided Breathing, and Heart buttons
+/// Mode selector: Breath, Heart and Off. Shows the mode the headset reports.
 class ModeSelector extends StatelessWidget {
   const ModeSelector({super.key});
 
@@ -21,23 +21,12 @@ class ModeSelector extends StatelessWidget {
             children: [
               Expanded(
                 child: _ModeButton(
-                  label: 'Open',
+                  label: 'Breath',
                   icon: Icons.air,
                   isSelected: currentMode == BreathingMode.open,
                   isEnabled: isConnected,
                   color: const Color(0xFF4CAF50), // Vibrant Green
                   onPressed: () => bleService.setMode(BreathingMode.open),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ModeButton(
-                  label: 'Guided',
-                  icon: Icons.timeline,
-                  isSelected: currentMode == BreathingMode.guided,
-                  isEnabled: isConnected,
-                  color: const Color(0xFF03A9F4), // Vibrant Blue/Cyan
-                  onPressed: () => bleService.setMode(BreathingMode.guided),
                 ),
               ),
               const SizedBox(width: 12),
@@ -49,6 +38,17 @@ class ModeSelector extends StatelessWidget {
                   isEnabled: isConnected,
                   color: const Color(0xFFE53935), // Vibrant Red
                   onPressed: () => bleService.setMode(BreathingMode.heart),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModeButton(
+                  label: 'Off',
+                  icon: Icons.power_settings_new,
+                  isSelected: currentMode == BreathingMode.off,
+                  isEnabled: isConnected,
+                  color: const Color(0xFF607D8B), // Blue grey
+                  onPressed: () => bleService.setMode(BreathingMode.off),
                 ),
               ),
             ],

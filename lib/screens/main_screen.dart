@@ -130,7 +130,7 @@ class MainScreen extends StatelessWidget {
                     
                     const SizedBox(height: 12),
                     
-                    // Mode-specific readout: mood, guided phase or heart rate
+                    // Mode-specific readout: the headset's scores, or heart rate
                     _ModeReadout(),
                   ],
                 ),
@@ -381,7 +381,7 @@ class _CurrentModeIndicator extends StatelessWidget {
               border: Border.all(color: const Color(0xFF81D4FA)), // Brand blue border
             ),
             child: const Text(
-              'Headset runs Open Breathing when not connected to app',
+              'On its own, the headset shows your heartbeat; its button switches heart and breath',
               style: TextStyle(
                 color: Color(0xFF01579B), // Unified Deep Blue
                 fontSize: 12,
@@ -399,23 +399,24 @@ class _CurrentModeIndicator extends StatelessWidget {
 
         switch (mode) {
           case BreathingMode.open:
-            message = 'Open Breathing active on headset';
+            message = 'Breath on headset';
             icon = Icons.air;
             color = Colors.green[700]!; // Darker for light theme
             break;
-          case BreathingMode.guided:
-            message = 'Guided Breathing active on headset';
-            icon = Icons.timeline;
-            color = Colors.cyan[700]!; // Darker for light theme
-            break;
           case BreathingMode.heart:
-            message = 'Heart Monitor active on headset';
+            message = 'Heart Monitor on headset';
             icon = Icons.favorite;
             color = Colors.red[700]!;
             break;
-          default:
-            message = 'Headset LEDs off (standby)';
+          case BreathingMode.off:
+            message = 'Headset off (LEDs dark, sensing paused)';
             icon = Icons.power_settings_new;
+            break;
+        }
+        if (!bleService.modeKnown) {
+          message = 'Waiting for the headset...';
+          icon = Icons.bluetooth_searching;
+          color = Colors.grey;
         }
 
         return Container(
@@ -450,7 +451,7 @@ class _CurrentModeIndicator extends StatelessWidget {
   }
 }
 
-/// Displays mood indicators (Open), phase indicator (Guided) or heart rate (Heart)
+/// Displays the headset's scores: heart rate and combined stress (Heart), stress and focus (Breath)
 class _ModeReadout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -460,14 +461,27 @@ class _ModeReadout extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        // Heart mode doesn't depend on the breath sensor being worn
+        if (bleService.currentMode == BreathingMode.off) {
+          return const SizedBox.shrink();
+        }
+
+        // Heart mode doesn't depend on the breath sensor being worn. The combined stress below it
+        // is the headset's heart + breath score (heart alone when the nose clip isn't worn).
         if (bleService.currentMode == BreathingMode.heart) {
-          return _HeartRateIndicator(
-            bpm: bleService.heartBpm,
-            hasSignal: bleService.hasPulseSignal,
-            beatCount: bleService.heartBeatCount,
-            stress: bleService.heartStress,
-            hrvMs: bleService.heartHrv,
+          return Column(
+            children: [
+              _HeartRateIndicator(
+                bpm: bleService.heartBpm,
+                hasSignal: bleService.hasPulseSignal,
+                beatCount: bleService.heartBeatCount,
+                stress: bleService.heartStress,
+                hrvMs: bleService.heartHrv,
+              ),
+              StressIndicator(
+                stressScore: bleService.currentStressScore,
+                isCalibrating: bleService.isMoodCalibrating,
+              ),
+            ],
           );
         }
 
@@ -476,7 +490,7 @@ class _ModeReadout extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        // In Open mode: show calm and focus indicators (meditation in report only)
+        // Breath mode: stress and focus (meditation in the report only); all from the headset
         if (bleService.currentMode == BreathingMode.open) {
           return Column(
             children: [
@@ -490,11 +504,6 @@ class _ModeReadout extends StatelessWidget {
               ),
             ],
           );
-        }
-
-        // In Guided mode: show phase indicator
-        if (bleService.currentMode == BreathingMode.guided) {
-          return _GuidedPhaseIndicator(phase: bleService.currentGuidedPhase);
         }
 
         return const SizedBox.shrink();
@@ -698,159 +707,6 @@ class _HeartRateIndicatorState extends State<_HeartRateIndicator>
   }
 }
 
-/// Guided breathing phase indicator (INHALE/HOLD/EXHALE)
-class _GuidedPhaseIndicator extends StatelessWidget {
-  final int phase;
-  
-  const _GuidedPhaseIndicator({required this.phase});
-  
-  // Color schemes matching firmware: (inhale, hold, exhale)
-  static const List<List<Color>> _colorSchemes = [
-    // 0: Default - Green/Orange/Cyan
-    [Color(0xFF00FF00), Color(0xFFFF3200), Color(0xFF00FFFF)],
-    // 1: High Contrast - Yellow/Purple/White
-    [Color(0xFFFFFF00), Color(0xFF8000FF), Color(0xFFFFFFFF)],
-    // 2: Cool Tones - Blue/Magenta/White
-    [Color(0xFF0064FF), Color(0xFFFF0080), Color(0xFFFFFFFF)],
-  ];
-  
-  /// Check if a color is light enough to need dark text
-  bool _isLightColor(Color color) {
-    // Use relative luminance calculation
-    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
-    return luminance > 0.5;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<BleService>(
-      builder: (context, bleService, _) {
-        final schemeId = bleService.guidedSettings.colorScheme.clamp(0, 2);
-        final colors = _colorSchemes[schemeId];
-        final settings = bleService.guidedSettings;
-        
-        String text;
-        Color bgColor;
-        
-        switch (phase) {
-          case 0: // INHALE
-            text = 'INHALE';
-            bgColor = colors[0];
-            break;
-          case 1: // HOLD (In) - skip if duration is 0
-            if (settings.holdAfterInhale == 0) {
-              return const SizedBox.shrink();
-            }
-            text = 'HOLD';
-            bgColor = colors[1];
-            break;
-          case 2: // EXHALE
-            text = 'EXHALE';
-            bgColor = colors[2];
-            break;
-          case 3: // HOLD (Out) - skip if duration is 0
-            if (settings.holdAfterExhale == 0) {
-              return const SizedBox.shrink();
-            }
-            text = 'HOLD';
-            bgColor = colors[1];
-            break;
-          default:
-            text = 'SYNCING...';
-            bgColor = Colors.grey;
-        }
-        
-        // Determine text color based on background luminance
-        final isLight = _isLightColor(bgColor);
-        final textColor = isLight ? Colors.black87 : Colors.white;
-
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: bgColor.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Center(
-            child: SizedBox(
-              height: 50,
-              child: FittedBox(
-                fit: BoxFit.contain,
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 4,
-                    shadows: isLight ? [
-                      Shadow(
-                        color: Colors.black.withOpacity(0.2),
-                        offset: const Offset(1, 1),
-                        blurRadius: 2,
-                      ),
-                    ] : null,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SimpleBoldLogo extends StatelessWidget {
-  final double size;
-
-  const _SimpleBoldLogo({this.size = 32});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0288D1), // Brand Blue
-            Color(0xFF00BCD4), // Brand Cyan
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0288D1).withOpacity(0.2),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          'B',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: size * 0.65,
-            height: 1.1,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Button to generate and view session report
 class _GenerateReportButton extends StatelessWidget {
   @override
@@ -858,7 +714,7 @@ class _GenerateReportButton extends StatelessWidget {
     return Consumer<BleService>(
       builder: (context, bleService, child) {
         // Show button if we have session data, even when disconnected
-        // Hide when in Guided mode (no mood data collected in Guided)
+        // Snapshots are taken per breath, so the report belongs to Breath mode
         if (!bleService.hasSessionData || 
             (bleService.isConnected && bleService.currentMode != BreathingMode.open)) {
           return const SizedBox.shrink();

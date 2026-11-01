@@ -24,10 +24,10 @@ Permissions: Android BLUETOOTH_SCAN/CONNECT (+ legacy and location); iOS
 lib/main.dart                     ChangeNotifierProvider(BleService) → MaterialApp → MainScreen
 lib/services/ble_service.dart     All BLE: scan/connect/reconnect, parse B/H/P/R, send M/S/L/Q,
                                   ring buffers for graphs, session tracking, battery state
-lib/services/mood_analyzer.dart   App-side stress/focus/meditation from per-breath metrics
+lib/models/scores.dart            Scores from the headset's K line, display labels
 lib/models/breath_data.dart       Parses B lines (E/I ratio helper)
 lib/models/heart_data.dart        Parses H lines
-lib/models/settings.dart          OpenBreathingSettings, GuidedBreathingSettings, BreathingMode
+lib/models/settings.dart          OpenBreathingSettings, MoodDetectionSettings, BreathingMode
                                   (open/guided/heart → M,F / M,G / M,H), MoodDetectionSettings;
                                   each has toMessage()
 lib/models/session_data.dart      SessionData, MoodSnapshot, GuidedPeriod; trends, trajectories
@@ -41,15 +41,24 @@ lib/widgets/                      breath_graph, mode_selector, mood_indicators, 
                                   stress_indicator, threshold_slider
 ```
 
-## Planned changes for v2 (spec agreed 1 Nov 2026, not implemented)
+## v2 changes (done 1 Nov 2026)
 
-Do these after the C++ firmware speaks the new protocol (see `breathsense-protocol`): remove
-Guided (`BreathingMode.guided`, `GuidedBreathingSettings`, mode button, guided session periods);
-add an **Off** mode (`M,O`; today the enum has no off and `M,O` is never sent - only `L,0` blanks
-the LEDs); stop sending `M,F` on connect (`ble_service.dart` ~line 530) and stop assuming Open
-(`_currentMode = BreathingMode.open`); parse the headset's `M,{F|H|O}` and show that mode. Scores move to the
-headset: parse `K` and display it; delete `mood_analyzer.dart` scoring (keep session history,
-summaries and reports, fed from `K`).
+The app is now a displayer for the v2 headset (`firmware_v2/`):
+- **Modes:** `BreathingMode { open, heart, off }` (open = Breath, protocol letter F); Guided removed
+  everywhere (settings model and screen section, graph colouring, phase indicator, session guided
+  periods, report annotations). Mode selector: Breath / Heart / Off (`M,O`).
+- **Mode comes from the headset:** no `M,F` on connect (sends `Q`); `_parseModeReport` handles
+  `M,{F|H|O}`; `modeKnown` false until the first report ("Waiting for the headset..."). `setMode`
+  sends and applies immediately (`_applyMode`).
+- **Scores from `K`:** `lib/models/scores.dart` (`Scores.fromMessage`, labels, `stressScale` maps
+  0-100 to the widgets' old -5..+5). `mood_analyzer.dart` removed from the app (reference copy kept
+  at `firmware_v2/test/mood_analyzer_app.dart` for the firmware check). Session snapshots per
+  breath use the latest K. Heart mode shows the heart readout plus the combined stress. Stress
+  panel shows heart/breath parts and wear; focus panel shows focus/meditation.
+- **Settings out:** `S,M` now carries the five stress weights; `sendFusionWeights` sends `S,W`
+  (no UI yet). R's guided fields ignored; LED state from field 16.
+- Auto-connect names include `glassessense`.
+- `flutter analyze lib`: no errors (17 issues, down from 27; remaining warnings pre-date this).
 
 ## Behaviour worth knowing
 

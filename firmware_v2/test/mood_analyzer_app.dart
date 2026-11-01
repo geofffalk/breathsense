@@ -1,3 +1,5 @@
+// Reference copy of the app's former lib/services/mood_analyzer.dart (removed from the app when scoring
+// moved to the headset, 1 Nov 2026). firmware_v2/test/compare.py checks the C++ port against it.
 import 'dart:math';
 
 /// App-side mood calculation from raw breath metrics.

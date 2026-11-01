@@ -71,7 +71,8 @@ over older README text). In short:
 - No auto sleep while the app is connected. BLE name `GlassesSense-XXXX` (chip-ID suffix); the
   user is considering renaming the product/app GlassesSense - app's name filter needs it.
 - Order of work agreed: document (done) → C++ firmware (written in `firmware_v2/`, host-checked
-  against v1 Python + app Dart; not yet compiled for the board) → app.
+  against v1 Python + app Dart; compiles for the ItsyBitsy, XIAO build pending) → app (done: modes from
+  the headset, Off, scores from K, guided removed).
 
 ## The user's standing rules
 

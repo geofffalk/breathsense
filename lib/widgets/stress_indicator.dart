@@ -52,7 +52,7 @@ class _StressIndicatorState extends State<StressIndicator> {
   Widget build(BuildContext context) {
     return Consumer<BleService>(
       builder: (context, bleService, _) {
-        final analyzer = bleService.moodAnalyzer;
+        final k = bleService.scores;   // Computed on the headset
         
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -133,37 +133,23 @@ class _StressIndicatorState extends State<StressIndicator> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // E/I Ratio: 0.8 (stressed) to 1.5 (calm)
+                      // The parts of the headset's combined score (0-100, high = stressed)
                       MoodScaleBar(
-                        label: 'E/I Ratio',
-                        value: _normalizeRatio(analyzer.currentRatio),
-                        displayValue: analyzer.currentRatio.toStringAsFixed(2),
+                        label: 'Heart',
+                        value: k.heartWorn ? 1.0 - k.heartStress / 100.0 : 0.5,
+                        displayValue: k.heartWorn ? '${k.heartStress}' : 'not worn',
                       ),
-                      // Duration: compare LATEST breath to baseline (not sliding avg)
                       MoodScaleBar(
-                        label: 'Duration',
-                        value: _normalizeDuration(analyzer.latestCycleDuration, analyzer.baselineCycle),
-                        displayValue: '${analyzer.latestCycleDuration.toStringAsFixed(1)}s',
+                        label: 'Breath',
+                        value: k.noseWorn ? 1.0 - k.breathStress / 100.0 : 0.5,
+                        displayValue: k.noseWorn ? '${k.breathStress}' : 'not worn',
                       ),
-                      // Smoothness: 0% (stressed) to 100% (calm)
-                      MoodScaleBar(
-                        label: 'Smoothness',
-                        value: analyzer.currentSmoothness / 100.0,
-                        displayValue: '${analyzer.currentSmoothness}%',
-                      ),
-                      // Peak Flow: compare to baseline
-                      MoodScaleBar(
-                        label: 'Peak Flow',
-                        value: _normalizePeakFlow(analyzer.currentPeakFlow, analyzer.baselinePeakFlow),
-                        displayValue: analyzer.baselinePeakFlow != null 
-                            ? '${(analyzer.currentPeakFlow / analyzer.baselinePeakFlow!).toStringAsFixed(2)}x'
-                            : '--',
-                      ),
-                      // Variability: 0.4 CV (stressed, left) to 0.1 CV (calm, right)
-                      MoodScaleBar(
-                        label: 'Variability',
-                        value: _normalizeVariability(analyzer.currentConsistency, analyzer.currentCycle),
-                        displayValue: (analyzer.currentConsistency / analyzer.currentCycle.clamp(0.1, 100)).toStringAsFixed(2),
+                      const SizedBox(height: 4),
+                      Text(
+                        k.noseWorn
+                            ? 'Combined: 60% heart, 40% breath'
+                            : 'Combined: heart only (nose clip not worn)',
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -174,31 +160,5 @@ class _StressIndicatorState extends State<StressIndicator> {
         );
       },
     );
-  }
-  
-  // Normalize E/I ratio: 0.8 (left) to 1.5 (right)
-  double _normalizeRatio(double ratio) {
-    return ((ratio - 0.8) / (1.5 - 0.8)).clamp(0.0, 1.0);
-  }
-  
-  // Normalize duration vs baseline: < 70% = left, > 130% = right
-  double _normalizeDuration(double current, double? baseline) {
-    if (baseline == null || baseline <= 0) return 0.5;
-    final ratio = current / baseline;
-    return ((ratio - 0.7) / (1.3 - 0.7)).clamp(0.0, 1.0);
-  }
-  
-  // Normalize peak flow vs baseline
-  double _normalizePeakFlow(double current, double? baseline) {
-    if (baseline == null || baseline <= 0 || current <= 0) return 0.5;
-    final ratio = current / baseline;
-    return ((ratio - 0.7) / (1.3 - 0.7)).clamp(0.0, 1.0);
-  }
-  
-  // Normalize variability CV: 0.4 (left) to 0.1 (right)
-  double _normalizeVariability(double consistency, double cycle) {
-    final cv = consistency / cycle.clamp(0.1, 100);
-    // Invert: high CV = left (stressed), low CV = right (calm)
-    return 1.0 - ((cv - 0.1) / (0.4 - 0.1)).clamp(0.0, 1.0);
   }
 }

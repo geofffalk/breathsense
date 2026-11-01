@@ -39,65 +39,12 @@ class OpenBreathingSettings {
   }
 }
 
-/// Guided Breathing mode settings (durations in seconds)
-class GuidedBreathingSettings {
-  double inhaleLength; // seconds
-  double holdAfterInhale; // seconds
-  double exhaleLength; // seconds
-  double holdAfterExhale; // seconds
-  int ledStart; // 0-9
-  int ledEnd; // 0-9
-  int colorScheme; // 0=Default, 1=High Contrast, 2=Cool Tones
-  double exhaleSensitivity; // 0.3-1.0, higher = less sensitive
-  double inhaleSensitivity; // 0.3-1.0, higher = less sensitive
-
-  GuidedBreathingSettings({
-    this.inhaleLength = 5.0,
-    this.holdAfterInhale = 5.0,
-    this.exhaleLength = 5.0,
-    this.holdAfterExhale = 5.0,
-    this.ledStart = 2,
-    this.ledEnd = 9,
-    this.colorScheme = 0,
-    this.exhaleSensitivity = 0.8,
-    this.inhaleSensitivity = 0.5,
-  });
-
-  /// Convert to BLE message format
-  String toMessage() {
-    return 'S,G,$inhaleLength,$holdAfterInhale,$exhaleLength,$holdAfterExhale,$ledStart,$ledEnd,$exhaleSensitivity,$inhaleSensitivity\n';
-  }
-
-  GuidedBreathingSettings copyWith({
-    double? inhaleLength,
-    double? holdAfterInhale,
-    double? exhaleLength,
-    double? holdAfterExhale,
-    int? ledStart,
-    int? ledEnd,
-    int? colorScheme,
-    double? exhaleSensitivity,
-    double? inhaleSensitivity,
-  }) {
-    return GuidedBreathingSettings(
-      inhaleLength: inhaleLength ?? this.inhaleLength,
-      holdAfterInhale: holdAfterInhale ?? this.holdAfterInhale,
-      exhaleLength: exhaleLength ?? this.exhaleLength,
-      holdAfterExhale: holdAfterExhale ?? this.holdAfterExhale,
-      ledStart: ledStart ?? this.ledStart,
-      ledEnd: ledEnd ?? this.ledEnd,
-      colorScheme: colorScheme ?? this.colorScheme,
-      exhaleSensitivity: exhaleSensitivity ?? this.exhaleSensitivity,
-      inhaleSensitivity: inhaleSensitivity ?? this.inhaleSensitivity,
-    );
-  }
-}
-
-/// Breathing mode enum
+/// Headset mode. The headset reports it (M,{F|H|O}) on connect and on every change; the app
+/// can set it. Guided breathing is dropped.
 enum BreathingMode {
-  open, // Open Breathing mode
-  guided, // Guided Breathing mode
-  heart, // Heart monitor mode (pulse sensor; breath output paused)
+  open, // Breath (protocol letter F, kept from "free/open breathing")
+  heart, // Heart monitor (pulse sensor)
+  off, // LEDs dark, sensing paused, Bluetooth on (only the headset's button fully sleeps it)
 }
 
 extension BreathingModeExtension on BreathingMode {
@@ -106,22 +53,35 @@ extension BreathingModeExtension on BreathingMode {
     switch (this) {
       case BreathingMode.open:
         return 'M,F\n';
-      case BreathingMode.guided:
-        return 'M,G\n';
       case BreathingMode.heart:
         return 'M,H\n';
+      case BreathingMode.off:
+        return 'M,O\n';
     }
   }
 
   String get displayName {
     switch (this) {
       case BreathingMode.open:
-        return 'Open Breathing';
-      case BreathingMode.guided:
-        return 'Guided Breathing';
+        return 'Breath';
       case BreathingMode.heart:
         return 'Heart Monitor';
+      case BreathingMode.off:
+        return 'Off';
     }
+  }
+
+  /// Parse the headset's M report letter
+  static BreathingMode? fromLetter(String letter) {
+    switch (letter.toUpperCase()) {
+      case 'F':
+        return BreathingMode.open;
+      case 'H':
+        return BreathingMode.heart;
+      case 'O':
+        return BreathingMode.off;
+    }
+    return null;
   }
 }
 
@@ -156,9 +116,11 @@ class MoodDetectionSettings {
     this.stressRmssdWeight = 0.15,
   });
 
-  /// Convert to BLE message format (basic settings only - weights are app-side)
+  /// Convert to BLE message format. The headset computes all scores, so the stress weights go too
+  /// (as optional trailing fields).
   String toMessage() {
-    return 'S,M,$calmRatio,$calmVariability,$focusConsistency,$calibrationBreaths\n';
+    return 'S,M,$calmRatio,$calmVariability,$focusConsistency,$calibrationBreaths,'
+        '$stressRatioWeight,$stressDurationWeight,$stressSmoothnessWeight,$stressPeakFlowWeight,$stressRmssdWeight\n';
   }
 
   MoodDetectionSettings copyWith({

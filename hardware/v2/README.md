@@ -144,6 +144,9 @@ GlassesSense; the app's auto-connect list needs "glassessense" added.
 
 ### Discrepancies (current code and docs against this spec)
 
+Status (1 Nov 2026): the v2 firmware (`firmware_v2/`) and the app now implement this spec: rows
+1-8 and 11 are done in code; 1 still needs the XIAO build and hardware testing.
+
 | # | Where | Now | Spec | Change needed |
 |---|---|---|---|---|
 | 1 | Firmware | CircuitPython for the v1 ItsyBitsy (strips on D7/D9, battery on A2, slide switch); no C++ | Arduino C++ on the XIAO nRF52840 Plus | Write the port (pins in Wiring) |

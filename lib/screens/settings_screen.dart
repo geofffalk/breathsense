@@ -7,7 +7,7 @@ import '../models/settings.dart';
 import '../services/ble_service.dart';
 import '../widgets/threshold_slider.dart';
 
-/// Settings screen with Open Breathing and Guided Breathing settings
+/// Settings screen: breath display and scoring settings (all sent to the headset)
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -20,17 +20,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late OpenBreathingSettings _openSettings;
   OpenBreathingSettings? _originalOpenSettings; // For tracking changes
 
-  // Guided Breathing settings
-  late GuidedBreathingSettings _guidedSettings;
-  
   // Mood Detection settings
   late MoodDetectionSettings _moodSettings;
-  
-  // Active guided breathing preset (null when custom)
-  String? _activePreset = 'Box'; // Default is Box (5:5:5:5)
-  
-  // Debounce timer for guided settings auto-send
-  Timer? _guidedSendTimer;
   
   // Debounce timer for sensitivity auto-send
   Timer? _sensitivityTimer;
@@ -39,7 +30,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   @override
   void dispose() {
-    _guidedSendTimer?.cancel();
     _sensitivityTimer?.cancel();
     try {
       context.read<BleService>().removeListener(_onBleServiceUpdate);
@@ -51,7 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _openSettings = OpenBreathingSettings();
-    _guidedSettings = GuidedBreathingSettings();
     _moodSettings = MoodDetectionSettings();
     
     // Load settings from BLE service after build
@@ -68,9 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _openSettings = bleService.openSettings.copyWith();
         _originalOpenSettings = bleService.openSettings.copyWith();
-        _guidedSettings = bleService.guidedSettings.copyWith();
         _moodSettings = bleService.moodSettings.copyWith();
-        _activePreset = _detectActivePreset();
         _initialized = true;
       });
     } else if (bleService.isConnected) {
@@ -90,29 +77,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _openSettings = bleService.openSettings.copyWith();
         _originalOpenSettings = bleService.openSettings.copyWith();
-        _guidedSettings = bleService.guidedSettings.copyWith();
         _moodSettings = bleService.moodSettings.copyWith();
-        _activePreset = _detectActivePreset();
         _initialized = true;
       });
     }
   }
   
-  /// Detect which preset matches current guided settings
-  String? _detectActivePreset() {
-    final inh = _guidedSettings.inhaleLength;
-    final hi = _guidedSettings.holdAfterInhale;
-    final exh = _guidedSettings.exhaleLength;
-    final ho = _guidedSettings.holdAfterExhale;
-    
-    if (inh == 5 && hi == 5 && exh == 5 && ho == 5) return 'Box Breathing';
-    if (inh == 5 && hi == 0 && exh == 5 && ho == 0) return 'Flow Breathing';
-    if (inh == 4 && hi == 0 && exh == 8 && ho == 0) return 'Extended Exhale';
-    if (inh == 4 && hi == 7 && exh == 8 && ho == 0) return '4-7-8 Breathing';
-    
-    return null; // Custom settings
-  }
-
   @override
   Widget build(BuildContext context) {
     final bleService = context.watch<BleService>();
@@ -133,17 +103,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Open Breathing Settings
-            _buildSectionHeader('Open Breathing', Icons.air),
+            // Breath settings
+            _buildSectionHeader('Breath', Icons.air),
             const SizedBox(height: 8),
             _buildOpenBreathingSettings(bleService),
-
-            const SizedBox(height: 32),
-
-            // Guided Breathing Settings (always visible)
-            _buildSectionHeader('Guided Breathing', Icons.timeline),
-            const SizedBox(height: 8),
-            _buildGuidedBreathingSettings(bleService),
 
             const SizedBox(height: 32),
 
@@ -303,374 +266,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
            _openSettings.shortMax != _originalOpenSettings!.shortMax ||
            _openSettings.mediumMax != _originalOpenSettings!.mediumMax ||
            _openSettings.longMax != _originalOpenSettings!.longMax;
-  }
-
-  Widget _buildGuidedBreathingSettings(BleService bleService) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Preset Patterns Section
-          Text(
-            'Preset Patterns',
-            style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          _buildPresetCard('Box Breathing', 'Attention reset', 5, 5, 5, 5, bleService),
-          const SizedBox(height: 6),
-          _buildPresetCard('Flow Breathing', 'Maximises heart rate variability (HRV)', 5, 0, 5, 0, bleService),
-          const SizedBox(height: 6),
-          _buildPresetCard('Extended Exhale', 'For anxiety, panic, rumination', 4, 0, 8, 0, bleService),
-          const SizedBox(height: 6),
-          _buildPresetCard('4-7-8 Breathing', 'Pre-bed wind-down', 4, 7, 8, 0, bleService),
-          
-          const SizedBox(height: 24),
-          
-          // Custom Section
-          Row(
-            children: [
-              Text(
-                'Custom',
-                style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              if (_activePreset == null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.cyan[50],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text('Active', style: TextStyle(fontSize: 10, color: Colors.cyan[700])),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          _buildDurationSlider(
-            label: 'Inhale',
-            value: _guidedSettings.inhaleLength,
-            min: 0.0,
-            max: 15.0,
-            activeColor: Colors.green,
-            onChanged: (v) => _updateGuidedSettings(
-              _guidedSettings.copyWith(inhaleLength: v),
-              clearPreset: true,
-            ),
-          ),
-
-          _buildDurationSlider(
-            label: 'Hold In',
-            value: _guidedSettings.holdAfterInhale,
-            min: 0.0,
-            max: 15.0,
-            activeColor: Colors.redAccent,
-            onChanged: (v) => _updateGuidedSettings(
-              _guidedSettings.copyWith(holdAfterInhale: v),
-              clearPreset: true,
-            ),
-          ),
-
-          _buildDurationSlider(
-            label: 'Exhale',
-            value: _guidedSettings.exhaleLength,
-            min: 0.0,
-            max: 15.0,
-            activeColor: Colors.cyan,
-            onChanged: (v) => _updateGuidedSettings(
-              _guidedSettings.copyWith(exhaleLength: v),
-              clearPreset: true,
-            ),
-          ),
-
-          _buildDurationSlider(
-            label: 'Hold Out',
-            value: _guidedSettings.holdAfterExhale,
-            min: 0.0,
-            max: 15.0,
-            activeColor: Colors.redAccent,
-            onChanged: (v) => _updateGuidedSettings(
-              _guidedSettings.copyWith(holdAfterExhale: v),
-              clearPreset: true,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          Text(
-            'LED Animation Range',
-            style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text('BACK', style: TextStyle(color: Colors.grey[600], fontSize: 10, fontWeight: FontWeight.bold)),
-              Expanded(
-                child: RangeSlider(
-                  values: RangeValues(_guidedSettings.ledStart.toDouble(), _guidedSettings.ledEnd.toDouble()),
-                  min: 0,
-                  max: 9,
-                  divisions: 9,
-                  activeColor: Colors.cyan[700],
-                  inactiveColor: Colors.grey[200],
-                  onChanged: (RangeValues values) => _updateGuidedSettings(
-                    _guidedSettings.copyWith(
-                      ledStart: values.start.round(),
-                      ledEnd: values.end.round(),
-                    ),
-                  ),
-                ),
-              ),
-              Text('FRONT', style: TextStyle(color: Colors.grey[600], fontSize: 10, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          
-          const SizedBox(height: 20),
-          Text(
-            'LED Color Scheme',
-            style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildColorSchemeButton(0, 'Default', [Color(0xFF00FF00), Color(0xFFFF5000), Color(0xFF00FFFF)], bleService),
-              _buildColorSchemeButton(1, 'High Contrast', [Color(0xFFFFFF00), Color(0xFF8000FF), Color(0xFFFFFFFF)], bleService),
-              _buildColorSchemeButton(2, 'Cool Tones', [Color(0xFF0064FF), Color(0xFFFF0080), Color(0xFFFFFFFF)], bleService),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          Text(
-            'Flow Sensitivity',
-            style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Adjust how strongly you need to breathe for LED to respond. Higher = less sensitive.',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              SizedBox(width: 100, child: Text('Exhale', style: TextStyle(color: Colors.grey[700], fontSize: 13))),
-              Expanded(
-                child: Slider(
-                  value: _guidedSettings.exhaleSensitivity,
-                  min: 0.3,
-                  max: 1.0,
-                  divisions: 7,
-                  label: _guidedSettings.exhaleSensitivity.toStringAsFixed(1),
-                  onChanged: (v) => _updateGuidedSettings(_guidedSettings.copyWith(exhaleSensitivity: v)),
-                ),
-              ),
-              SizedBox(width: 32, child: Text(_guidedSettings.exhaleSensitivity.toStringAsFixed(1), style: TextStyle(fontSize: 12, color: Colors.grey[600]))),
-            ],
-          ),
-          Row(
-            children: [
-              SizedBox(width: 100, child: Text('Inhale', style: TextStyle(color: Colors.grey[700], fontSize: 13))),
-              Expanded(
-                child: Slider(
-                  value: _guidedSettings.inhaleSensitivity,
-                  min: 0.3,
-                  max: 1.0,
-                  divisions: 7,
-                  label: _guidedSettings.inhaleSensitivity.toStringAsFixed(1),
-                  onChanged: (v) => _updateGuidedSettings(_guidedSettings.copyWith(inhaleSensitivity: v)),
-                ),
-              ),
-              SizedBox(width: 32, child: Text(_guidedSettings.inhaleSensitivity.toStringAsFixed(1), style: TextStyle(fontSize: 12, color: Colors.grey[600]))),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildColorSchemeButton(int schemeId, String name, List<Color> colors, BleService bleService) {
-    final isActive = _guidedSettings.colorScheme == schemeId;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _guidedSettings = _guidedSettings.copyWith(colorScheme: schemeId);
-        });
-        if (bleService.isConnected) {
-          bleService.sendColorScheme(schemeId);
-          bleService.sendGuidedBreathingSettings(_guidedSettings);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.grey[800] : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isActive ? Colors.grey[800]! : Colors.grey[300]!, width: isActive ? 2 : 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ...colors.map((c) => Container(
-              width: 12, height: 12,
-              margin: const EdgeInsets.only(right: 4),
-              decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: Border.all(color: Colors.grey[400]!, width: 0.5)),
-            )),
-            const SizedBox(width: 4),
-            Text(name, style: TextStyle(color: isActive ? Colors.white : Colors.grey[800], fontSize: 12, fontWeight: FontWeight.w500)),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  /// Update guided settings with debounced auto-send to headset
-  void _updateGuidedSettings(GuidedBreathingSettings newSettings, {bool clearPreset = false}) {
-    setState(() {
-      _guidedSettings = newSettings;
-      if (clearPreset) {
-        _activePreset = null;
-      }
-    });
-    
-    // Cancel existing timer and create new one (300ms debounce)
-    _guidedSendTimer?.cancel();
-    _guidedSendTimer = Timer(const Duration(milliseconds: 300), () {
-      final bleService = Provider.of<BleService>(context, listen: false);
-      if (bleService.isConnected) {
-        bleService.sendGuidedBreathingSettings(_guidedSettings);
-      }
-    });
-  }
-  
-  Widget _buildPresetCard(String name, String description, double inhale, double holdIn, double exhale, double holdOut, BleService bleService) {
-    final isActive = _activePreset == name;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _activePreset = name;
-          _guidedSettings = _guidedSettings.copyWith(
-            inhaleLength: inhale,
-            holdAfterInhale: holdIn,
-            exhaleLength: exhale,
-            holdAfterExhale: holdOut,
-          );
-        });
-        if (bleService.isConnected) {
-          bleService.sendGuidedBreathingSettings(_guidedSettings);
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.cyan : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isActive ? Colors.cyan : Colors.grey[300]!,
-            width: isActive ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      color: isActive ? Colors.white : Colors.grey[800],
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: isActive ? Colors.white70 : Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isActive)
-              Icon(Icons.check_circle, color: Colors.white, size: 20)
-            else
-              Icon(Icons.circle_outlined, color: Colors.grey[400], size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDurationSlider({
-    required String label,
-    required double value,
-    required double min,
-    required double max,
-    required Color activeColor,
-    required ValueChanged<double> onChanged,
-  }) {
-    // Round to nearest 0.5
-    final roundedValue = (value * 2).round() / 2;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.w500)),
-              Text(
-                '${roundedValue.toStringAsFixed(1)}s',
-                style: TextStyle(color: activeColor),
-              ),
-            ],
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              showValueIndicator: ShowValueIndicator.always,
-              valueIndicatorColor: const Color(0xFF01579B),
-              valueIndicatorTextStyle: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            child: Slider(
-              value: roundedValue.clamp(min, max),
-              min: min,
-              max: max,
-              divisions: ((max - min) * 2).round(), // 0.5s steps
-              label: '${roundedValue.toStringAsFixed(1)}s',
-              activeColor: activeColor,
-              inactiveColor: Colors.grey[200],
-              onChanged: (v) {
-                final rounded = (v * 2).round() / 2;
-                onChanged(rounded);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSensitivitySettings(BleService bleService) {
@@ -1033,7 +628,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _moodSettings = newSettings;
     });
     
-    // Auto-apply settings to MoodAnalyzer
+    // Send to the headset, which computes the scores
     final bleService = Provider.of<BleService>(context, listen: false);
     if (bleService.isConnected) {
       bleService.sendMoodSettings(_moodSettings);

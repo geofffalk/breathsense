@@ -260,15 +260,6 @@ class ReportScreen extends StatelessWidget {
 
     final colors = invertGradient ? gradientColors.reversed.toList() : gradientColors;
     
-    // Build range annotations for Guided mode periods
-    final guidedAnnotations = sessionData.guidedPeriods.map((period) {
-      return VerticalRangeAnnotation(
-        x1: period.startSecondsSince(sessionData.startTime),
-        x2: period.endSecondsSince(sessionData.startTime),
-        color: Colors.purple.withAlpha(40),
-      );
-    }).toList();
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -291,22 +282,6 @@ class ReportScreen extends StatelessWidget {
               ),
               Row(
                 children: [
-                  if (sessionData.guidedPeriods.isNotEmpty) ...[
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withAlpha(80),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Guided',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 10),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
                   Text(
                     subtitle,
                     style: TextStyle(color: Colors.grey[500], fontSize: 12),
@@ -322,9 +297,6 @@ class ReportScreen extends StatelessWidget {
               LineChartData(
                 minY: minY,
                 maxY: maxY,
-                rangeAnnotations: RangeAnnotations(
-                  verticalRangeAnnotations: guidedAnnotations,
-                ),
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,

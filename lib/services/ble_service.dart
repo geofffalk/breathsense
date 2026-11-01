@@ -10,9 +10,9 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/breath_data.dart';
 import '../models/heart_data.dart';
+import '../models/scores.dart';
 import '../models/session_data.dart';
 import '../models/settings.dart';
-import 'mood_analyzer.dart';
 
 /// Nordic UART Service UUIDs
 final Guid uartServiceUuid = Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
@@ -20,7 +20,7 @@ final Guid rxCharUuid = Guid("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 final Guid txCharUuid = Guid("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
 
 /// Known device name patterns for the breathing headset
-const List<String> knownDeviceNames = ['sonar', 'bliss', 'breathcraft', 'vs-pulse', 'raspberrypi', 'breathing'];
+const List<String> knownDeviceNames = ['glassessense', 'sonar', 'bliss', 'breathcraft', 'vs-pulse', 'raspberrypi', 'breathing'];
 
 /// Connection state
 enum BleConnectionState {
@@ -47,7 +47,8 @@ class BleService extends ChangeNotifier {
 
   String? _connectedAudioDeviceName;
   String _statusMessage = 'Initializing...';
-  BreathingMode _currentMode = BreathingMode.open;
+  BreathingMode _currentMode = BreathingMode.heart;   // Replaced by the headset's M report
+  bool _modeKnown = false;
   bool _ledEnabled = true;
   bool _isBleConnected = false;
   bool _isConnecting = false;
@@ -55,7 +56,6 @@ class BleService extends ChangeNotifier {
 
   // Current settings from firmware
   OpenBreathingSettings _openSettings = OpenBreathingSettings();
-  GuidedBreathingSettings _guidedSettings = GuidedBreathingSettings();
   MoodDetectionSettings _moodSettings = MoodDetectionSettings();
   bool _settingsReceived = false;
 
@@ -66,7 +66,6 @@ class BleService extends ChangeNotifier {
   final List<int> _depthBuffer = List.filled(bufferSize, 0);
   int _writeIndex = 0;
   int _sampleCount = 0;
-  int _currentGuidedPhase = -1; // -1=none, 0=inhale, 1=hold_out, 2=exhale, 3=hold_in (matches firmware)
 
   // Ring buffer for heart waveform (Heart mode graph)
   final List<double> _heartBuffer = List.filled(bufferSize, 0.0);
@@ -84,10 +83,8 @@ class BleService extends ChangeNotifier {
   int _batteryPercent = -1; // -1 = no battery seen (switch off or not fitted)
   bool _batteryOnUsb = false;
 
-  // App-side mood analyzer (calculates scores from raw breath metrics)
-  final MoodAnalyzer _moodAnalyzer = MoodAnalyzer();
-  
-  // Mood state (computed by app from raw metrics)
+  // Scores computed on the headset (K lines); the app only displays them
+  Scores _scores = const Scores();
   bool _isUnworn = false; // Headset not detecting breath
   
   // Session tracking for report generation
@@ -101,7 +98,8 @@ class BleService extends ChangeNotifier {
   BreathingMode get currentMode => _currentMode;
   bool get ledEnabled => _ledEnabled;
   Stream<BreathData> get breathDataStream => _breathDataController.stream;
-  int get currentGuidedPhase => _currentGuidedPhase;
+  bool get modeKnown => _modeKnown;
+  Scores get scores => _scores;
   int get heartBpm => _heartBpm;
   bool get hasPulseSignal => _hasPulseSignal;
   int get heartBeatCount => _heartBeatCount;
@@ -113,19 +111,17 @@ class BleService extends ChangeNotifier {
   bool get batteryOnUsb => _batteryOnUsb;
   bool get isConnected => _isBleConnected;
   bool get isBluetoothOff => _connectionState == BleConnectionState.bluetoothOff;
-  int get currentStressScore => _moodAnalyzer.stressScore;
-  int get currentFocusScore => _moodAnalyzer.focusScore;
-  int get currentMeditationScore => _moodAnalyzer.meditationScore;
-  bool get isMoodCalibrating => _moodAnalyzer.isCalibrating;
-  String get stressLabel => _moodAnalyzer.stressLabel;
-  String get focusLabel => _moodAnalyzer.focusLabel;
-  MoodAnalyzer get moodAnalyzer => _moodAnalyzer; // Expose for expandable UI
+  int get currentStressScore => _scores.stressScale;   // -5..+5, from the headset's 0-100
+  int get currentFocusScore => _scores.focus;
+  int get currentMeditationScore => _scores.meditation;
+  bool get isMoodCalibrating => _scores.calibrating;
+  String get stressLabel => _scores.stressLabel;
+  String get focusLabel => _scores.focusLabel;
   bool get isUnworn => _isUnworn;
   SessionData? get currentSession => _currentSession;
   bool get hasSessionData => _currentSession != null && _currentSession!.breathCount >= 5;
   
   OpenBreathingSettings get openSettings => _openSettings;
-  GuidedBreathingSettings get guidedSettings => _guidedSettings;
   MoodDetectionSettings get moodSettings => _moodSettings;
   bool get settingsReceived => _settingsReceived;
 
@@ -512,8 +508,8 @@ class BleService extends ChangeNotifier {
       _rxSubscription = rxChar.onValueReceived.listen(_handleIncomingData);
 
       _updateConnectionState(BleConnectionState.connected);
-      _updateStatus('Connected to breath sensor');
-      _currentMode = BreathingMode.open;  // Start in open breathing mode
+      _updateStatus('Connected to headset');
+      _modeKnown = false;   // The headset reports its mode (M); connecting doesn't change it
       
       // Mark as ready and clear any buffered junk
       _incomingBuffer = '';
@@ -525,10 +521,9 @@ class BleService extends ChangeNotifier {
       
       notifyListeners();
       
-      // Auto-start Open Breathing mode so LEDs work immediately
+      // The headset sends R, P and M on connect; ask again in case they were missed
       await Future.delayed(const Duration(milliseconds: 500));
-      await _sendMessage('M,F\n'); // M,F is still the protocol command
-      debugPrint('[BLE] Sent Open Breathing mode command');
+      await _sendMessage('Q\n');
       
       debugPrint('[BLE] Setup complete!');
     } catch (e) {
@@ -583,50 +578,34 @@ class BleService extends ChangeNotifier {
             _sampleCount++;
           }
           
-          // Track guided phase changes
-          if (_currentGuidedPhase != breathData.guidedPhase) {
-            _currentGuidedPhase = breathData.guidedPhase;
-            notifyListeners();
-          }
-          
           // Track unworn state
           _isUnworn = breathData.isUnworn;
           
-          // Track breath phase transitions for mood calculation and cycle counting
-          // Feed raw metrics to analyzer when breath cycle completes (exhale→inhale)
+          // A completed exhale->inhale is one breath: count it, and snapshot the headset's latest
+          // scores for the session report (bookkeeping only; scores come from K lines)
           if (!breathData.isUnworn && breathData.phase == 1 && _lastBreathPhase == 2) {
-            // Completed exhale→inhale transition = one breath cycle
             _currentSession?.recordBreath();
-            
-            // Feed raw metrics to app-side mood analyzer
-            if (breathData.cycleDuration > 0) {
-              _moodAnalyzer.recordBreath(
-                exhaleDuration: breathData.exhaleDuration,
-                inhaleDuration: breathData.inhaleDuration,
-                cycleDuration: breathData.cycleDuration,
-                smoothness: breathData.smoothness,
-                peakFlow: breathData.peakFlow,
-                symmetry: breathData.symmetry,
+            if (breathData.cycleDuration > 0 && !_scores.calibrating && _currentSession != null) {
+              _currentSession!.addSnapshot(
+                stressScore: _scores.stressScale,
+                focusScore: _scores.focus,
+                meditationScore: _scores.meditation,
+                breathLength: breathData.cycleDuration,
               );
-              
-              // Record snapshot for session report (only in Open mode, when worn, not calibrating)
-              if (!_moodAnalyzer.isCalibrating && 
-                  _currentSession != null && 
-                  _currentMode == BreathingMode.open) {
-                _currentSession!.addSnapshot(
-                  stressScore: _moodAnalyzer.stressScore,
-                  focusScore: _moodAnalyzer.focusScore,
-                  meditationScore: _moodAnalyzer.meditationScore,
-                  breathLength: breathData.cycleDuration,
-                );
-              }
-              
               notifyListeners();
             }
           }
           _lastBreathPhase = breathData.phase;
           
           _breathDataController.add(breathData);
+        } else if (line.startsWith('K,')) {
+          final k = Scores.fromMessage(line);
+          if (k != null) {
+            _scores = k;
+            notifyListeners();
+          }
+        } else if (line.startsWith('M,')) {
+          _parseModeReport(line);
         } else if (line.startsWith('R,')) {
           _parseSettingsResponse(line);
         } else if (line.startsWith('P,')) {
@@ -661,6 +640,27 @@ class BleService extends ChangeNotifier {
     }
   }
 
+  /// The headset's mode report: on connect and on every change (button, app, waking)
+  void _parseModeReport(String message) {
+    final parts = message.split(',');
+    if (parts.length < 2) return;
+    final mode = BreathingModeExtension.fromLetter(parts[1].trim());
+    if (mode == null) return;
+    _applyMode(mode);
+  }
+
+  void _applyMode(BreathingMode mode) {
+    final previous = _currentMode;
+    _currentMode = mode;
+    _modeKnown = true;
+    if (mode == BreathingMode.heart && previous != BreathingMode.heart) {
+      _clearHeartBuffer();
+    } else if (previous == BreathingMode.heart) {
+      _lastBreathPhase = 0; // Breath data was paused; don't count a stale cycle
+    }
+    notifyListeners();
+  }
+
   void _parseBattery(String message) {
     final parts = message.split(',');
     if (parts.length < 4) return;
@@ -690,14 +690,7 @@ class BleService extends ChangeNotifier {
           longMax: double.parse(parts[4]),
           sensitivity: int.parse(parts[5]),
         );
-        _guidedSettings = GuidedBreathingSettings(
-          inhaleLength: double.parse(parts[6]),
-          holdAfterInhale: double.parse(parts[7]),
-          exhaleLength: double.parse(parts[8]),
-          holdAfterExhale: double.parse(parts[9]),
-          ledStart: int.parse(parts[10]),
-          ledEnd: int.parse(parts[11]),
-        );
+        // Parts 6-11 are the old guided settings, kept in place but unused
         // Mood settings (parts 12-15 if present)
         if (parts.length >= 16) {
           _moodSettings = MoodDetectionSettings(
@@ -707,15 +700,12 @@ class BleService extends ChangeNotifier {
             calibrationBreaths: int.parse(parts[15]),
           );
         }
-        // LED enabled and color scheme (parts 16-17 if present)
-        if (parts.length >= 18) {
+        // LED enabled (part 16; part 17 was the guided colour scheme)
+        if (parts.length >= 17) {
           _ledEnabled = int.parse(parts[16]) == 1;
-          _guidedSettings = _guidedSettings.copyWith(
-            colorScheme: int.parse(parts[17]),
-          );
         }
         _settingsReceived = true;
-        debugPrint('[BLE] Settings received (LED: $_ledEnabled, Color scheme: ${_guidedSettings.colorScheme})');
+        debugPrint('[BLE] Settings received (LED: $_ledEnabled)');
         notifyListeners();
       }
     } catch (e) {
@@ -733,17 +723,16 @@ class BleService extends ChangeNotifier {
     _connectionSubscription?.cancel();
     _connectedDevice = null;
     _txChar = null;
-    _currentMode = BreathingMode.open;
+    _modeKnown = false;
     _isBleConnected = false;
     _isConnecting = false;
     _connectionReadyTime = null;
     _incomingBuffer = '';
-    _currentGuidedPhase = -1;
     _hasBatteryReading = false;
     _batteryPercent = -1;
     
-    // Reset mood analyzer so "Calibrating..." shows on reconnect
-    _moodAnalyzer.reset();
+    // Show "Calibrating..." until the headset's next scores arrive
+    _scores = const Scores();
     _isUnworn = false;
     
     // Disable wakelock when disconnected
@@ -778,33 +767,10 @@ class BleService extends ChangeNotifier {
     }
   }
 
+  /// Ask the headset to change mode. It replies with an M report, but show the change straight away.
   Future<void> setMode(BreathingMode mode) async {
-    final previousMode = _currentMode;
     await _sendMessage(mode.toMessage());
-    _currentMode = mode;
-
-    if (mode == BreathingMode.heart && previousMode != BreathingMode.heart) {
-      _clearHeartBuffer();
-    } else if (previousMode == BreathingMode.heart) {
-      _lastBreathPhase = 0; // Breath data was paused; don't count a stale cycle
-    }
-    
-    // Track Guided mode periods for session report
-    if (_currentSession != null) {
-      if (previousMode != BreathingMode.guided && mode == BreathingMode.guided) {
-        _currentSession!.startGuidedPeriod();
-      } else if (previousMode == BreathingMode.guided && mode != BreathingMode.guided) {
-        _currentSession!.endGuidedPeriod();
-      }
-    }
-    
-    // Reset session and mood analyzer when switching from Guided back to Open
-    if (previousMode == BreathingMode.guided && mode == BreathingMode.open) {
-      resetSession();
-      _moodAnalyzer.reset();  // Reset to Calibrating state
-    }
-    
-    notifyListeners();
+    _applyMode(mode);
   }
 
   Future<void> toggleLed() async {
@@ -821,40 +787,20 @@ class BleService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendGuidedBreathingSettings(GuidedBreathingSettings settings) async {
-    await _sendMessage(settings.toMessage());
-    // Update local state so settings persist when returning to settings screen
-    _guidedSettings = settings.copyWith();
-    notifyListeners();
-  }
-
   Future<void> sendSensitivity(int preset) async {
     await _sendMessage('S,C,$preset\n');
   }
 
-  Future<void> sendColorScheme(int schemeId) async {
-    await _sendMessage('S,CS,$schemeId\n');
-  }
-
+  /// Mood tuning, including the stress weights: the headset computes the scores now
   Future<void> sendMoodSettings(MoodDetectionSettings settings) async {
     _moodSettings = settings;
-    
-    // Apply weights to app-side MoodAnalyzer (if advanced mode enabled)
-    if (settings.advancedMode) {
-      _moodAnalyzer.stressRatioWeight = settings.stressRatioWeight;
-      _moodAnalyzer.stressDurationWeight = settings.stressDurationWeight;
-      _moodAnalyzer.stressSmoothnessWeight = settings.stressSmoothnessWeight;
-      _moodAnalyzer.stressPeakFlowWeight = settings.stressPeakFlowWeight;
-      _moodAnalyzer.stressRmssdWeight = settings.stressRmssdWeight;
-      _moodAnalyzer.calmRatio = settings.calmRatio;
-      _moodAnalyzer.focusConsistencyCv = settings.focusConsistency;
-      _moodAnalyzer.calmVariabilityCv = settings.calmVariability;
-    }
-    _moodAnalyzer.calibrationBreaths = settings.calibrationBreaths;
-    
-    // Send basic settings to firmware (thresholds only)
     await _sendMessage(settings.toMessage());
     notifyListeners();
+  }
+
+  /// Weights of the combined stress score (heart vs breath, and heart rate vs HRV within heart)
+  Future<void> sendFusionWeights({double heart = 0.6, double breath = 0.4, double hr = 0.5, double hrv = 0.5}) async {
+    await _sendMessage('S,W,$heart,$breath,$hr,$hrv\n');
   }
 
   void startManualScan() {

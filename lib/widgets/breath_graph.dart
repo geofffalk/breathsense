@@ -30,7 +30,6 @@ class _BreathGraphState extends State<BreathGraph>
   List<int> _phases = [];
   List<int> _depths = [];
   BreathingMode _mode = BreathingMode.open;
-  int _colorSchemeId = 0; // Cached color scheme
   int _xCounter = 0;
 
   @override
@@ -58,7 +57,6 @@ class _BreathGraphState extends State<BreathGraph>
         : bleService.getFlowValues(windowSize);
     final phases = isHeart ? const <int>[] : bleService.getPhaseValues(windowSize);
     final depths = isHeart ? const <int>[] : bleService.getDepthValues(windowSize);
-    final schemeId = bleService.guidedSettings.colorScheme.clamp(0, 2);
 
     final newSpots = <FlSpot>[];
     for (int i = 0; i < flowValues.length; i++) {
@@ -75,43 +73,19 @@ class _BreathGraphState extends State<BreathGraph>
         _phases = phases;
         _depths = depths;
         _mode = mode;
-        _colorSchemeId = schemeId; // Cache scheme ID
       });
     }
   }
 
-  // Color schemes matching firmware: (inhale, hold, exhale)
-  static const List<List<Color>> _colorSchemes = [
-    // 0: Default - Green/Orange/Cyan
-    [Color(0xFF00FF00), Color(0xFFFF3200), Color(0xFF00FFFF)],
-    // 1: High Contrast - Yellow/Purple/White
-    [Color(0xFFFFFF00), Color(0xFF8000FF), Color(0xFFFFFFFF)],
-    // 2: Cool Tones - Blue/Magenta/White
-    [Color(0xFF0064FF), Color(0xFFFF0080), Color(0xFFFFFFFF)],
-  ];
-
   Color _getColorForPhase(int phase, int depth) {
-    if (_mode == BreathingMode.open) {
-      // depthColor: 0-4 (red, white, cyan, purple, pink/magenta)
-      switch (depth) {
-        case 0: return Colors.redAccent;
-        case 1: return Colors.white; 
-        case 2: return Colors.cyan[600]!;
-        case 3: return Colors.purple[300]!;
-        case 4: return const Color(0xFF2962FF); // Deep Blue (Brighter)
-        default: return Colors.cyan[600]!;
-      }
-    }
-    
-    // Guided mode: Use cached color scheme (avoids context access in build)
-    final colors = _colorSchemes[_colorSchemeId];
-    
-    switch (phase) {
-      case 0: return colors[0]; // Inhale
-      case 1: return colors[1]; // Hold In
-      case 2: return colors[2]; // Exhale
-      case 3: return colors[1]; // Hold Out
-      default: return Colors.grey;
+    // Breath: the headset's exhale-length colour (0 red, 1 white, 2 light blue, 3 purple, 4 deep blue)
+    switch (depth) {
+      case 0: return Colors.redAccent;
+      case 1: return Colors.white;
+      case 2: return Colors.cyan[600]!;
+      case 3: return Colors.purple[300]!;
+      case 4: return const Color(0xFF2962FF); // Deep Blue (Brighter)
+      default: return Colors.cyan[600]!;
     }
   }
 
