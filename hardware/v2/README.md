@@ -92,6 +92,16 @@ the temple end, nearest the pod. The front 4 are indices 6–9.
   because nothing can wake it over Bluetooth once it's asleep.
 - **The app shows** stress level and the rest as before.
 
+**Auto sleep:** after about 2 minutes with no breath and no pulse, but
+never while the app is connected (app-off included), and never while on USB
+power (it stays awake to charge and show it). So the "charging, plugged in
+while asleep" row of the LED table becomes "charging while awake and idle";
+that animation isn't written yet.
+
+**Bluetooth name:** `GlassesSense-XXXX`, where XXXX is 4 hex digits from the
+chip ID, so two wearables can be told apart. The product may be renamed
+GlassesSense; the app's auto-connect list needs "glassessense" added.
+
 **All scoring happens on the wearable; the app only displays it:**
 - **Nose clip worn?** Three checks: the pogo plug is in (with it out the
   thermistor input reads full scale), the bead is warm (about 30–34 °C in the
@@ -175,7 +185,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
 | S8550 PNP and S8050 NPN (TO-92, from a transistor kit: bought), 10k, 2.2k, 10k and 100k resistors (on hand) | LED power switch: cuts all LED power when the display is off or the battery is low. 2N2907A or BC327 also do for the PNP | ~$3 |
 | Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base about 5 × 3 mm against the back wall; its round plunger (about 3.5 mm) goes out through a 3.8 mm hole. Use two diagonal pins | $0 |
-| 10k resistor | Thermistor divider, from D7 to A0 (see Wiring) | ~$0.05 |
+| 10k resistor | Thermistor divider, from D7 to D0 (A0) (see Wiring) | ~$0.05 |
 | 28–30 AWG silicone wire, 0.5 mm sleeving, small heat-shrink | Cord, earlobe lead, nose pair; sleeving for the bead's bare leads in the nose clip's tunnel; heat-shrink on wire joints only | ~$3 |
 | Natural (translucent) PETG (on hand) | The one-piece temple parts: the LEDs shine through the wall (see Mount) | $0 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
@@ -218,7 +228,7 @@ Strip sources:
 | D4 SDA, D5 SCL | MAX30101, on the earlobe clip's 4-wire lead |
 | D6 | Button to GND (internal pull-up; wakes from System OFF) |
 | D7 | Feeds the thermistor divider's 10k, high only while reading |
-| A0 | Divider midpoint: 10k from D7, thermistor (via the pogo plug) to GND |
+| D0 (A0) | Divider midpoint: 10k from D7, thermistor (via the pogo plug) to GND. A0 is the D0 pad: the XIAO's analog inputs A0–A5 are D0–D5 |
 | 3V3, GND | MAX30101 power |
 
 These are proposed: the v2 firmware isn't written yet. The cord behind the head
@@ -637,8 +647,8 @@ nose, not the glasses, so it stays put when the glasses move.
   cheek. The path on the stand-in head is 179 mm, plus 40 mm slack. It ends in
   the plug half of a 2-pin 4 mm magnetic pogo connector; the socket half
   presses into the board pod's ear-side wall, 7 mm behind the earlobe lead's
-  hole, and its tails solder to A0 and ground (the
-  firmware's divider: 10k from 3V to A0, thermistor from A0 to ground). Set
+  hole, and its tails solder to D0 (A0) and ground (the
+  firmware's divider: 10k from D7 to D0, thermistor from D0 to ground). Set
   `BETA` in `firmware/config.py` to your bead's B value (3435 now).
 - **Tugs:** the pogo connector's magnets probably hold harder than the clip
   grips, so a snag could pull the clip off the nose before the plug lets go.

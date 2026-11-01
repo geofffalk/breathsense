@@ -68,7 +68,10 @@ over older README text). In short:
   to be better": HRV is the best-supported marker, breathing adds independent info, no validated
   fixed weights - say it's a personal trend, not medical. Focus/meditation ported from
   `mood_analyzer.dart` as-is. New `K` scores message (~1 Hz) and `S,W` weights.
-- Order of work agreed: document (done) → C++ firmware → app.
+- No auto sleep while the app is connected. BLE name `GlassesSense-XXXX` (chip-ID suffix); the
+  user is considering renaming the product/app GlassesSense - app's name filter needs it.
+- Order of work agreed: document (done) → C++ firmware (written in `firmware_v2/`, host-checked
+  against v1 Python + app Dart; not yet compiled for the board) → app.
 
 ## The user's standing rules
 

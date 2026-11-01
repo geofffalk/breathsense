@@ -85,7 +85,39 @@ and both sides show the same pattern. Index 9 is the front (near the eye), 0 the
 XIAO nRF52840, thermistor only, no LEDs, no guided mode; same `B` messages so the app works
 unchanged. Same breath detector and metrics, trimmed.
 
-## v2 plan (not started; spec agreed 1 Nov 2026)
+## v2 firmware (`firmware_v2/`, Arduino C++, written 1 Nov 2026)
+
+`firmware_v2/README.md` has the overview, files, build and hardware-test list. Layout:
+`wearable/wearable.ino` (stub calling `app_setup`/`app_loop`) + `app.cpp` (BLE via Bluefruit, modes,
+button, sleep, scheduling, animations, flash saves, USB-serial debug line) + pure C++ modules `breath.*`, `pulse.*`, `scoring.*` (mood from Dart, nose wear, fusion),
+`display.*`, `protocol.*` (no Arduino calls) + hardware `max3010x.*`, `hw.*`, `storage.*`
+(LittleFS structs, versioned). `config.h` holds pins (XIAO; ItsyBitsy for compile checks) and every
+constant with v1 names/values.
+- **Faithfulness check:** `python3 firmware_v2/test/compare.py` runs the C++ (clang++) against the
+  v1 Python (hardware modules stubbed via sys.modules, time.monotonic/ticks patched) and the app's
+  Dart MoodAnalyzer (`test/mood_ref.dart`, app settings' weights) on synthetic signals, including
+  both LED displays frame by frame and the B/H/R lines. Everything matches at 0.05% (one heart frame
+  in 3448 off by a colour level). Rerun after any detector/display change. Lessons: breath detector
+  must use doubles (float constants like 0.22f/0.35f cross thresholds a sample early); compare
+  timestamps absolutely; build the host test with -ffp-contract=off; v1's hide_all() leaves
+  _show_pixels' cache stale (the C++ shows the frame v1 skipped).
+- **Board build:** not done. This Mac's Adafruit nRF52 1.7.0 toolchain lacks newlib headers
+  (`arm-none-eabi-g++` missing, `stdio.h` not found); running a freshly downloaded toolchain was
+  blocked by the auto-mode classifier. The user should install Seeed nRF52 Boards + Adafruit
+  NeoPixel and compile in the IDE (or allow a scratchpad toolchain). Core links `-u _printf_float`,
+  so `%f` in snprintf works.
+- Gotchas handled: D7 (thermistor divider top) high whenever sensing, low in off/sleep - the
+  unplugged check (A0 ≥ 97% full scale) needs it; `analogReference(AR_VDD4)` for the ratiometric
+  divider, AR_INTERNAL_3_0 briefly for VBAT; P0.14 kept low (Seeed warning); data pins driven low
+  before the LED switch turns off and NeoPixels re-`begin()` after power-on; LED power cut after 2 s
+  dark; MTU 247 requested; heart baselines restored so `update_stress` doesn't overwrite them.
+- Board macros (from boards.txt): `ARDUINO_Seeed_XIAO_nRF52840_Plus` (+ Sense/non-Plus),
+  `ARDUINO_NRF52_ITSYBITSY`; anything else is an #error. XIAO variant: A0 = D0 pad, PIN_VBAT 35,
+  VBAT_ENABLE 14, SDA/SCL 4/5. The waking button press is ignored until released. Battery cut-off
+  needs 5 low readings in a row. No auto sleep on USB (spec updated).
+- Not yet: "auto sleep coming" swells, charging animation (awake on USB), OTA DFU; board compile.
+
+## v2 spec notes (agreed 1 Nov 2026)
 
 Behaviour to implement is the spec in `hardware/v2/README.md` ("Behaviour specification" +
 Discrepancies; summary in the `breathsense` skill). Differences from this v1 code: modes heart /

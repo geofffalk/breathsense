@@ -76,7 +76,7 @@ by a computer (`supervisor.runtime.usb_connected`), not a wall charger.
 | `L,{1\|0}` | LEDs on/off; saved |
 | `Q` | Ask for `R` |
 
-## Planned v2 changes (agreed 1 Nov 2026, not implemented)
+## v2 changes (agreed 1 Nov 2026; implemented in `firmware_v2/`, app not yet)
 
 - Headset → app **`M,{F|H|O}`**: current mode (breath / heart / off), sent on connect and on every
   change (button, app, wake). The headset no longer switches mode on connect.

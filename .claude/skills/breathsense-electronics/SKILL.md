@@ -57,7 +57,7 @@ Sources: `hardware/glasses/README.md` (v1 wiring section), `hardware/glasses/wir
   AO3401; it would be better: ~0 V drop) and wants simple wiring, little to buy. Not low-side: a
   cut NeoPixel ground makes the strips power through their data pins; D4/D5 SDA/SCL MAX30101 (3V3 power); D6 button to GND, wakes
   from System OFF; D7 feeds the thermistor divider's 10k (high only to read; from 3V3 it would draw
-  165 µA asleep); A0 divider midpoint, NTC via the pogo plug to GND. Drive DINs low before cutting
+  165 µA asleep); A0 (= the D0 pad: XIAO A0-A5 are D0-D5, the board only labels D0) divider midpoint, NTC via the pogo plug to GND. Drive DINs low before cutting
   LED+ (else the strips power through data). No power switch: button + System OFF.
 - **Cord behind the head** between pods: battery +, ground, switched LED supply, left strip data.
 - **Power rules:** LEDs off below 3.6 V (blue fails first as voltage drops; amber/red warnings),

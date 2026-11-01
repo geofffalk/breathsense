@@ -153,7 +153,7 @@
   <text x="1092" y="434" class="pin" text-anchor="end">D4 SDA</text>
   <text x="1092" y="464" class="pin" text-anchor="end">D5 SCL</text>
   <text x="1092" y="564" class="pin" text-anchor="end">D7</text>
-  <text x="1092" y="614" class="pin" text-anchor="end">A0</text>
+  <text x="1092" y="614" class="pin" text-anchor="end">D0 (A0)</text>
   <text x="1000" y="380" class="small" text-anchor="middle">USB-C: power and charging</text>
 
   <!-- Right strip -->
@@ -270,7 +270,7 @@
     <text x="20" y="938" class="tbl">15 D6: button      16 D2: cord's DIN wire      17 D1: wire to the right strip's DIN</text>
     <text x="20" y="953" class="tbl">18 GND: right strip's GND and the MAX30101's GND      19 3V3: MAX30101 3-5V</text>
     <text x="20" y="968" class="tbl">20 D4 SDA: MAX30101 SDA      21 D5 SCL: MAX30101 SCL      22 D7: R5's top leg</text>
-    <text x="20" y="983" class="tbl">23 A0: R5's other leg and the wire to pogo pin 1 (R5 bridges D7 and A0, no wire)</text>
+    <text x="20" y="983" class="tbl">23 D0 (A0, the analog input): R5's other leg and the wire to pogo pin 1 (R5 bridges D7 and D0, no wire)</text>
 
     <text x="660" y="907" class="tblh">Elsewhere</text>
     <text x="660" y="923" class="tbl">24, 25 Button: two diagonal pins (to D6 and the star)</text>
