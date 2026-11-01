@@ -36,8 +36,8 @@ def parts():
             ("hang_back_clip_flex", 2, hp.print_orient_clip(hp.back_clip(d["y0"], d["y1"]))),
             ("hang_lid_board_flex", 1, mv.print_orient_lid(lid)),
             ("hang_lid_battery_flex", 1, mv.print_orient_lid(blid)),
-            ("lobe_clip_flex", 1, lc.print_orient(lc.clip_flat())),
-            ("nose_clip_flex", 1, nc.print_orient(nc.clip()))]
+            ("lobe_clip_flex", 1, lc.print_orient(lc.clip_flat()))]
+    flex += [(f"nose_clip_w{round(f * 10)}_flex", 1, nc.print_orient(nc.clip(fit=f))) for f in nc.FITS]
     return petg, flex
 
 

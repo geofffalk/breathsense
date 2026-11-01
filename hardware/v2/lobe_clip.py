@@ -2,8 +2,8 @@
 BreathSense v2 earlobe clip: one soft-flex part that fits any adult earlobe.
 
 The magnets set where the sensor sits, so nothing about the clip's shape has to match the lobe:
-- Back pad (behind the lobe): the MAX30101 board, sensor window toward the lobe. A stack of
-  magnets sits directly behind the sensor chip, so the pinch presses the chip itself onto the
+- Back pad (behind the lobe): the MAX30101 board, sensor window toward the lobe. A magnet
+  sits directly behind the sensor chip, so the pinch presses the chip itself onto the
   skin; a tug on the lead can't peel the chip away first, as it would if the magnets were below.
   The board goes in from the back past soft lips, its chip standing proud of the pad's face; a
   flap on a living hinge folds over the back and presses in, holding the magnets against the
@@ -45,8 +45,8 @@ MAX_BOARD = (19.0, 19.0, 1.6, 1.55)   # Pimoroni MAX30101 breakout: width, heigh
 BOARD_TAB = (15.0, 5.0)      # Its bottom narrows to this width for this height: the pin holes, wired from the back
 CHIP_OFFSET = (0.0, 7.2)     # Sensor chip's centre from the board's centre (x across, z up): at the top edge
 CHIP_PROUD = 0.5             # Chip's face stands this far proud of the pad's skin face, so it presses into the lobe
-MAGNET_D, MAGNET_T = 9.5, 0.8
-MAGNETS = 3                  # Per side. Pinch about 1.3 N on a 2.5 mm lobe, 0.3 N on an 8 mm one
+MAGNET_D, MAGNET_T = 12.0, 3.0   # Neodymium, N35 or better (black ferrite ones are about 1/9 as strong: useless here)
+MAGNETS = 1                  # Per side. Pinch about 2.9 N on a 2.5 mm lobe, 1.6 N on a 5 mm one, 0.8 N on an 8 mm one
 STACK = MAGNETS * MAGNET_T + 0.1
 
 LOBE_T = (2.5, 8.0)          # Thinnest and thickest lobes it's sized for
@@ -65,7 +65,8 @@ POCKET_FIT = 0.1             # Board pocket over the board, each side
 BOARD_GAP = 0.1
 LIP_T = 1.4                  # Back lips over the board's side edges (above the tab); room behind the board
 LIP_W = 1.0                  # Lips overlap the board's edges this much
-FLAP_T = 1.6                 # Flap's cover plate, on the lips
+FLAP_T = 1.6                 # Flap's cover plate, on the lips (thicker where the magnet needs it, see MAG_FLOOR)
+MAG_FLOOR = 0.6              # Flap's back wall behind the magnet's pocket
 WIRE_RECESS = 0.8            # Cover plate is this much thinner over the tab, for the wires off the pins
 PLUG_W = 1.0                 # Flap's press-in bars, inside the side lips
 PLUG_H = 1.0
@@ -80,7 +81,7 @@ HINGE_W = 10.0
 # Keeper strap and front puck
 STRAP_T = 1.0
 STRAP_W = 8.0
-PUCK_D = 14.0                # Wide, to spread the pinch on a thin lobe
+PUCK_D = MAGNET_D + 3.5      # Wide, to spread the pinch on a thin lobe (1.7 mm wall round the magnet)
 PUCK_SKIN = 0.6              # Between the puck's magnets and the lobe
 PUCK_LIP = 0.5               # Retaining lip over the magnets (they snap in past it)
 PUCK_T = PUCK_SKIN + STACK + PUCK_LIP
@@ -99,6 +100,7 @@ Y_PCB_FRONT = CHIP_PROUD - bf
 Y_PCB_BACK = Y_PCB_FRONT - bt
 Y_BOARD = (Y_PCB_BACK - BOARD_GAP, Y_PCB_FRONT)      # Board pocket
 Y_LIPS = Y_BOARD[0] - LIP_T                          # Lips' back face
+FLAP_T = max(FLAP_T, STACK + MAG_FLOOR - BOARD_GAP - LIP_T)
 Y_BACK = Y_LIPS - FLAP_T                             # Pad's back face, flap closed
 PAD_T = -Y_BACK
 MAG_Z = min(0.0, BCZ + HH - 0.2 - BOSS_D / 2)        # Magnets' centre: on the chip if they fit, else as high as
@@ -148,7 +150,7 @@ def pad():
 def flap_closed():
     """The flap where it sits when closed: cover plate on the lips (recessed over the tab for the
     wires), press-in bars inside the side lips, and the magnet boss down onto the board's back,
-    holding the stack against it."""
+    holding the magnet against it."""
     f = box(PX0, PX1, Y_BACK, Y_LIPS, PZ0, PZ1)
     f -= box(BCX - HL, BCX + HL, Y_LIPS - WIRE_RECESS, Y_LIPS + 1, BCZ - HH, Z_SHOULDER)       # Wires' recess ...
     zl = LEAD_OUT[2]

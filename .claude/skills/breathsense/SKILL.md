@@ -43,7 +43,7 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
 - **v2 (proposal, being designed on `hardware-v2`):** XIAO nRF52840 Plus in a pod hanging off the
   right temple tip, battery pod on the left, cord behind the head; one PETG part per temple
   carrying the LED strip round the hinge onto the frame front; magnetic earlobe clip for the
-  MAX30101; soft nose clip holding the thermistor inside the right nostril, wired to the pod by a
+  MAX30101; soft-flex U band (nose clip) holding the thermistor inside the right nostril, wired to the pod by a
   magnetic pogo plug. Firmware to move to Arduino C++ keeping the same BLE protocol.
 
 ## The user's standing rules

@@ -43,11 +43,11 @@ Sources: `hardware/glasses/README.md` (v1 wiring section), `hardware/glasses/wir
 | Seeed **XIAO nRF52840 Plus** (on hand) | 21 × 17.5 mm, built-in LiPo charger, USB-C |
 | 2 × 10-LED NeoPixel 1515 pieces (on hand) | One per side: 6 in direct view around the hinge corner |
 | MAX30101 (Pimoroni, on hand) | Magnetic earlobe clip; 4 loose silicone wires (3V, GND, SDA, SCL), 70 mm, out of the right pod's ear-side wall (4 mm hole, knot inside) |
-| 10k glass-bead NTC, ≤1 mm | In the nose clip just inside the right nostril; twisted 30 AWG pair, ~220 mm, loose along the cheek to a **2-pin 4 mm magnetic pogo** socket in the right pod's ear-side wall → A0 and GND |
+| 10k glass-bead NTC, ≤1 mm | In the nose clip just inside the right nostril; twisted 30 AWG pair, ~230 mm, loose along the cheek to a **2-pin 4 mm magnetic pogo** socket in the right pod's ear-side wall → A0 and GND |
 | 502030 250 mAh LiPo (on hand) | Left pod; charges via USB-C in the right pod through the cord |
 | P-MOSFET (AO3401) + 100k gate pull-up | Cuts LED power when dark (strips draw ~1 mA/LED idle) |
 | 6 × 6 mm tactile button | Wake, sleep, mode; reset pinhole over the XIAO's reset |
-| Magnets | Earlobe clip: 9.5 × 0.8 mm discs, 3 stacked each side. Nose clip: 2 × 1 mm, 2 stacked each leg |
+| Magnets | Earlobe clip: one 12 × 3 mm neodymium disc each side (N35 or better; black ferrite is too weak). Nose clip: none (its soft-flex band grips by a light squeeze) |
 
 - **Cord behind the head** between pods: battery +, ground, switched LED supply, left strip data.
 - **Power rules:** LEDs off below 3.6 V (blue fails first as voltage drops; amber/red warnings),

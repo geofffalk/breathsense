@@ -5,7 +5,8 @@ Usage:  python magnet_force.py DIAMETER_MM THICKNESS_MM PER_SIDE GAP_MM [GAP_MM 
 e.g.    python magnet_force.py 9.5 0.8 3 5.75 11.25   (earlobe clip: 2.5 and 8 mm lobes + 3.25)
         python magnet_force.py 2 1 2 3.8              (nose clip: 3 mm wing + 2 x 0.4 skins)
 Gap = tissue thickness + everything between the magnet faces (PCB, parts, plastic skins).
-Assumes N52-ish Br = 1.2 T. Treat results as +-30%.
+Assumes Br = 1.2 T: N35 neodymium, the usual unlabelled grade (N52 is about 1.45 T, ~1.45x the pull;
+ferrite about 0.4 T, ~1/9). Treat results as +-30%.
 """
 import sys
 

@@ -50,14 +50,15 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Adafruit Ultra Skinny NeoPixel 1515 strip, 4 mm, 150 LEDs/m (on hand, as 10-LED pieces) | SK6805-EC15 LEDs. One 10-LED piece per side: 3 on the corner's flap against the frame front, 1 at the hinge, 6 along the temple | $0 |
 | MAX30101 earlobe sensor, 502030 250 mAh LiPo (on hand) | | $0 |
 | Fast 10k glass-bead NTC thermistor (1 mm or smaller) | Breath sensor, just inside the right nostril on the nose clip | ~$2 |
-| 2-pin 4 mm magnetic pogo connector, four 2×1 mm magnets (on hand) | Nose clip's plug at the board pod; the clip's magnets | $0 |
+| 2-pin 4 mm magnetic pogo connector (on hand) | Nose clip's plug at the board pod | $0 |
+| 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
 | P-MOSFET (e.g. AO3401) and 100k gate pull-up | Cuts all LED power when the display is off or the battery is low | ~$0.50 |
 | 6×6 mm or smaller tactile button | Wake, sleep and mode | ~$0.50 |
 | Natural (translucent) PETG (on hand) | The one-piece temple parts: the LEDs shine through the wall (see Mount) | $0 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
-| **Total** | | **about $8, or $23 with natural PETG** |
+| **Total** | | **about $11, or $26 with natural PETG** |
 
-About $40 of the budget is left. If 5 visible LEDs per side look too coarse,
+About $37 of the budget is left. If 5 visible LEDs per side look too coarse,
 the best use is a custom flex PCB with about 12–14 tiny LEDs for the front
 section only.
 
@@ -161,7 +162,7 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 | `hang_back_clip_flex` | Soft flex | 2 | Closed band round each pod's pocket and the paddle (fits either side) |
 | `hang_lid_board_flex`, `hang_lid_battery_flex` | Soft flex | 1 each | Press-in pod lids |
 | `lobe_clip_flex` | Soft flex | 1 | Magnetic earlobe clip (see Earlobe clip) |
-| `nose_clip_flex` | Soft flex | 1 | Thermistor clip for the nostril (see Nose clip) |
+| `nose_clip_w25_flex` … `w40_flex` | Soft flex | 1 of your size | Thermistor band for the nostril, one per wing thickness (see Nose clip) |
 
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
@@ -325,11 +326,12 @@ shape doesn't have to match the lobe.
     0.5 mm recess behind the pins for solder that wicks through.
   - **Chip proud:** the chip's face stands 0.5 mm proud of the pad's skin face,
     so it presses into the lobe rather than sitting back behind a rim.
-  - **Magnets:** three 9.5 × 0.8 mm discs behind the chip. The chip is too
-    near the top edge for them to centre on it, so they sit 3.35 mm lower,
+  - **Magnet:** one 12 × 3 mm neodymium disc behind the chip. The chip is
+    too near the top edge for it to centre on it, so it sits 4.6 mm lower,
     still covering the chip. The pinch presses the chip itself onto the skin.
   - **Flap:** folds over the back on a living hinge and presses in. It holds
-    the magnets against the board.
+    the magnet against the board; it's 2.2 mm thick, leaving 0.6 mm behind
+    the magnet.
   - **Wires:** solder them to the pins from the back, run them along behind the
     tab and out of the rear wall beside it (4.4 × 3.9 mm slot; the flap is
     recessed 0.8 mm over the tab to make room). Rear is the side away from the
@@ -342,19 +344,20 @@ shape doesn't have to match the lobe.
   - **Length:** long enough for the longest, thickest lobe with the chip high
     on it. On smaller lobes the spare hangs as a loop under the lobe: about
     13 mm on an average lobe, 19 mm on the smallest.
-- **Front puck:** 14 mm across, to spread the pinch, with three discs that
-  snap in past a lip.
+- **Front puck:** 15.5 mm across and 4.2 mm thick, to spread the pinch, with
+  the other disc snapped in past a lip.
   - **Lid:** a lid on a living hinge at the puck's forward side folds over
     its outer face. A plug on the lid presses into the lip's opening, down
-    onto the magnets, so they can't drop out while the clip is off. (When
-    it's worn, the pull toward the pad's magnets holds them in anyway.) A dab
-    of glue on the plug makes it permanent. With only two discs in the puck,
-    the plug no longer reaches them, so add a 0.8 mm shim or glue.
-  - **Polarity:** put the stacks in so they attract when the strap is folded.
+    onto the magnet, so it can't drop out while the clip is off. (When it's
+    worn, the pull toward the pad's magnet holds it in anyway.) A dab of glue
+    on the plug makes it permanent.
+  - **Polarity:** put the discs in so they attract when the strap is folded.
 - **Pinch:** the magnets are the lobe's thickness plus 3.25 mm apart (board,
-  chip and skins). That gives about 1.3 N on a 2.5 mm lobe and 0.3 N on an
-  8 mm one. The clip weighs about 6 g, so even the weakest pinch holds it. On
-  very thin lobes, use two discs in the puck if it pinches.
+  chip and skins). With N35 discs that gives about 2.9 N on a 2.5 mm lobe,
+  1.6 N on a 5 mm one and 0.8 N on an 8 mm one; the clip weighs about 6 g.
+  On a thin lobe it's firm: if it aches or the pulse signal weakens, wear it
+  lower where the lobe is thicker. (The first 3 × 9.5 × 0.8 mm discs were
+  black ferrite: about 0.03-0.14 N, too weak to feel.)
 - **Wearing it:** put the chip on the upper, fleshy part of the lobe, at
   least 6 mm below the notch. Fold the strap round and let the puck snap on.
 - **Lead:** 4 loose silicone wires (power, ground, SDA, SCL), 70 mm long. The
@@ -370,36 +373,37 @@ shape doesn't have to match the lobe.
 
 ### Nose clip (current)
 
-`nose_clip.py` makes one small soft-flex part (8 × 11 × 9 mm worn) that clips onto
-the wing of the right nostril and holds the breath thermistor just inside it.
-It's held by the nose, not the glasses, so it stays put when the glasses move.
+`nose_clip.py` makes a small U-shaped band of soft flex (4 mm wide, 1.2 mm
+thick, about 9 mm tall) that goes over the rim of the right nostril's wing
+and holds the breath thermistor upright just inside it. It's held by the
+nose, not the glasses, so it stays put when the glasses move.
 
-- **The U:** wraps the wing's lower rim, the inner leg inside the nostril and
-  the outer pad on the skin outside. It prints nearly closed (1.6 mm) and
-  springs shut onto any wing about 2–5 mm thick.
-- **Magnets:** two 2×1 mm discs stacked in each leg, pushed in from the faces
-  away from the skin; put them in so the legs attract. They only help it
-  settle: through a 3 mm wing they pull about 0.02 N. The spring does the
-  holding.
-- **Magnet lids:** each hole is closed by a lid on a living hinge at the
-  clip's back edge, with a peg that presses into the hole on top of the
-  stack. They print lying flat, out to either side, pegs up. When worn, the
-  magnets pull toward each other, deeper into their holes, so the lids only
-  have to stop them dropping out while the clip is off. A dab of glue on the
-  peg makes it permanent (it's all on the printed part).
-- **Bead cage:** an open square tube on the inner leg's tip, along the nostril
-  (the way the air goes). It holds the bead about 4 mm in and 2 mm off the
-  skin, in the airflow; touching skin, it would read skin temperature.
-- **Wiring:** the bead's leads drop through the cage, down the groove on the
-  inner leg's free face to the keel under the U, outside the nostril. Solder
-  them to a twisted pair of 30 AWG silicone wires there (heat-shrink each
-  joint), and press the pair into the keel's channel; it leaves from the back,
-  toward the ear.
-- **Order:** magnets in, bead leads in the groove, then fold both lids up and
-  press the pegs home. The inner leg's lid closes over the groove and holds
-  the leads in.
-- **Wire:** 220 mm, loose: down behind the earlobe, under its clip, along the
-  cheek. The path on the stand-in head is 178 mm, plus 40 mm slack. It ends in
+- **The band:** one leg inside the nostril, one on the skin outside, the bend
+  under the rim. It's printed shaped to the wing, with the legs 0.8 mm closer
+  together than the wing is thick, so the only grip is that light squeeze,
+  spread over both 4 mm legs. Chamfered tops let the wing slide in.
+- **Sizes:** measure your wing's thickness, pinched gently, and print the
+  nearest of `nose_clip_w25_flex` … `w40_flex` (2.5, 3.0, 3.5 and 4.0 mm
+  wings). They're tiny, so printing two neighbouring sizes and keeping the
+  better one is easiest.
+- **Grip:** about 0.15–0.2 N on the wing it's sized for, rising about 0.1 N
+  per extra 0.5 mm (estimate, assuming soft flex at 25 MPa). Too firm:
+  print the next size up, or lower `SQUEEZE`.
+- **Why not PETG:** the earlier PETG ring sprang open from under a 1 mm gap
+  onto the wing and pinched hard. PETG is too stiff for a band this short:
+  even 0.3 mm of squeeze would press about 3 N.
+- **Thermistor:** a stalk off the top of the inside leg holds the bead
+  upright, 2.5 mm off the wing's inner face and 1.5 mm above the legs, in
+  the airflow; touching skin, it would read skin temperature.
+- **Wiring:** sleeve the bead's two leads (they're bare) and lay them in the
+  open groove down the stalk (1 mm wide; a dab of glue holds them and the
+  bead), then down through the eyelet (1.4 mm hole) on the inside leg and out
+  under the rim. Solder them to a twisted pair of 30 AWG silicone wires there
+  (heat-shrink each joint); the pair heads back toward the ear.
+- **Printing:** flat on its back face, no supports: the groove opens upward
+  and the eyelet's hole is vertical. 100% infill, slow, brim.
+- **Wire:** 230 mm, loose: down behind the earlobe, under its clip, along the
+  cheek. The path on the stand-in head is 183 mm, plus 40 mm slack. It ends in
   the plug half of a 2-pin 4 mm magnetic pogo connector; the socket half
   presses into the board pod's ear-side wall, 7 mm behind the earlobe lead's
   hole, and its tails solder to A0 and ground (the
@@ -412,9 +416,9 @@ It's held by the nose, not the glasses, so it stays put when the glasses move.
 - **Check:** the bead (`BEAD_D`, 0.8 mm assumed) and the pogo socket
   (`hang_pods.POGO`, 4.0 × 4.0 mm assumed, no flange). The socket's tails sit
   in the knot space under the XIAO; bend them flat.
-- **Printing:** back face down, no supports. The only overhangs are short
-  bridges over the magnet holes, the groove and the cage. The lids lie on the
-  bed; peel them up gently, the hinges are 0.5 mm.
+- **Printing:** translucent PETG, flat on its back face, no supports; the
+  only overhangs are the small lead holes. A brim helps it stay down. Spring
+  it open a few times to check it doesn't whiten (the sign of overstraining).
 
 ### Earlier v2 mount (superseded)
 

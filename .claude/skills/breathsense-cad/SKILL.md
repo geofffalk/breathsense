@@ -28,7 +28,7 @@ Bundled checks (in this skill's `scripts/`):
 | `onepiece.py` | `onepiece_right_petg`, `onepiece_left_petg`, `onepiece_band_flex` | One PETG part per temple: slot for the 10-LED strip (2.2 mm wide for the 1.2 mm strip, open top with no tabs - 0.4 mm tabs on a 1.6 mm slot blocked the strip; held by its stiffness in the curve, the band over its end, silicone if needed; wall 0.8 mm, thinned from inside to a 0.45 mm `SKIN` over a 3.4 × 3 mm patch per LED; print in translucent PETG), 18 mm-radius rigid curve round the hinge onto the frame front's back face, above the lens; rail to 60 mm behind the hinge; top hook + ONE closed soft-flex band, 6 mm, just behind the last LED (45-51 mm) - a band between LEDs covers light, so never put one on the LED run; 0.3 mm squeeze; 0.5 mm grooves in top, hook lip and plate bottom, none in the 0.8 mm head-side wall (0.4 mm left was too thin); slid on over the tip with the pod off - open C-clips fell off, TPE too soft. Glasses can't fold while fitted |
 | `hang_pods.py` | `hang_pod_board_petg`, `hang_pod_battery_petg`, `hang_lid_*_flex`, `hang_liner_flex` (×2), `hang_back_clip_flex` (×2) | Pods over the last 22 mm of each temple-tip paddle, lined with soft flex, held by a closed soft-flex band (`back_clip()`, 8 mm, 11-19 mm from the paddle end) in a groove round the pocket (0.7 mm faces/edge, 0.3 mm top edges); bands go on over the bare tip before the pod; body continues down behind the earlobe. Board pod: XIAO, USB-C at far end, button in back wall, earlobe lead hole (4 mm) and nose-clip pogo socket (4.1 mm, 7 mm behind it) in the ear-side wall. `board_pod()` returns `(pod, lid, d)`; `d["lead_exit"]`, `d["pogo"]` |
 | `lobe_clip.py` | `lobe_clip_flex` | Universal magnetic earlobe clip for the Pimoroni MAX30101 (see below) |
-| `nose_clip.py` | `nose_clip_flex` | Thermistor clip on the right nostril's wing (see below) |
+| `nose_clip.py` | `nose_clip_w25_flex` … `w40_flex` | Thermistor U band on the right nostril's wing, one per wing thickness (see below) |
 | `assembly_onepiece.py` | `out/assembly_onepiece.step` | Both sides as worn on stand-in glasses, ear, lobes (small/mid/large) and nostril wing; leads drawn; prints lead cut lengths. Checks overlaps only by intersecting bodies |
 | `print_layout.py` | `out/print_layout.step` | Every print part in print orientation, PETG row then flex row, one named body per copy |
 | `render_onepiece.py`, `render_v2.py` | `renders/*.png` | pyvista renders |
@@ -63,26 +63,37 @@ suffix are from superseded designs.
 
 One soft-flex part, printed flat skin side down: back pad (board pocket + flap on a living hinge
 holding the magnets), a 32 mm floppy keeper strap from the pad's bottom edge round the lobe's free
-edge, and a 14 mm front puck (magnets behind a lip, closed by a living-hinge lid at its +x side whose plug fills the lip opening; `puck_lid`/`puck_lid_open`). Magnets (3 × 9.5 × 0.8 each side) set the sensor's position, so one
+edge, and a 15.5 mm front puck (magnet behind a lip, closed by a living-hinge lid at its +x side whose plug fills the lip opening; `puck_lid`/`puck_lid_open`). Magnets (one 12 × 3 mm neodymium disc each side, 50-pack from Amazon UK B088FNGGNQ, grade unstated so assume N35; the user's first black 9.5 × 0.8 discs were ferrite, ~1/9 the pull, and felt like nothing) set the sensor's position, so one
 size fits lobes 13-27 mm tall and 2.5-8 mm thick; spare strap hangs as a loop.
 - Board `MAX_BOARD = (19, 19, 1.6, 1.55)`, tab `BOARD_TAB = (15, 5)`, `CHIP_OFFSET = (0, 7.2)`
   (chip 2.3 mm below top edge - from a photo, unverified), `POCKET_FIT` 0.1.
 - Chip face stands `CHIP_PROUD` 0.5 mm proud of the pad face. Front retention on all four edges:
   0.8 mm side rims, 3.5 × 1.5 mm top-corner tabs (round the mounting holes, clear of the chip), a
   cover over the pin tab with a 0.5 mm solder recess. Back lips along the side edges only.
-- Magnets centred `MAG_Z` = -3.35 mm below the chip (can't centre: chip at top edge). Gap = lobe +
-  3.25 mm → ~1.3 N at 2.5 mm, ~0.3 N at 8 mm.
+- Magnets centred `MAG_Z` = -4.6 mm below the chip (can't centre: chip at top edge; the boss clears
+  the pin tab by 0.4 mm). Gap = lobe + 3.25 mm → ~2.9 N at 2.5 mm, 1.6 N at 5 mm, 0.8 N at 8 mm.
+  `FLAP_T` grows to leave `MAG_FLOOR` behind the magnet (2.2 mm); pad 6.4 mm thick, puck 4.2 mm.
+  `magnet_force.py` assumes N35 (Br 1.2 T); N52 is ~1.45x, ferrite is ~1/9 (Br^2) - check the user's magnets' material.
 - Wires solder to the pins from the back, run behind the tab, out a 4.4 × 3.9 mm slot in the rear
   wall (side away from the hinge). `LEAD_OUT` gives the exit point; lead 70 mm.
 
 ## Nose clip (`nose_clip.py`)
 
-8 × 11 × 9 mm (worn) soft-flex U on the right nostril's wing, printed back face down. Rest gap 1.6 mm,
-springs onto 2-5 mm walls (`clip(gap)` builds any opening). Inner leg ~4 mm into the nostril with
-a 3 mm open square cage holding a ≤1 mm glass bead 2 mm off the skin. 2 × 2×1 mm magnets per leg
-help settle only (~0.02 N through 3 mm); the spring holds it. Holes open away from the wing (the pull seats the magnets), each closed by a living-hinge lid at the back edge with a peg filling the 0.9 mm `HEAD` above the stack; printed flat and open, `clip(gap, lids_open=False)` for the worn model. Bead leads go down a groove to a
-keel under the U; joint to a 30 AWG twisted pair in the keel's channel; pair exits the back toward
-the ear, ~220 mm to the pogo plug. Assumed: `BEAD_D` 0.8, pogo 4.0 × 4.0 mm no flange.
+Soft-flex U band (4 mm wide, 1.2 mm thick, legs 6 mm above the bend) over the right nostril's
+wing rim, printed flat on its back face. Shaped to the wing: legs `SQUEEZE` 0.8 mm closer than the
+wing, so grip is ~0.15-0.2 N on its own size (`grip()`: each leg a cantilever from the bend, E 25
+MPa). `FITS` 2.5-4.0 mm exported as `nose_clip_w<10×fit>_flex`; `WING` 3.0 is the default/display
+size. `clip(gap, fit)` shows it worn (halves moved apart, joined under the bend, dropped so the rim
+clears). Stalk off the inside leg's top: bead 2.5 mm off the wing, 1.5 mm above the legs; leads in
+an open 1 × 0.8 mm groove on the stalk's top face (as printed), then a vertical 1.4 mm eyelet below
+it. No bridges or overhangs.
+History: soft-flex U with 2×1 mm magnets (0.02 N, too weak); magnet lids (bulky - "like a
+football"); metal clip-on nose rings (look like jewellery); a PETG open ring (R 4, 0.7 × 1.5 mm
+strip): too small and flimsy, its 0.7 mm lead hole didn't print, and springing open from a <1 mm
+gap onto the wing "pinches like hell". Lessons: holes under ~1.2 mm don't print (use open grooves
+or vertical holes); size the clip to the wing with a small squeeze instead of a big spring travel;
+PETG is far too stiff for short springs on skin. The user wants it subtle and sturdy, a band
+"2-3x wider than the ring", not wide. Assumed: `BEAD_D` 0.8, pogo 4.0 × 4.0 mm no flange.
 
 ## Checks to run after any change
 
