@@ -123,8 +123,7 @@ STRAP_L = strap_len()
 
 
 def pad(y_lips=Y_LIPS):
-    """Back pad, flap open (not included), its back face at y_lips (hang_pods' head-side sensor
-    carrier reuses it with thinner lips). The board sits in it sensor face first, held in front
+    """Back pad, flap open (not included), its back face at y_lips. The board sits in it sensor face first, held in front
     by rims along its side edges, tabs over its top corners and a cover over its pin tab, and behind
     by lips along its side edges; the window is open over the chip and the parts. Beside the tab
     the pocket is open behind the board but closed in front: the wires come off the pins' backs,

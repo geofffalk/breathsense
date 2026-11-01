@@ -214,18 +214,17 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 | `lobe_clip_flex` | Soft flex | 1 | Magnetic earlobe clip (see Earlobe clip) |
 | `nose_clip_w25_flex` … `w40_flex` | Soft flex | 1 of your size | Thermistor band for the nostril, one per wing thickness (see Nose clip) |
 
-**Head-side sensor variant** (see Pods): to try the MAX30101 pressing on the
-skin behind the ear instead of on the earlobe, print these in place of
-`hang_pod_board_petg`, one of the `hang_back_clip_flex` and `lobe_clip_flex`.
-They're the third row of `print_layout.step`.
+**Head-side sensor variant** (see Pods): to try the MAX30101 under the end of
+the temple tip instead of on the earlobe, print these in place of
+`hang_pod_board_petg`, `hang_lid_board_flex`, the right pod's
+`hang_liner_flex` and `lobe_clip_flex`. They're the third row of
+`print_layout.step`.
 
 | File (`out/stl/`) | Material | Qty | What it is |
 |---|---|---|---|
-| `hang_pod_board_head_petg` | PETG | 1 | Right pod with a window in its head-side wall |
-| `hang_shelf_head_petg` | PETG | 1 | Drops in over the sensor; the XIAO sits on it |
-| `hang_carrier_head_flex` | Soft flex | 1 | Holds the MAX30101 in the window |
-| `hang_bow_head_flex` | Soft flex | 2 | Springs between the board's back and the shelf |
-| `hang_back_clip_head_flex` | Soft flex | 1 | The right pod's band (this pod is thicker) |
+| `hang_pod_board_head_petg` | PETG | 1 | Right pod with the sensor's window in its pocket's head-side wall, 3 mm longer |
+| `hang_lid_board_head_flex` | Soft flex | 1 | Its lid |
+| `hang_liner_head_flex` | Soft flex | 1 | Right pod's liner, cut away behind the sensor |
 
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
@@ -329,7 +328,7 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 | File (`out/stl/`) | Material | What it is |
 |---|---|---|
 | `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn) on two 1 mm rails, an 8 mm bay at the front for the LED switch, button in the back wall, earlobe lead out of the ear-side wall |
-| `hang_pod_board_head` + `hang_shelf_head`, `hang_carrier_head`, `hang_bow_head` (×2), `hang_back_clip_head` | PETG / soft flex | Head-side sensor variant of the right pod (see below) |
+| `hang_pod_board_head`, `hang_lid_board_head`, `hang_liner_head` | PETG / soft flex | Head-side sensor variant of the right pod (see below) |
 | `hang_pod_battery` | PETG | Left pod: 502030 cell; cord out of the far end |
 | `hang_liner` | Soft flex | Lines each pod's pocket. Print 2 |
 | `hang_back_clip` | Soft flex | Closed band round each pod's pocket and the paddle, in a groove. Print 2 |
@@ -377,35 +376,35 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 
 #### Head-side sensor variant (to try)
 
-The MAX30101 pokes out of a window in the board pod's head-side wall,
-pressing on the skin behind the ear, in place of the earlobe clip.
+The MAX30101 sits in the pocket's head-side wall at the end of the temple tip,
+where the temple presses on the head (about 4–5 mm from the tip's end), in
+place of the earlobe clip.
 
-- **Carrier:** a soft-flex frame that's the earlobe clip's board pocket with
-  thinner back lips (same rims, corner tabs, tab cover; chip 0.5 mm proud of
-  it). A flange round its back face rests on the inside of the wall, so it
-  can't fall out. At rest it stands **1.55 mm proud** of the pod's head-side
-  face (the chip 2.05 mm).
-- **Springs:** two soft-flex bows press on the board's back, right behind the
-  chip, and push off a PETG shelf. Pushed in 0.5 / 1.0 / 1.5 mm they press
-  about 0.3 / 0.6 / 0.9 N (estimate, soft flex at 25 MPa); they go flat at 1.9 mm,
-  past the carrier's travel, so it never bottoms out hard. Too firm or too
-  soft: change the bows' `BOW` thickness (force goes with its cube).
-  Not a solid soft-flex block: at 100% infill it barely compresses.
-- **Shelf:** drops onto ledges round the cavity over the bows; the XIAO sits
-  on its two rails. A notch at the far end by the back wall lets the
-  MAX30101's 4 wires (from its pins at the tab, out of the carrier's side)
-  up to the XIAO. Assemble: carrier (board in it) into the window from inside,
-  bows on the board's back, shelf, XIAO, lid.
-- **Where it lands:** chip toward the ear-side wall and the pod's front, as
-  near the ear as the cavity allows. On the stand-in head that's about 3.4 cm
-  behind the back of the earlobe, level with its top: behind the ear rather
-  than in the groove where it joins the head (the pocket over the paddle sits
-  there). The stand-in ear is only good to ±5 mm, so check for hair where it
-  touches; the sensor needs bare skin.
-- **Size:** the pod is 11.9 mm thick instead of 8.7: all of the extra is on
-  the outer side, plus the carrier proud on the head side. It needs its own
-  band (`hang_back_clip_head`). No earlobe lead hole; the nose clip's pogo
-  socket stays in the ear-side wall, above the shelf.
+- **Thin:** the board's back rests straight on the temple tip (the liner is
+  cut away there) and its sensor-side parts poke out through a window in the
+  pocket's wall. The chip stands **0.8 mm** past the pod's head-side face, so
+  the temple sits only 0.8 mm further out than with the plain pod. The board
+  itself, 3.15 mm from its back to the chip's face, is the limit. The pod
+  stays 8.7 mm thick.
+- **Pressed by the temple:** the temple's own grip pushes the chip onto the
+  skin. No springs.
+- **Layout:** the chip edge faces the ear bend, the chip's centre 4.5 mm from
+  the tip's end (`SENSOR_AT`), at the tip's top edge (`SENSOR_Z`). The board
+  runs back past the tip's end under the pod's floor, below the bay. The
+  pocket's head-side wall is carried up past its top edge round the board,
+  ending well clear of the band.
+- **Held by:** rims along the board's sides, tabs over its top corners and a
+  cover over its pin tab, as on the earlobe clip, in the PETG wall; the temple
+  tip behind it when worn.
+- **Fitting:** with the lid off, drop the board (sensor side down) onto the
+  pod's floor at the front of the cavity, then slide it 7.5 mm toward the
+  pocket, through the slot in the front wall, until its edge stops. Solder its
+  4 wires from the back; they go straight to the XIAO. Then the XIAO and the
+  switch parts in the bay above it, and the lid.
+- **Where it lands:** on the stand-in head, about 4 mm up the tip from its
+  end. It's under the temple, which presses there.
+- **Size:** the pod is 3 mm longer (57 mm) so the XIAO clears the board's far
+  end. No earlobe lead hole. Same band and battery pod as the plain version.
 - **Unproven:** whether this spot gives a clean pulse on every beat (the
   LEDs need every one, live). Try it against the earlobe clip.
 

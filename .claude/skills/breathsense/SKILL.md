@@ -73,7 +73,8 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
 - `render_onepiece.py` is broken (uses `mv.ARM_UP`, removed from `mount_v2.py`).
 - Pulse sensor site: the MAX30101 drives the heart LEDs fine from a fingertip. Two printable
   variants to compare by missed beats: the earlobe clip, and the head-side variant of the board pod
-  (sensor sprung out of its head-side wall; lands behind the ear, not in the ear-root groove).
+  (sensor in the pocket's head-side wall under the temple tip's end, where the temple presses;
+  chip 0.8 mm proud).
 - Earlobe clip resized for 12 × 3 mm neodymium discs (the first black 9.5 × 0.8 mm ones were
   ferrite, far too weak); untested. Nose clip is now a soft-flex U band in four sizes; untested.
 - Firmware still targets v1 hardware; v2 firmware (Arduino) not started.

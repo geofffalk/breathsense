@@ -24,7 +24,7 @@ GAP = 10.0
 
 def parts():
     """(name, how many, shape on the bed) for the PETG row, the soft-flex row, and the head-side
-    sensor variant's row (its parts replace the board pod, its band and the earlobe clip)."""
+    sensor variant's row (its parts replace the board pod, its lid, one liner and the earlobe clip)."""
     left = op.part()
     pod, lid, d = hp.board_pod()
     bat, blid, _ = hp.battery_pod()
@@ -39,14 +39,11 @@ def parts():
             ("hang_lid_battery_flex", 1, mv.print_orient_lid(blid)),
             ("lobe_clip_flex", 1, lc.print_orient(lc.clip_flat()))]
     flex += [(f"nose_clip_w{round(f * 10)}_flex", 1, nc.print_orient(nc.clip(fit=f))) for f in nc.FITS]
-    # Head-side sensor variant: print these instead of the board pod, its band and the earlobe clip
-    hpod, _, hd = hp.board_pod("head")
-    _, _, shelf = hp.head_parts(hd)
+    # Head-side sensor variant: print these instead of the board pod, its lid, its liner and the earlobe clip
+    hpod, hlid, _ = hp.board_pod("head")
     head = [("hang_pod_board_head_petg", 1, hp.print_orient_head_down_mirrored(mirror(hpod, Plane.XZ))),
-            ("hang_shelf_head_petg", 1, hp.print_orient_shelf(shelf)),
-            ("hang_carrier_head_flex", 1, lc.print_orient(hp.carrier())),
-            ("hang_bow_head_flex", 2, mv._to_bed(hp.bow())),
-            ("hang_back_clip_head_flex", 1, hp.print_orient_clip(hp.back_clip(hd["y0"], hd["y1"])))]
+            ("hang_lid_board_head_flex", 1, mv.print_orient_lid(hlid)),
+            ("hang_liner_head_flex", 1, hp.print_orient_liner(mirror(hp.liner_head(), Plane.XZ)))]
     return petg, flex, head
 
 
