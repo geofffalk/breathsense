@@ -2,7 +2,7 @@
 Every current print part in one STEP for Fusion, each as it sits on the printer bed (the same
 shapes and orientations as the STLs), laid out in rows: PETG, soft flex, then two variants (the
 head-side sensor, and the one-piece part's earlier band grip). Each body is named after its STL,
-with how many to print.
+with how many to print. A two-colour part is a list of (name, shape) pieces placed together.
 
 Run:  python print_layout.py   -> out/print_layout.step
 """
@@ -28,10 +28,21 @@ def parts():
     variant's row (its parts replace the board pod, its lid, one liner and the earlobe clip), and
     the band-grip variant's row (its parts replace the one-piece parts and their liners)."""
     left = op.part()
+
+    def two_colour(l, grip, suffix):
+        """Right and left one-piece parts, each as its body and translucent piece in the same place."""
+        out = []
+        for side, mir in (("right", True), ("left", False)):
+            whole, b, w = l, op.body(l, grip), op.translucent(l, grip)
+            if mir:
+                whole, b, w = (mirror(x, Plane.XZ) for x in (whole, b, w))
+            out.append((f"onepiece_{side}{suffix}", 1, [(f"onepiece_{side}{suffix}_body_petg", op.print_orient(b, whole)),
+                                                        (f"onepiece_{side}{suffix}_translucent_petg", op.print_orient(w, whole))]))
+        return out
+
     pod, lid, d = hp.board_pod()
     bat, blid, _ = hp.battery_pod()
-    petg = [("onepiece_right_petg", 1, op.print_orient(mirror(left, Plane.XZ))),
-            ("onepiece_left_petg", 1, op.print_orient(left)),
+    petg = two_colour(left, "liner", "") + [
             ("hang_pod_board_petg", 1, hp.print_orient_head_down_mirrored(mirror(pod, Plane.XZ))),
             ("hang_pod_battery_petg", 1, hp.print_orient_head_down(bat))]
     ln = op.liner()
@@ -51,8 +62,7 @@ def parts():
             ("hang_back_clip_head_flex", 1, hp.print_orient_clip(hp.back_clip(hd["y0"], hd["y1"])))]
     # Band-grip variant of the one-piece part: print these instead of the one-piece parts and their liners
     bl = op.part(grip="band")
-    band = [("onepiece_right_band_petg", 1, op.print_orient(mirror(bl, Plane.XZ))),
-            ("onepiece_left_band_petg", 1, op.print_orient(bl)),
+    band = two_colour(bl, "band", "_band") + [
             ("onepiece_band_flex", 2, op.print_orient_clip(op.clip(op.CLIPS[0])))]
     return petg, flex, head, band
 
@@ -65,11 +75,13 @@ def layout():
         x = 0.0
         depth = 0.0
         for name, n, shape in row:
-            bb = shape.bounding_box()
+            pieces = shape if isinstance(shape, list) else [(name, shape)]
+            bb = Compound(children=[sh for _, sh in pieces]).bounding_box()
             for i in range(n):
-                s = Pos(x - bb.min.X, y - bb.min.Y, -bb.min.Z) * shape
-                s.label = name if n == 1 else f"{name} ({i + 1} of {n})"
-                out.append(s)
+                for pname, sh in pieces:
+                    s = Pos(x - bb.min.X, y - bb.min.Y, -bb.min.Z) * sh
+                    s.label = pname if n == 1 else f"{pname} ({i + 1} of {n})"
+                    out.append(s)
                 x += bb.max.X - bb.min.X + GAP
             depth = max(depth, bb.max.Y - bb.min.Y)
         y += depth + 2 * GAP

@@ -191,7 +191,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base about 5 × 3 mm against the back wall; its round plunger (about 3.5 mm) goes out through a 3.8 mm hole. Use two diagonal pins | $0 |
 | 10k resistor | Thermistor divider, from D1 to D0 (A0), the neighbouring pad (see Wiring) | ~$0.05 |
 | 28–30 AWG silicone wire, 0.5 mm sleeving, small heat-shrink | Cord, earlobe lead, nose pair; sleeving for the bead's bare leads in the nose clip's tunnel; heat-shrink on wire joints only | ~$3 |
-| Natural (translucent) PETG (on hand) | The one-piece temple parts: the LEDs shine through the wall (see Mount) | $0 |
+| Natural (translucent) PETG (on hand), plus PETG in any colour | The one-piece temple parts: a translucent strip in front of the LEDs, the rest in your colour (see Mount) | $0 |
 | PETG, plus the soft flex filament (on hand) | Rigid rails and clips, with soft-flex liners and corners (see Mount) | $0 |
 | **Total** | | **about $15, or $30 with natural PETG** |
 
@@ -343,7 +343,7 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 
 | File (`out/stl/`) | Material | Qty | What it is |
 |---|---|---|---|
-| `onepiece_right_petg`, `onepiece_left_petg` | Translucent PETG | 1 each | LED band and rail. 5 mm brim: they stand on a narrow edge |
+| `onepiece_right_body_petg` + `onepiece_right_translucent_petg`, and the same for `left` | PETG in your colour + translucent PETG | 1 each side | LED band and rail, in two colours: load each side's pair together (see below). 5 mm brim: they stand on a narrow edge |
 | `hang_pod_board_petg` | PETG | 1 | Right pod: XIAO |
 | `hang_pod_battery_petg` | PETG | 1 | Left pod: battery |
 | `onepiece_liner_right_flex`, `onepiece_liner_left_flex` | Soft flex | 1 each | L-shaped liner in each one-piece part's channel, on the temple's top and outer face |
@@ -367,16 +367,23 @@ the temple tip instead of on the earlobe, print these in place of
 | `hang_back_clip_head_flex` | Soft flex | 1 | Right pod's band (this pod is thicker) |
 
 **Band-grip variant of the one-piece part** (the earlier design, kept in case
-the liner doesn't hold): print these in place of `onepiece_right_petg`,
-`onepiece_left_petg` and the two `onepiece_liner_*_flex`. They're the fourth
+the liner doesn't hold): print these in place of the `onepiece_right_*` and
+`onepiece_left_*` body and translucent pairs and the two `onepiece_liner_*_flex`. They're the fourth
 row of `print_layout.step`.
 
 | File (`out/stl/`) | Material | Qty | What it is |
 |---|---|---|---|
-| `onepiece_right_band_petg`, `onepiece_left_band_petg` | Translucent PETG | 1 each | The one-piece part with a short hook and the band's grooves |
+| `onepiece_right_band_body_petg` + `onepiece_right_band_translucent_petg`, and the same for `left` | PETG in your colour + translucent PETG | 1 each side | The one-piece part with a short hook and the band's grooves, in two colours |
 | `onepiece_band_flex` | Soft flex | 2 | Temple band (closed loop) behind the last LED, one per side (fits either side) |
 
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
+- **Two-colour one-piece parts:** each side is a pair of STLs in the same
+  place on the bed: `_body` (any colour) and `_translucent` (the head-side
+  wall along the whole LED run, in one piece). Select both files and import
+  them together; when the slicer asks, load them as one object with multiple
+  parts (Bambu Studio, Orca and PrusaSlicer all ask). Then set the translucent
+  part to the translucent filament and the body to your colour. In
+  `print_layout.step` each pair is two bodies in place.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
   infill, no supports. A brim helps the small clips stay down.
 - **Handedness:** the parts are modelled for the left temple (y outward, in a
@@ -385,7 +392,7 @@ row of `print_layout.step`.
 - **Liner:** prints open edge down, so its walls stand up and only the 3.6 mm
   bottom bridges.
 - **Test fits first:** a pod with a liner and band on the glasses tip;
-  `onepiece_right_petg` with its liner; the earlobe clip on your ear; the nose clip on your nostril.
+  the right one-piece part with its liner; the earlobe clip on your ear; the nose clip on your nostril.
 
 ### One-piece temple part (current design)
 
@@ -414,13 +421,14 @@ shaped to one measured pair of glasses, not universal.
   rest into the slot. If the strip
   lifts anywhere else, a dab of silicone in the slot (on the part, not the
   glasses) holds it.
-- **Windows.** Print the part in translucent PETG. The slot's head-side wall
-  is 0.8 mm thick, but in front of each LED it's thinned from the slot side to
+- **Windows.** The slot's head-side wall is 0.8 mm thick, but in front of each LED it's thinned from the slot side to
   a 0.45 mm skin (one line from a 0.4 mm nozzle) over a 3.4 × 3 mm patch.
   Each LED shines through its skin as a soft spot, and the outside face stays
   smooth. The full-thickness wall above and below each patch holds the strip
-  in. Some light also spreads along the wall, which blurs the LEDs together;
-  if that's too much, darken the outside between the windows with a marker.
+  in. The head-side wall is translucent along the whole LED run, from just
+  behind the rearmost LED to the front end, slot floor to top, in one piece.
+  Light spreads along it between the LEDs, which blends them so the moving
+  bars look smooth. The rest of the part prints in a colour you choose.
   Check that the slicer prints the skin as one line and doesn't leave it out:
   set the line width to 0.45 mm, or detect thin walls.
 - **Length.** The rail ends 60 mm behind the hinge, about 18 mm past the
@@ -429,8 +437,11 @@ shaped to one measured pair of glasses, not universal.
 - **Grip.** The same wedge as the pods' pockets. Along the rail the part is a
   rigid channel, open underneath: a top over the temple's top edge, and a leg
   4 mm down its outer face. A soft-flex L (`onepiece_liner`) lines those two
-  sides: 0.8 mm on the top, 1.0 mm on the outer face. It squeezes the temple
-  0.35 mm against the PETG plate on its inner face. On top it barely
+  sides: 0.8 mm on the top, 1.6 mm on the outer face, inside a 1.2 mm PETG
+  leg. It squeezes the temple 0.45 mm against the PETG plate on its inner
+  face. That's 28% of the liner's thickness, and still 9–47% if your temple
+  is 0.3 mm thicker or thinner than measured. The thick liner gives that
+  tolerance; the PETG leg only needs to be rigid next to it. On top it barely
   squeezes (0.1 mm), because the part hangs there anyway. The temple thickens
   toward the hinge, so the part tightens if it's pushed forward. Nothing goes
   round the LEDs, and nothing is on the head side but the PETG.

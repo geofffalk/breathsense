@@ -10,8 +10,11 @@ have to bend. Shaped to one measured pair of glasses, not universal.
 - The strip drops into a slot that's open along its top edge, so it never has to be threaded
   through. Nothing narrows the opening. The strip can't climb out of the curve (it
   can't bend within its own width); the band crosses the slot behind the last LED, over the
-  strip's end; a dab of silicone in the slot holds the rest if it lifts. Print it in translucent PETG: each LED shines straight out through the slot's
-  head-side wall, thinned to a single-line skin in front of it.
+  strip's end; a dab of silicone in the slot holds the rest if it lifts. Each LED shines straight
+  out through the slot's head-side wall, thinned to a single-line skin in front of it.
+- Two colours: the head-side wall along the whole LED run (translucent()) prints in translucent
+  PETG, so light still spreads between the LEDs and the moving bars stay smooth; the rest (body())
+  in any colour chosen in the slicer. They're exported as a pair of STLs in the same place on the bed.
 - Grip (grip="liner", the default): a rigid channel along the rail, open underneath: a top over
   the temple's top edge and a leg 4 mm down its outer face, lined on those two sides with a
   soft-flex L (liner()). The liner squeezes the temple onto the plate on its inner face, the
@@ -103,15 +106,16 @@ GROOVE_FIT = 0.1         # Groove this much wider than the band, each side
 
 
 # Liner grip (grip="liner"): a soft-flex L on the temple's top and outer faces, in a rigid channel
-LINER_T = 1.0            # Outer pad thickness ...
+LINER_T = 1.6            # Outer pad thickness: thick, so a temple a few tenths off the measurement still fits ...
 LINER_TOP_T = 0.8        # ... top pad thickness (thinner: keeps the part low)
-LINER_SQUEEZE = 0.35     # Outer pad's face this far inside the temple's outer face (one side lined, so all the squeeze is here)
+LINER_SQUEEZE = 0.45     # Outer pad's face this far inside the temple's outer face (one side lined, so all the squeeze
+                         # is here): 28% of the pad, 9-47% for a temple 0.3 mm either side of the measurement
 LINER_SQUEEZE_TOP = 0.1  # Top pad's face this far below the temple's top edge (gravity does most of it)
 LINER_FIT = 0.05         # Liner this much bigger than its channel, so it presses in
 LINER_D = 4.0            # Outer pad reaches this far down the temple's outer face
-LEG_T = 1.6              # Rigid leg outside it
-RETURN = 0.5             # Return at the leg's foot, under the liner's edge, so it can't drop out (its tip 0.1 mm clear of the temple) ...
-RETURN_H = 0.7           # ... this tall, so its slope prints unsupported (55 degrees from the bed)
+LEG_T = 1.2              # Rigid leg outside it (3 lines; PETG is ~80x stiffer than the flex, so still rigid next to it)
+RETURN = 0.8             # Return at the leg's foot, under the liner's edge, so it can't drop out (its tip 0.3 mm clear of the temple) ...
+RETURN_H = 1.1           # ... this tall, so its slope prints unsupported (54 degrees from the bed)
 LINER_LEAD = 0.5         # Lead-in chamfer on the liner's bottom inside edge
 STOP_L = 0.8             # Front end of the channel closed over the liner's section
 ZS1_LINER = LINER_TOP_T - LINER_SQUEEZE_TOP + HOOK_T   # Top of the part with the liner
@@ -292,11 +296,30 @@ def print_orient_clip(c):
     return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * c
 
 
-def print_orient(p):
-    """Top edge down on the bed: the band, hook and plate stand up from it."""
-    p = Rot(180, 0, 0) * p
-    bb = p.bounding_box()
-    return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * p
+def clear_zone(grip="liner"):
+    """The head-side wall along the LED run, from just behind the rear LED's window to the front
+    end, slot floor to the part's top: one continuous piece, so the LEDs blend into each other."""
+    zs1 = ZS1_LINER if grip == "liner" else ZS1
+    s0 = led_path()[0] - WINDOW_W / 2 - 1.0
+    return band(s0, S_FRONT + 0.01, WALL_OUT + SLOT_T - 0.01, BAND_T + 0.01, ZS0, zs1 + 0.01)
+
+
+def translucent(p, grip="liner"):
+    """The translucent piece of part p (as modelled: the left part; mirror both for the right)."""
+    return p & clear_zone(grip)
+
+
+def body(p, grip="liner"):
+    """Part p less its translucent piece: any colour."""
+    return p - clear_zone(grip)
+
+
+def print_orient(p, ref=None):
+    """Top edge down on the bed: the band, hook and plate stand up from it. ref: the whole part,
+    so its body and translucent piece land in the same place."""
+    ref = p if ref is None else ref
+    bb = (Rot(180, 0, 0) * ref).bounding_box()
+    return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * (Rot(180, 0, 0) * p)
 
 
 if __name__ == "__main__":
@@ -307,10 +330,15 @@ if __name__ == "__main__":
     for grip, suffix in (("liner", ""), ("band", "_band")):
         l = part(grip=grip)
         r = mirror(l, Plane.XZ)
-        for name, shape in ((f"onepiece_right{suffix}", r), (f"onepiece_left{suffix}", l)):
+        for name, shape, mir in ((f"onepiece_right{suffix}", r, True), (f"onepiece_left{suffix}", l, False)):
             export_step(shape, str(OUT / "step" / f"{name}.step"))
-            export_stl(print_orient(shape), str(OUT / "stl" / f"{name}_petg.stl"))
-            print("wrote", name, f"{shape.volume:.0f} mm3")
+            b, w = body(l, grip), translucent(l, grip)
+            if mir:
+                b, w = mirror(b, Plane.XZ), mirror(w, Plane.XZ)
+            export_stl(print_orient(b, shape), str(OUT / "stl" / f"{name}_body_petg.stl"))
+            export_stl(print_orient(w, shape), str(OUT / "stl" / f"{name}_translucent_petg.stl"))
+            print("wrote", name, f"{shape.volume:.0f} mm3: body {b.volume:.0f}, translucent {w.volume:.0f} "
+                  f"({len(w.solids())} piece)")
     ln = liner()
     for name, shape in (("onepiece_liner_right", mirror(ln, Plane.XZ)), ("onepiece_liner_left", ln)):
         export_step(shape, str(OUT / "step" / f"{name}.step"))
