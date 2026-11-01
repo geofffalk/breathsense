@@ -54,6 +54,12 @@ blue comet. `gc.collect()` every 200 loops.
   Baselines restart each power-on.
 - Debug flags in `config.py`: `PULSE_DEBUG_STATS` (1 s summary), `PULSE_DEBUG_PLOT` (plotter),
   `PULSE_DEBUG_RAW` (every sample, for offline replay). Full guide: `firmware/PULSE_SENSOR.md`.
+- **Status (1 Nov 2026):** the heart LEDs follow every beat fine from a fingertip. For weaker head
+  sites (earlobe, the groove behind the ear under the temple): raise IR drive (`0x2F` = 9.4 mA
+  now; up to ~`0x7F`, back off on clipping), retune `MAX3010X_MIN_AMP` and `MAX3010X_SKIN_LEVEL`,
+  and consider the MAX30101's **green** LED (LED3, multi-LED mode; the MAX30102 has none), better
+  for reflective sites. Site strength, roughly: fingertip > earlobe > behind the ear (needs bare
+  skin, no hair; jaw motion when talking). The 3 Hz low-pass adds some lag.
 
 ## LEDs (`led_control.py`)
 

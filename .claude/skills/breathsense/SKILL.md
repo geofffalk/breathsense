@@ -49,17 +49,20 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
 ## The user's standing rules
 
 - **Never commit without an explicit "yes".** Ask; don't assume. Branch `hardware-v2` holds the
-  v2 work; much of it was uncommitted as of 31 Oct 2026 (last commit 961433b).
+  v2 work (last commit 67d9f69, 1 Nov 2026).
 - **Everything on the glasses must be removable:** clips and snaps only. No tape, glue or
   heat-shrink on the glasses themselves (glue/heat-shrink on printed parts or wires is fine).
 - **Writing style for READMEs and replies:** short plain sentences, bullets with bold lead-ins,
   tables for parts and settings, concrete numbers with units, say what's unverified.
 - **Show work in Fusion:** export STEP and open it with `open -a "Autodesk Fusion" file.step`
   when the user wants to see or edit geometry. STL names end in their filament: `_petg` / `_flex`.
+- **Heart feedback must be real time:** the LEDs animate in step with each heartbeat, so every
+  beat must be caught live (no averaging over beats hides misses). Judge any pulse-sensor site or
+  firmware change by missed beats and lag, not heart-rate accuracy.
 - The user prints in **PETG** (rigid parts) and **soft flex** filament (TPU-like; clips, liners,
   lids, skin-contact parts).
 
-## Known open items (as of 31 Oct 2026)
+## Known open items (as of 1 Nov 2026)
 
 - Not measured yet: the MAX30101 chip's exact position on the Pimoroni board (`CHIP_OFFSET`),
   the thermistor bead size, the pogo connector's real size, `LENS_TOP_Z`, which edge of the temple
@@ -68,5 +71,10 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
   the 0.45 mm translucent-PETG skin in front of each LED (does the slicer print it, how much light
   spreads), nose-clip comfort, LED visibility angles (sweep test), low-voltage LED behaviour.
 - `render_onepiece.py` is broken (uses `mv.ARM_UP`, removed from `mount_v2.py`).
-- Nothing since commit 961433b is committed (all v2 clip, nose, one-piece and skill work); ask.
+- Pulse sensor site: the MAX30101 drives the heart LEDs fine from a fingertip. Candidates on the
+  head, all weaker than a fingertip: the earlobe clip, or (the user's idea) under the temple tip
+  in the groove right behind the ear, over the posterior auricular artery, where the temple
+  already presses. Compare by missed beats (bare board under the temple vs the clip) before CAD.
+- Earlobe clip resized for 12 × 3 mm neodymium discs (the first black 9.5 × 0.8 mm ones were
+  ferrite, far too weak); untested. Nose clip is now a soft-flex U band in four sizes; untested.
 - Firmware still targets v1 hardware; v2 firmware (Arduino) not started.
