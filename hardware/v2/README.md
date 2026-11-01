@@ -231,7 +231,8 @@ Strip sources:
 | D0 (A0) | Divider midpoint: 10k from D7, thermistor (via the pogo plug) to GND. A0 is the D0 pad: the XIAO's analog inputs A0–A5 are D0–D5 |
 | 3V3, GND | MAX30101 power |
 
-These are proposed: the v2 firmware isn't written yet. The cord behind the head
+These match the v2 firmware (`firmware_v2/wearable/config.h`); not yet tested on the
+hardware. The cord behind the head
 carries BAT+, GND, the switched LED supply and the left strip's data.
 
 Build the switch on a small stripboard: ![Switch on stripboard](switch_board.svg)

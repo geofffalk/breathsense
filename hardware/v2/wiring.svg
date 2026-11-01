@@ -23,7 +23,7 @@
     .tblh { font-size: 12px; font-weight: bold; fill: #222; }
   </style>
   <rect width="1400" height="1060" fill="#fff"/>
-  <text x="20" y="28" font-size="18" font-weight="bold">BreathSense v2: wiring and solder points (proposed)</text>
+  <text x="20" y="28" font-size="18" font-weight="bold">BreathSense v2: wiring and solder points (as used by firmware_v2)</text>
   <text x="20" y="48" class="note">Each red numbered circle is one solder joint (see the list). Wires that cross without a circle are not connected. Pins are drawn by function, not where they sit on the board.</text>
   <text x="20" y="63" class="note">Colours are suggestions: red battery +, black ground, purple switched LED +, blue data, green I2C, orange 3.3 V, brown thermistor.</text>
 
@@ -282,6 +282,6 @@
 
     <text x="20" y="1012" class="note">S8550 and S8050 come in TO-92; their E-B-C pin order varies by maker. Check the datasheet, or find the base with a meter's diode setting: it conducts to both other legs.</text>
     <text x="20" y="1028" class="note">Before switching LED power off, drive D1 and D2 low, or the strips power up through their data pins. Wire: 28-30 AWG silicone (1 mm), sized for the pod's passages.</text>
-    <text x="20" y="1044" class="note">No power switch: a long press sleeps the XIAO (System OFF, a few µA) with the LEDs cut; a press or USB wakes it. The pins are proposed: the v2 firmware isn't written yet.</text>
+    <text x="20" y="1044" class="note">No power switch: a long press sleeps the XIAO (System OFF, a few µA) with the LEDs cut; a press or USB wakes it. Pins match firmware_v2/wearable/config.h (not yet tested on hardware).</text>
   </g>
 </svg>
