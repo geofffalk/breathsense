@@ -149,3 +149,22 @@ void comet_frame(Rgb color, float progress, bool back_to_front, Frame& f) {
   if (head >= 0 && head < STRIP_LEN) f.px[head] = color;
   if (tail >= 0 && tail < STRIP_LEN) f.px[tail] = t;
 }
+
+void level_frame(Rgb c, float level, Frame& f) {
+  level = level < 0 ? 0 : (level > 1 ? 1 : level);
+  for (auto& p : f.px) p = {(uint8_t)(c.r * level), (uint8_t)(c.g * level), (uint8_t)(c.b * level)};
+}
+
+void sleep_warning_frame(uint32_t ms_left, Frame& f) {
+  if (ms_left > SLEEP_WARN_MS) { f.clear(); return; }
+  float t = (float)(SLEEP_WARN_MS - ms_left) / SLEEP_WARN_MS;   // 0 -> 1 over the warning
+  float s = sinf(t * 3.0f * 3.14159265f);                     // Three swells
+  level_frame({255, 255, 255}, 0.25f * s * s, f);
+}
+
+void charging_frame(uint32_t now_ms, bool full, Frame& f) {
+  if (full) { level_frame({0, 255, 40}, 0.08f, f); return; }
+  float t = (now_ms % 3000) / 1500.0f;                        // Swell over 1.5 s, then 1.5 s dark
+  float s = t < 1.0f ? sinf(t * 3.14159265f) : 0.0f;
+  level_frame({255, 120, 0}, 0.3f * s * s, f);
+}

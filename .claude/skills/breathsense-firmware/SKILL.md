@@ -121,7 +121,9 @@ constant with v1 names/values.
   `ARDUINO_NRF52_ITSYBITSY`; anything else is an #error. XIAO variant: A0 = D0 pad, PIN_VBAT 35,
   VBAT_ENABLE 14, SDA/SCL 4/5. The waking button press is ignored until released. Battery cut-off
   needs 5 low readings in a row. No auto sleep on USB (spec updated).
-- Not yet: "auto sleep coming" swells, charging animation (awake on USB), OTA DFU; board compile.
+- Auto-sleep warning (3 dim swells, last 5 s) and charging display (USB + 10 s idle: amber swell, or
+  dim green at >= 4.15 V; no charge-status pin on the XIAO) are in (`display.*`, `app.cpp`).
+- Not yet: OTA DFU.
 
 ## v2 spec notes (agreed 1 Nov 2026)
 

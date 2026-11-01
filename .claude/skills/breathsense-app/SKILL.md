@@ -55,8 +55,10 @@ The app is now a displayer for the v2 headset (`firmware_v2/`):
   at `firmware_v2/test/mood_analyzer_app.dart` for the firmware check). Session snapshots per
   breath use the latest K. Heart mode shows the heart readout plus the combined stress. Stress
   panel shows heart/breath parts and wear; focus panel shows focus/meditation.
-- **Settings out:** `S,M` now carries the five stress weights; `sendFusionWeights` sends `S,W`
-  (no UI yet). R's guided fields ignored; LED state from field 16.
+- **Settings out:** `S,M` now carries the five stress weights. Settings > Mood (advanced) has a
+  "Combined stress" block: heart vs breath and rate vs HRV sliders; drag previews
+  (`previewFusionWeights`), release sends `S,W` once (each is a flash write on the headset). R
+  doesn't report the weights, so the app shows the last values it sent (defaults 0.6, 0.5). R's guided fields ignored; LED state from field 16.
 - Auto-connect names include `glassessense`.
 - `flutter analyze lib`: no errors (17 issues, down from 27; remaining warnings pre-date this).
 

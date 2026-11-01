@@ -453,8 +453,20 @@ void app_loop() {
   }
 
   // ---- LEDs
+  // When auto sleep is due (never while connected or on USB)
+  uint32_t sleep_at = last_activity + AUTO_SLEEP_MS;
+  if (!any_activity_since_wake && woke_at + WAKE_GRACE_MS < sleep_at) sleep_at = woke_at + WAKE_GRACE_MS;
+  bool may_sleep = !connected && !usb;
+  int32_t ms_to_sleep = (int32_t)(sleep_at - now);
+  bool idle = now - last_activity >= CHARGE_SHOW_AFTER_MS;
+
   if (mode == MODE_OFF || !settings.led_enabled) {
     frame.clear();
+  } else if (may_sleep && ms_to_sleep <= (int32_t)SLEEP_WARN_MS) {
+    // Auto sleep coming: three dim swells; breath, a pulse or the button cancels it (resets last_activity)
+    sleep_warning_frame(ms_to_sleep > 0 ? (uint32_t)ms_to_sleep : 0, frame);
+  } else if (usb && battery_v > 0 && idle) {
+    charging_frame(now, battery_v >= CHARGE_FULL_V, frame);   // On USB with nothing sensed
   } else if (mode == MODE_HEART) {
     heart_display.tick(pulse, now, frame);
   } else {
@@ -495,11 +507,7 @@ void app_loop() {
   }
 
   // ---- auto sleep (never while the app is connected)
-  if (!connected && !usb) {
-    bool idle_long = now - last_activity >= AUTO_SLEEP_MS;
-    bool nothing_after_wake = !any_activity_since_wake && now - woke_at >= WAKE_GRACE_MS;
-    if (idle_long || nothing_after_wake) go_to_sleep({255, 255, 255});
-  }
+  if (may_sleep && ms_to_sleep <= 0) go_to_sleep({255, 255, 255});
 
   // ---- debug line over USB serial (for bring-up), once a second
   if (usb && Serial && now - t_debug >= 1000) {

@@ -29,6 +29,11 @@ Not yet run on hardware.
 - **Power:**
   - **Auto sleep:** after 2 minutes with no breath and no pulse, never while connected or on
     USB. It also sleeps 30 s after waking if nothing is sensed.
+  - **Auto sleep coming:** three dim white swells over the last 5 s; breath, a pulse or the button
+    cancels it.
+  - **Charging:** on USB with nothing sensed for 10 s, a slow amber swell every 3 s, or steady dim
+    green once the battery reads 4.15 V or more (the XIAO has no charge-status pin, so it's judged
+    from the voltage).
   - **LED power:** cut whenever the LEDs have been dark for 2 s.
   - **Battery:** below 3.6 V for 5 readings in a row (10 s): a battery message to the app, three
     amber flashes, sleep. An amber warning blip below 3.75 V.
@@ -98,6 +103,4 @@ through the Boards Manager.
 
 ## Not done yet
 
-- The "auto sleep coming" warning (three dim swells) and the charging animation while asleep, from
-  the LED state table.
 - Over-the-air firmware updates.

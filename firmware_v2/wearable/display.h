@@ -54,3 +54,9 @@ class BreathDisplay {
 
 // Short animations (comets, swells) for wake, sleep, connect, mode change, warnings
 void comet_frame(Rgb color, float progress, bool back_to_front, Frame& f);
+// All LEDs in one colour at a brightness 0..1
+void level_frame(Rgb color, float level, Frame& f);
+// "Auto sleep coming": three dim white swells over SLEEP_WARN_MS; ms_left counts down to sleep
+void sleep_warning_frame(uint32_t ms_left, Frame& f);
+// On USB: a slow amber swell every 3 s while charging, steady dim green when full
+void charging_frame(uint32_t now_ms, bool full, Frame& f);

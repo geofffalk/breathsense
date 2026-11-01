@@ -571,12 +571,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            _buildFusionSettings(bleService),
           ],
         ],
       ),
     );
   }
   
+  /// The headset's combined stress: heart vs breath (breath only counts when the nose clip is
+  /// worn), and heart rate vs HRV within the heart part
+  Widget _buildFusionSettings(BleService bleService) {
+    final heart = bleService.fuseHeart;
+    final hr = bleService.fuseHr;
+    // Drag previews; release sends once (each S,W is a flash write on the headset)
+    Widget row(String left, String right, double value, Color color, ValueChanged<double> onChanged,
+        ValueChanged<double> onChangeEnd) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            SizedBox(width: 80, child: Text(left, style: TextStyle(color: Colors.grey[700], fontSize: 12))),
+            Expanded(
+              child: Slider(
+                value: value,
+                min: 0.0,
+                max: 1.0,
+                divisions: 20,
+                activeColor: color,
+                inactiveColor: Colors.grey[200],
+                onChanged: bleService.isConnected ? onChanged : null,
+                onChangeEnd: onChangeEnd,
+              ),
+            ),
+            SizedBox(width: 80, child: Text(right, textAlign: TextAlign.right, style: TextStyle(color: Colors.grey[700], fontSize: 12))),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('Combined stress', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              const Spacer(),
+              TextButton(
+                onPressed: bleService.isConnected
+                    ? () => bleService.sendFusionWeights(heartShare: 0.6, hrShare: 0.5)
+                    : null,
+                child: Text('Reset', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              ),
+            ],
+          ),
+          Text(
+            'How the headset mixes heart and breath into one stress score. Breath only counts while '
+            'the nose clip is worn. Defaults: 60% heart, 40% breath; heart rate and HRV equal.',
+            style: TextStyle(color: Colors.grey[600], fontSize: 11),
+          ),
+          const SizedBox(height: 8),
+          row('Heart ${(heart * 100).round()}%', 'Breath ${((1 - heart) * 100).round()}%', heart, Colors.red,
+              (v) => bleService.previewFusionWeights(heartShare: v, hrShare: hr),
+              (v) => bleService.sendFusionWeights(heartShare: v, hrShare: hr)),
+          row('Rate ${(hr * 100).round()}%', 'HRV ${((1 - hr) * 100).round()}%', hr, Colors.pink,
+              (v) => bleService.previewFusionWeights(heartShare: heart, hrShare: v),
+              (v) => bleService.sendFusionWeights(heartShare: heart, hrShare: v)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWeightSlider(String label, double value, Color color, ValueChanged<double> onChanged) {
     // Calculate normalized percentage (relative to total of all weights)
     final total = _moodSettings.stressRatioWeight +

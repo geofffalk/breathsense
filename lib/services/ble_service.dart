@@ -84,6 +84,8 @@ class BleService extends ChangeNotifier {
   bool _batteryOnUsb = false;
 
   // Scores computed on the headset (K lines); the app only displays them
+  double _fuseHeart = 0.6;   // Combined stress weights last sent (see sendFusionWeights)
+  double _fuseHr = 0.5;
   Scores _scores = const Scores();
   bool _isUnworn = false; // Headset not detecting breath
   
@@ -100,6 +102,8 @@ class BleService extends ChangeNotifier {
   Stream<BreathData> get breathDataStream => _breathDataController.stream;
   bool get modeKnown => _modeKnown;
   Scores get scores => _scores;
+  double get fuseHeart => _fuseHeart;
+  double get fuseHr => _fuseHr;
   int get heartBpm => _heartBpm;
   bool get hasPulseSignal => _hasPulseSignal;
   int get heartBeatCount => _heartBeatCount;
@@ -798,9 +802,23 @@ class BleService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Weights of the combined stress score (heart vs breath, and heart rate vs HRV within heart)
-  Future<void> sendFusionWeights({double heart = 0.6, double breath = 0.4, double hr = 0.5, double hrv = 0.5}) async {
-    await _sendMessage('S,W,$heart,$breath,$hr,$hrv\n');
+  /// Weights of the combined stress score: the heart's share (breath gets the rest, when the nose
+  /// clip is worn), and heart rate's share within the heart part (HRV gets the rest). The headset
+  /// saves them; R doesn't report them, so the app shows the last values it sent (defaults 0.6, 0.5).
+  /// Show combined-stress weights while a slider is dragged, without sending (send on release)
+  void previewFusionWeights({required double heartShare, required double hrShare}) {
+    _fuseHeart = heartShare;
+    _fuseHr = hrShare;
+    notifyListeners();
+  }
+
+  Future<void> sendFusionWeights({required double heartShare, required double hrShare}) async {
+    _fuseHeart = heartShare;
+    _fuseHr = hrShare;
+    final h = heartShare.toStringAsFixed(2), b = (1 - heartShare).toStringAsFixed(2);
+    final r = hrShare.toStringAsFixed(2), v = (1 - hrShare).toStringAsFixed(2);
+    await _sendMessage('S,W,$h,$b,$r,$v\n');
+    notifyListeners();
   }
 
   void startManualScan() {
