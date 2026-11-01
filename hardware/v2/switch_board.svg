@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 760" width="1100" height="760" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <style>
+    .title { font-size: 15px; font-weight: bold; }
+    .note { font-size: 11.5px; fill: #555; }
+    .small { font-size: 10.5px; fill: #555; }
+    .lbl { font-size: 12px; font-weight: bold; fill: #222; }
+    .board { fill: #e9dcc0; stroke: #8a7a5a; stroke-width: 1.5; }
+    .strip { fill: #d9a066; opacity: 0.55; }
+    .hole { fill: #fff; stroke: #8a7a5a; stroke-width: 1.2; }
+    .cut { stroke: #c62828; stroke-width: 3; stroke-linecap: round; }
+    .res { fill: #f3e2b3; stroke: #222; stroke-width: 1.5; }
+    .leg { fill: none; stroke: #555; stroke-width: 2; }
+    .body { fill: #333; stroke: #111; stroke-width: 1; }
+    .link { fill: none; stroke: #777; stroke-width: 2.4; }
+    .ilink { fill: none; stroke: #00897b; stroke-width: 2.4; stroke-dasharray: 5 3; }
+    .wd { stroke: #fff; stroke-width: 1.5; }
+    .tbl { font-size: 12px; fill: #222; }
+    .tblh { font-size: 12.5px; font-weight: bold; fill: #222; }
+  </style>
+  <rect width="1100" height="760" fill="#fff"/>
+  <text x="20" y="28" font-size="18" font-weight="bold">BreathSense v2: LED power switch on stripboard</text>
+  <text x="20" y="48" class="note">Seen from the component side: copper strips (shaded) run left to right underneath. 6 strips × 8 holes, about 15 × 22 mm with the transistors folded over the h1 end.</text>
+  <text x="20" y="63" class="note">Make the 5 cuts (red) on the copper side, at the holes shown: count from the h1 end. All parts lie flat. This replaces joints 6–11 on the wiring diagram.</text>
+
+  <!-- hole column numbers -->
+  <g class="small" text-anchor="middle">
+    <text x="260" y="118">h1</text><text x="304" y="118">h2</text><text x="348" y="118">h3</text><text x="392" y="118">h4</text>
+    <text x="436" y="118">h5</text><text x="480" y="118">h6</text><text x="524" y="118">h7</text><text x="568" y="118">h8</text>
+  </g>
+
+  <!-- board and strips -->
+  <rect class="board" x="232" y="130" width="364" height="276" rx="4"/>
+  <g>
+    <rect class="strip" x="236" y="150" width="356" height="20"/>
+    <rect class="strip" x="236" y="194" width="356" height="20"/>
+    <rect class="strip" x="236" y="238" width="356" height="20"/>
+    <rect class="strip" x="236" y="282" width="356" height="20"/>
+    <rect class="strip" x="236" y="326" width="356" height="20"/>
+    <rect class="strip" x="236" y="370" width="356" height="20"/>
+  </g>
+
+
+  <!-- holes: 6 strips x 8 -->
+  <g class="hole">
+    <circle cx="260" cy="160" r="5"/><circle cx="304" cy="160" r="5"/><circle cx="348" cy="160" r="5"/><circle cx="392" cy="160" r="5"/><circle cx="436" cy="160" r="5"/><circle cx="480" cy="160" r="5"/><circle cx="524" cy="160" r="5"/><circle cx="568" cy="160" r="5"/>
+    <circle cx="260" cy="204" r="5"/><circle cx="304" cy="204" r="5"/><circle cx="348" cy="204" r="5"/><circle cx="392" cy="204" r="5"/><circle cx="436" cy="204" r="5"/><circle cx="480" cy="204" r="5"/><circle cx="524" cy="204" r="5"/><circle cx="568" cy="204" r="5"/>
+    <circle cx="260" cy="248" r="5"/><circle cx="304" cy="248" r="5"/><circle cx="348" cy="248" r="5"/><circle cx="392" cy="248" r="5"/><circle cx="436" cy="248" r="5"/><circle cx="480" cy="248" r="5"/><circle cx="524" cy="248" r="5"/><circle cx="568" cy="248" r="5"/>
+    <circle cx="260" cy="292" r="5"/><circle cx="304" cy="292" r="5"/><circle cx="348" cy="292" r="5"/><circle cx="392" cy="292" r="5"/><circle cx="436" cy="292" r="5"/><circle cx="480" cy="292" r="5"/><circle cx="524" cy="292" r="5"/><circle cx="568" cy="292" r="5"/>
+    <circle cx="260" cy="336" r="5"/><circle cx="304" cy="336" r="5"/><circle cx="348" cy="336" r="5"/><circle cx="392" cy="336" r="5"/><circle cx="436" cy="336" r="5"/><circle cx="480" cy="336" r="5"/><circle cx="524" cy="336" r="5"/><circle cx="568" cy="336" r="5"/>
+    <circle cx="260" cy="380" r="5"/><circle cx="304" cy="380" r="5"/><circle cx="348" cy="380" r="5"/><circle cx="392" cy="380" r="5"/><circle cx="436" cy="380" r="5"/><circle cx="480" cy="380" r="5"/><circle cx="524" cy="380" r="5"/><circle cx="568" cy="380" r="5"/>
+  </g>
+
+
+
+  <!-- transistors folded over the h1 end -->
+  <path class="body" d="M118 150 H190 Q214 150 214 175 V233 Q214 258 190 258 H118 Z"/>
+  <text x="160" y="198" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">S8550</text>
+  <text x="160" y="214" fill="#ddd" font-size="10.5" text-anchor="middle">PNP, flat face up</text>
+  <path class="leg" d="M214 160 H255"/><path class="leg" d="M214 204 H255"/><path class="leg" d="M214 248 H255"/>
+  <text x="236" y="156" class="lbl" font-size="11">E</text><text x="236" y="200" class="lbl" font-size="11">B</text><text x="236" y="244" class="lbl" font-size="11">C</text>
+
+  <path class="body" d="M118 282 H190 Q214 282 214 307 V365 Q214 390 190 390 H118 Z"/>
+  <text x="160" y="330" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">S8050</text>
+  <text x="160" y="346" fill="#ddd" font-size="10.5" text-anchor="middle">NPN, flat face up</text>
+  <path class="leg" d="M214 292 H255"/><path class="leg" d="M214 336 H255"/><path class="leg" d="M214 380 H255"/>
+  <text x="236" y="288" class="lbl" font-size="11">C</text><text x="236" y="332" class="lbl" font-size="11">B</text><text x="236" y="376" class="lbl" font-size="11">E</text>
+
+  <!-- resistors, each across a cut -->
+  <rect class="res" x="406" y="153" width="104" height="14" rx="5"/>
+  <text x="486" y="164" font-size="10" font-weight="bold" text-anchor="middle">R1 10k</text>
+  <rect class="res" x="406" y="285" width="104" height="14" rx="5"/>
+  <text x="486" y="296" font-size="10" font-weight="bold" text-anchor="middle">R2 2.2k</text>
+  <rect class="res" x="406" y="329" width="104" height="14" rx="5"/>
+  <text x="486" y="340" font-size="10" font-weight="bold" text-anchor="middle">R3 10k</text>
+  <rect class="res" x="406" y="373" width="104" height="14" rx="5"/>
+  <text x="486" y="384" font-size="10" font-weight="bold" text-anchor="middle">R4 100k</text>
+  <path class="leg" d="M392 160 H406 M510 160 H524"/>
+  <path class="leg" d="M392 292 H406 M510 292 H524"/>
+  <path class="leg" d="M392 336 H406 M510 336 H524"/>
+  <path class="leg" d="M392 380 H406 M510 380 H524"/>
+
+  <!-- links -->
+  <path class="link" d="M568 160 V204"/>
+  <path class="ilink" d="M524 204 Q560 248 568 292"/>
+  <path class="ilink" d="M348 336 Q470 410 568 380"/>
+  <path class="ilink" d="M348 380 Q330 300 436 248"/>
+  <g class="small">
+    <text x="574" y="186">L1</text>
+    <text x="578" y="276">L2</text>
+    <text x="470" y="404">L3</text>
+    <text x="350" y="316">L4</text>
+  </g>
+
+  <!-- wires off the board: coloured dots -->
+  <g class="wd">
+    <circle cx="304" cy="160" r="6" fill="#d32f2f"/>
+    <circle cx="348" cy="160" r="6" fill="#d32f2f"/>
+    <circle cx="304" cy="248" r="6" fill="#6a1b9a"/>
+    <circle cx="348" cy="248" r="6" fill="#6a1b9a"/>
+    <circle cx="480" cy="248" r="6" fill="#222"/>
+    <circle cx="524" cy="248" r="6" fill="#222"/>
+    <circle cx="568" cy="248" r="6" fill="#222"/>
+    <circle cx="568" cy="336" r="6" fill="#1565c0"/>
+    <circle cx="304" cy="380" r="6" fill="#222"/>
+  </g>
+  <g class="small" font-weight="bold">
+    <text x="296" y="146">W1</text><text x="340" y="146">W2</text>
+    <text x="290" y="236">W3</text><text x="340" y="236">W4</text>
+    <text x="470" y="236">W5</text><text x="514" y="236">W6</text><text x="560" y="236">W7</text>
+    <text x="576" y="328">W8</text><text x="296" y="404">W9</text>
+  </g>
+
+  <!-- cuts, on top -->
+  <g class="cut" style="stroke:#fff;stroke-width:6">
+    <path d="M428 152 L444 168 M444 152 L428 168"/>
+    <path d="M384 240 L400 256 M400 240 L384 256"/>
+    <path d="M428 284 L444 300 M444 284 L428 300"/>
+    <path d="M428 328 L444 344 M444 328 L428 344"/>
+    <path d="M428 372 L444 388 M444 372 L428 388"/>
+  </g>
+  
+  <g class="cut">
+    <path d="M428 152 L444 168 M444 152 L428 168"/>
+    <path d="M384 240 L400 256 M400 240 L384 256"/>
+    <path d="M428 284 L444 300 M444 284 L428 300"/>
+    <path d="M428 328 L444 344 M444 328 L428 344"/>
+    <path d="M428 372 L444 388 M444 372 L428 388"/>
+  </g>
+  <!-- what each strip segment is -->
+  <g class="tbl">
+    <text x="620" y="140" class="tblh">Strips (left of the cut | right of it)</text>
+    <text x="620" y="164">S1  battery + (S8550 E)  |  S8550 base, via L1</text>
+    <text x="620" y="208">S2  S8550 base (B)</text>
+    <text x="620" y="252">S3  LED + (S8550 C)  |  ground, via L4</text>
+    <text x="620" y="296">S4  S8050 collector (C)  |  S8550 base, via L2</text>
+    <text x="620" y="340">S5  S8050 base (B)  |  to D3</text>
+    <text x="620" y="384">S6  ground (S8050 E)  |  S8050 base, via L3</text>
+  </g>
+
+  <!-- legend -->
+  <g class="tbl">
+    <text x="20" y="450" class="tblh">Parts</text>
+    <text x="20" y="470">S8550, S8050: legs into h1 of S1–S3 and S4–S6, bent so the bodies lie flat past the h1 end.</text>
+    <text x="20" y="486">Pin order varies by maker: match the E, B, C shown (base: conducts to both other legs on a meter's diode setting).</text>
+    <text x="20" y="502">R1–R4: h4 to h7 of their strip, across the cut, lying flat (bend the leads close to the body).</text>
+    <text x="20" y="524" class="tblh">Links</text>
+    <text x="20" y="544">L1  S1 h8 to S2 h8: bare wire (neighbouring strips).</text>
+    <text x="20" y="560">L2  S2 h7 to S4 h8, L3  S5 h3 to S6 h8, L4  S6 h3 to S3 h5: insulated wire (they arch over other holes and parts).</text>
+
+    <text x="20" y="582" class="tblh">Wires off the board</text>
+    <text x="20" y="602">W1  S1 h2  cord's battery + (red)                     W2  S1 h3  to the XIAO's BAT+ pad (red)</text>
+    <text x="20" y="618">W3  S3 h2  cord's LED + (purple)                      W4  S3 h3  to the right strip's + pad (purple)</text>
+    <text x="20" y="634">W5  S3 h6  button (black)       W6  S3 h7  pogo socket pin 2 (black)       W7  S3 h8  to the XIAO's BAT− pad (black)</text>
+    <text x="20" y="650">W8  S5 h8  to the XIAO's D3 pad (blue)                 W9  S6 h2  cord's ground (black)</text>
+
+    <text x="20" y="676" class="tblh">Fitting</text>
+    <text x="20" y="696">Goes in the bay in front of the XIAO, parts up, with the h1 end (the transistors) toward the pod's back wall.</text>
+    <text x="20" y="712">In the head-sensor pod the board sits over the MAX30101's back: only the h1 end has room for the transistors' height.</text>
+    <text x="20" y="728">Check before power: no copper bridging the cuts; S1 to S6 (battery + to ground) should not read as a short.</text>
+    <text x="20" y="744">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 16 × 25 mm, 6.5 mm tall (head pod: 4.9 mm over the sensor, 7.2 mm past it).</text>
+  </g>
+</svg>

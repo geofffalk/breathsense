@@ -13,7 +13,7 @@ changes well but detail and colour poorly. So every cue is motion. Colour is
 only a slow background hint.
 
 Both sides show the same thing. The phone app or the button picks the mode:
-breath, heart or guided.
+heart or breath (guided is dropped; see the specification).
 
 | Signal | Shown as |
 |---|---|
@@ -26,6 +26,96 @@ breath, heart or guided.
 
 The firmware cross-fades the wave crest between neighbouring LEDs, so behind
 the diffuser it reads as smooth motion rather than steps.
+
+The table above was the first proposal. The agreed behaviour is in the
+Behaviour specification below: heart bars run from the back toward the eye,
+and breath follows the original motion and colours.
+
+## Behaviour specification (agreed 1 Nov 2026)
+
+What the wearable does, standalone and with the app. It adds to the rest of
+this README; where they disagree, this section wins (see Discrepancies). The
+v1 CircuitPython firmware (`firmware/`, written for the ItsyBitsy nRF52840)
+is the reference for the detectors and the heart display. The v2 firmware is
+to be a new Arduino C++ port for the XIAO nRF52840 Plus.
+
+**Modes:** heart, breath and off. Guided breathing is dropped.
+
+**Standalone (no app):**
+- **Heart, the default:** both sides mirror each other. Each beat is a
+  "pa-pum" (lub-dub): a bar of light pulses from the back of the temple
+  toward the eye, then a smaller second pulse.
+  - **At rest:** once the resting heart rate is learned, it's shown in a
+    restful colour (green), with bars that hardly reach the front 4 LEDs
+    (the 3 on the corner flap and the one at the hinge).
+  - **With stress:** as stress shows in the heartbeat (rate above the
+    resting rate, low HRV), the colour turns amber then red and the bars
+    reach further, up to all 10 LEDs.
+  - This is the v1 `HeartbeatLED` as it stands: 5 LEDs at rest, 10 at full
+    stress, green → amber → red.
+- **Resting heart rate is remembered:** the learned resting rate and stress
+  range are saved to flash. The display is right from the first minute and
+  keeps improving over days. (v1 relearns from scratch at every power-on.)
+- **Breath:** the original motion. The in-breath lights the front of the bar
+  in the breath's colour; the out-breath runs a comet back toward the temple
+  over the predicted exhale length.
+  - **Stress is exhale length only,** with the original palette and
+    thresholds: red under 2 s, white to 3.5 s, light blue to 5 s, purple to
+    6.5 s, deep blue beyond.
+  - **Calm breaths don't reach the front 4 LEDs.** How far forward the bar
+    starts depends on that colour:
+
+    | Last exhale | Colour | Bar starts at (index 9 is the front) |
+    |---|---|---|
+    | 6.5 s or more | Deep blue | 5 (clear of the front 4) |
+    | 5–6.5 s | Purple | 5 |
+    | 3.5–5 s | Light blue | 6 |
+    | 2–3.5 s | White | 8 |
+    | Under 2 s | Red | 9 (all the way to the front) |
+
+    The start positions are a first guess, to tune on the glasses.
+- **Button:** a short press switches between heart and breath, and a long
+  press puts it to sleep (fully off: System OFF, Bluetooth off). A press or
+  USB wakes it, in the last mode it was in (heart or breath), which is saved
+  to flash.
+
+**LED numbering:** index 0 is the back of the temple and 9 the front (last
+flap LED), as in v1. So fit each 10-LED piece with its data-in (DIN) end at
+the temple end, nearest the pod. The front 4 are indices 6–9.
+
+**With the app (Bluetooth):**
+- **Connecting changes nothing on the wearable.** It keeps its current mode
+  and reports it, and the app shows it.
+- **The app can override the mode** at any time: heart, breath or off. App
+  "off" darkens the LEDs and pauses sensing, but Bluetooth stays on, so the
+  app can turn it back on. Only the button turns the wearable fully off,
+  because nothing can wake it over Bluetooth once it's asleep.
+- **The app shows** stress level and the rest as before.
+
+**Protocol changes this needs** (see the `breathsense-protocol` skill):
+- **The headset reports its mode:** `M,{F|H|O}` (breath, heart, off) on
+  connect and on every change, whether from the button, the app or waking.
+- **The app no longer sends `M,F` on connect.** It waits for the headset's
+  `M` report. `M,O` (already in the firmware) becomes the app's off command,
+  meaning LEDs dark and sensing paused.
+- **Guided messages go:** `M,G`, `S,G` and `S,CS` are dropped. `R` keeps its
+  guided fields in place, unused, so older parsers still line up.
+
+### Discrepancies (current code and docs against this spec)
+
+| # | Where | Now | Spec | Change needed |
+|---|---|---|---|---|
+| 1 | Firmware | CircuitPython for the v1 ItsyBitsy (strips on D7/D9, battery on A2, slide switch); no C++ | Arduino C++ on the XIAO nRF52840 Plus | Write the port (pins in Wiring) |
+| 2 | Firmware, breath LEDs | Inhale lights index 9, the comet always starts at the front | Start position set by exhale colour (table above) | Firmware |
+| 3 | Firmware | Standalone mode is a constant (`STANDALONE_MODE`); no button | Button switches heart/breath; last mode saved | Firmware (v2 button) |
+| 4 | Firmware | Resting rate and stress range restart each power-on | Saved to flash | Firmware |
+| 5 | Firmware + app | On connect both switch to breath (Open) mode | Wearable keeps its mode and reports it | Both, plus the `M` report |
+| 6 | App | No off control: modes are open, guided and heart; `M,O` is never sent (only `L,0` blanks the LEDs) | Heart / breath / off | App |
+| 7 | Firmware + app | Guided mode in both | Dropped | Both |
+| 8 | Firmware | Off is a hardware slide switch (v1); no sleep | Long press = System OFF; wake by button/USB | Firmware (v2 plan already) |
+| 9 | This README, "What the wearer sees" | Heartbeat swell runs front to back; breath depth sets the wave's reach; colour only a background hint | Heart bars run back to front; breath reach and colour follow exhale length | Superseded by this section (kept for reference) |
+| 10 | This README, "What the LEDs show for each state" | Mode change shows 1, 2 or 3 pulses (three modes) | Two modes on the button | Done: 1 pulse heart, 2 breath |
+| 11 | App | Stress shown from app-side breath scoring (`mood_analyzer`) | Standalone breath stress is exhale length only | None: the app can keep its richer score; the LEDs follow exhale length in both cases |
 
 ### Where the light can be seen
 
@@ -103,6 +193,9 @@ Strip sources:
 These are proposed: the v2 firmware isn't written yet. The cord behind the head
 carries BAT+, GND, the switched LED supply and the left strip's data.
 
+Build the switch on a small stripboard: ![Switch on stripboard](switch_board.svg)
+It replaces joints 6–11 on the wiring diagram.
+
 **LED power switch** (all through-hole, from the DollaTek transistor kit: S8550
 PNP, S8050 NPN; a 2N3906 also does for the PNP):
 
@@ -174,8 +267,8 @@ These use the same motion language as the main display.
 | Wake (button, USB) | One soft white sweep from the front to the back, about 0.8 s |
 | Auto sleep coming | Three slow, dim swells over about 5 s. Pressing the button or breathing on the sensor cancels it |
 | Going to sleep (auto or long press) | A sweep from the back to the front that fades out, about 1 s; then dark |
-| Mode change | The new mode's pattern plays once (1, 2 or 3 short pulses), then the display starts |
-| BLE connected / disconnected | The existing connect animation / one dim blip |
+| Mode change | The new mode's pattern plays once (1 short pulse heart, 2 breath), then the display starts |
+| BLE connected / disconnected | The existing connect animation / one dim blip; the mode doesn't change |
 | Low battery warning (about 3.75 V) | One amber blip every 30 s, on top of the display |
 | Low battery cut-off (3.6 V) | Three amber flashes, then the sleep sweep in amber |
 | Charging, plugged in while asleep | A slow amber swell every few seconds; steady dim green when full. Runs on USB power, so it costs the battery nothing |
@@ -217,14 +310,15 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 **Head-side sensor variant** (see Pods): to try the MAX30101 under the end of
 the temple tip instead of on the earlobe, print these in place of
 `hang_pod_board_petg`, `hang_lid_board_flex`, the right pod's
-`hang_liner_flex` and `lobe_clip_flex`. They're the third row of
+`hang_liner_flex` and `hang_back_clip_flex`, and `lobe_clip_flex`. They're the third row of
 `print_layout.step`.
 
 | File (`out/stl/`) | Material | Qty | What it is |
 |---|---|---|---|
-| `hang_pod_board_head_petg` | PETG | 1 | Right pod with the sensor's window in its pocket's head-side wall, 3 mm longer |
+| `hang_pod_board_head_petg` | PETG | 1 | Right pod with the sensor's window in its pocket's head-side wall, 0.7 mm thicker |
 | `hang_lid_board_head_flex` | Soft flex | 1 | Its lid |
 | `hang_liner_head_flex` | Soft flex | 1 | Right pod's liner, cut away behind the sensor |
+| `hang_back_clip_head_flex` | Soft flex | 1 | Right pod's band (this pod is thicker) |
 
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
@@ -368,11 +462,12 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   outer wall bridges over the paddle's space). The liner prints open edge
   down, and the bands lying flat. The band's groove on the head-side face
   makes an 8 mm bridge 0.7 mm up.
-- **Board pod inside:** 54 × 8.7 × 27.8 mm overall. The XIAO sits on two 1 mm
+- **Board pod inside:** 62 × 8.7 × 27.8 mm overall. The XIAO sits on two 1 mm
   rails under its ends, leaving room under it for the battery wires on its
-  back pads. In front of it is an 8 × 25 mm bay, 4.6 mm deep, for the LED
-  switch's two transistors and resistors (see Wiring), free-wired with a dab
-  of glue and Kapton tape or heat-shrink over the joints.
+  back pads. In front of it is a 16 × 25 mm bay, 6.5 mm tall, for the LED
+  switch on its stripboard (see Wiring and `switch_board.svg`: about 15 × 22
+  mm, 1.5 mm board, parts lying flat, 5.7 mm tall), transistor end toward
+  the back wall.
 
 #### Head-side sensor variant (to try)
 
@@ -384,8 +479,7 @@ place of the earlobe clip.
   cut away there) and its sensor-side parts poke out through a window in the
   pocket's wall. The chip stands **0.8 mm** past the pod's head-side face, so
   the temple sits only 0.8 mm further out than with the plain pod. The board
-  itself, 3.15 mm from its back to the chip's face, is the limit. The pod
-  stays 8.7 mm thick.
+  itself, 3.15 mm from its back to the chip's face, is the limit.
 - **Pressed by the temple:** the temple's own grip pushes the chip onto the
   skin. No springs.
 - **Layout:** the chip edge faces the ear bend, the chip's centre 4.5 mm from
@@ -399,12 +493,14 @@ place of the earlobe clip.
 - **Fitting:** with the lid off, drop the board (sensor side down) onto the
   pod's floor at the front of the cavity, then slide it 7.5 mm toward the
   pocket, through the slot in the front wall, until its edge stops. Solder its
-  4 wires from the back; they go straight to the XIAO. Then the XIAO and the
-  switch parts in the bay above it, and the lid.
+  4 wires from the back; they go straight to the XIAO. Then the switch board
+  in the bay above it (transistor end toward the back wall, past the sensor's
+  edge, where there's room for their height), the XIAO, and the lid.
 - **Where it lands:** on the stand-in head, about 4 mm up the tip from its
   end. It's under the temple, which presses there.
-- **Size:** the pod is 3 mm longer (57 mm) so the XIAO clears the board's far
-  end. No earlobe lead hole. Same band and battery pod as the plain version.
+- **Size:** 62 mm long like the plain pod, but 9.4 mm thick instead of 8.7
+  (all on the outer side), so the switch board fits over the sensor: 4.9 mm
+  over it, 7.2 mm past its edge. It has its own band. No earlobe lead hole.
 - **Unproven:** whether this spot gives a clean pulse on every beat (the
   LEDs need every one, live). Try it against the earlobe clip.
 

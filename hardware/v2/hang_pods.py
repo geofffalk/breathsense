@@ -83,8 +83,9 @@ LEAD_HOLE = 4.0          # Earlobe lead's 4 wires (1 mm), loose, out through the
 POGO = (4.0, 4.0)        # Nose clip's 2-pin magnetic pogo socket, flush in the ear-side wall: diameter, length (check yours)
 POGO_FIT = 0.1           # Hole this much over its diameter (press it in; a drop of glue if loose)
 POGO_BACK = 7.0          # This far behind the earlobe lead's hole, toward the far end
-BAY = 8.0                # Board pod's cavity this much longer, at its front beside the XIAO: the LED switch's
-                         # two transistors and resistors, free-wired
+BAY = 16.0               # Board pod's cavity this much longer, at its front beside the XIAO, for the LED switch
+                         # on a stripboard (switch_board.svg): about 15 x 22 mm, 1.5 mm thick, parts lying flat
+SWITCH_STACK = 5.7       # Switch board's height: solder 0.7, board 1.5, a flat TO-92 3.5
 BOARD_LIFT = 1.0         # XIAO raised this much on two rails under its ends: room for the battery wires on its back pads
 RAIL_W = 1.5             # ... rails this wide along its length
 BUTTON = (5.0, 3.0)      # Omron B3F: base across the cavity's depth, and along the back wall (check yours) ...
@@ -98,7 +99,9 @@ PLUNGER_HOLE = 3.8       # ... its round plunger (about 3.5 mm) out through the 
 # cavity through a slot in the body's front wall. The temple's own grip presses it on: no springs.
 SENSOR_AT = 4.5          # Chip's centre this far from the paddle's end (where the user's temple presses hardest) ...
 SENSOR_Z = 0.0           # ... at this height (the paddle's top edge is z = 0; the board spans 9.6 mm either side)
-HEAD_EXTRA = 3.0         # Head variant's cavity this much longer, so the XIAO clears the board's far end
+HEAD_DEEPER = 1.6        # Head variant's cavity this much deeper: the switch board's resistor end (4.5 mm: solder,
+                         # board, flat resistors) sits over the MAX30101's back and its wires (1.1 mm); its transistor
+                         # end goes toward the back wall, past the MAX30101's edge, where the floor is lower
 
 
 def ys():
@@ -260,11 +263,10 @@ def board_pod(sensor="lobe"):
     sensor="head": it sits in the pocket's head-side wall at the paddle's end (see head_frame()),
     with liner_head() in place of the liner; no earlobe lead."""
     w_, length, pcb, usb_h = mv.XIAO
-    depth = BOARD_LIFT + pcb + usb_h + 0.4
+    depth = BOARD_LIFT + pcb + usb_h + 0.4 + (HEAD_DEEPER if sensor == "head" else 0.0)
     p, d = pocket(depth)
     height = 2 * W + FLANGE_ZONE + (w_ + 0.4) + 3.6       # Ear-side wall, lead's knot, board, button, back wall
-    extra = HEAD_EXTRA if sensor == "head" else 0.0
-    b, cav, (xf, zb0, zb1) = body(depth, height, length + 0.2 + 2 * W + BAY + extra, d)
+    b, cav, (xf, zb0, zb1) = body(depth, height, length + 0.2 + 2 * W + BAY, d)
     p += b
     y0, y1, x_end = d["y0"], d["y1"], d["x_end"]
     cy0 = y0 + W
@@ -275,7 +277,7 @@ def board_pod(sensor="lobe"):
                bz - mv.USB_W / 2 - 0.2, bz + mv.USB_W / 2 + 0.2)                                 # USB-C, far end
     bx = xf + W + 8.0
     cav += Pos(bx, cy0 + BUTTON[0] / 2, zb1 - W / 2) * Cylinder(PLUNGER_HOLE / 2, W + 0.4)    # Button plunger, back wall
-    lx = x_end - W - 6.4 - BAY - extra                     # Lead near the board's front: closest to the earlobe
+    lx = x_end - W - 6.4 - BAY                             # Lead near the board's front: closest to the earlobe
     px = lx - POGO_BACK
     ly = (cy0 + y1 - mv.LID_T) / 2
     if sensor != "head":
@@ -350,6 +352,7 @@ if __name__ == "__main__":
              ("hang_pod_board_head", mirror(hpod, Plane.XZ), print_orient_head_down_mirrored),
              ("hang_lid_board_head", hlid, mv.print_orient_lid),
              ("hang_liner_head", mirror(liner_head(), Plane.XZ), print_orient_liner),
+             ("hang_back_clip_head", back_clip(hd["y0"], hd["y1"]), print_orient_clip),
              ("hang_pod_battery", bat, print_orient_head_down),
              ("hang_lid_board", lid, mv.print_orient_lid), ("hang_lid_battery", blid, mv.print_orient_lid),
              ("hang_liner", liner(), print_orient_liner),

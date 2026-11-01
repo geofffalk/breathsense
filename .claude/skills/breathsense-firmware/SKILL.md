@@ -85,7 +85,20 @@ and both sides show the same pattern. Index 9 is the front (near the eye), 0 the
 XIAO nRF52840, thermistor only, no LEDs, no guided mode; same `B` messages so the app works
 unchanged. Same breath detector and metrics, trimmed.
 
-## v2 plan (not started)
+## v2 plan (not started; spec agreed 1 Nov 2026)
+
+Behaviour to implement is the spec in `hardware/v2/README.md` ("Behaviour specification" +
+Discrepancies; summary in the `breathsense` skill). Differences from this v1 code: modes heart /
+breath / off only (drop GuidedBreathingLED, `M,G`, `S,G`, `S,CS`); don't switch to Open on
+connect, send `M,{F|H|O}` on connect and every change; breath LEDs keep OpenBreathingLED's motion
+but start the inhale LED/comet at index 5/5/6/8/9 for depth 4/3/2/1/0 (deep blue..red); heart =
+HeartbeatLED unchanged; save the heart baseline/stress range and the last mode to flash; button
+short = heart⇄breath, long = sleep; `M,O` = LEDs dark + sensing paused, BLE on. v1 code was
+written for the ItsyBitsy nRF52840 (D7/D9 strips, A2 battery divider, slide switch) - use it as the
+reference for detectors and displays, not pins.
+LED index 0 = back (DIN end, fitted at the temple end nearest the pod), 9 = front flap LED;
+front 4 = indices 6-9 (flap 3 + hinge 1).
+
 
 Port to Arduino C++ on the nRF52 core for the XIAO nRF52840 Plus: same detectors, same BLE
 protocol, 100+ fps sub-pixel LED animation (wave crest cross-faded between LEDs), button (short =

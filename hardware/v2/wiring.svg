@@ -257,7 +257,7 @@
     <text x="20" y="742" class="tbl">3  Left strip + pad: cord's LED+ wire</text>
     <text x="20" y="757" class="tbl">4  Left strip DIN pad: cord's DIN wire</text>
     <text x="20" y="772" class="tbl">5  Left strip GND pad: wire to joint 2</text>
-    <text x="20" y="794" class="tblh">Right pod: LED power switch (in the bay)</text>
+    <text x="20" y="794" class="tblh">Right pod: LED power switch, built on the stripboard (switch_board.svg; same joints, as its holes)</text>
     <text x="20" y="810" class="tbl">6  S8550 E leg: cord's BAT+ wire, R1's top leg, wire to the XIAO's BAT+ pad</text>
     <text x="20" y="825" class="tbl">7  S8550 B leg: R1's other leg and R2's top leg</text>
     <text x="20" y="840" class="tbl">8  S8550 C leg: cord's LED+ wire, wire to the right strip's + pad</text>

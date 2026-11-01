@@ -76,6 +76,15 @@ by a computer (`supervisor.runtime.usb_connected`), not a wall charger.
 | `L,{1\|0}` | LEDs on/off; saved |
 | `Q` | Ask for `R` |
 
+## Planned v2 changes (agreed 1 Nov 2026, not implemented)
+
+- Headset → app **`M,{F|H|O}`**: current mode (breath / heart / off), sent on connect and on every
+  change (button, app, wake). The headset no longer switches mode on connect.
+- App stops sending `M,F` on connect; waits for the `M` report. `M,O` becomes the app's off
+  (LEDs dark, sensing paused, BLE stays on; only the button does a full System OFF).
+- Guided is dropped: `M,G`, `S,G`, `S,CS` go; `R` keeps its guided fields in place, unused.
+- "The v2 plan keeps this protocol unchanged" below is superseded by these additions.
+
 ## Known quirks
 
 - LED on/off is stored under `led_on` by `L` but reported from `led_enabled` in `R`, so `R` always

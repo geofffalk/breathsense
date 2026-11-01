@@ -41,6 +41,15 @@ lib/widgets/                      breath_graph, mode_selector, mood_indicators, 
                                   stress_indicator, threshold_slider
 ```
 
+## Planned changes for v2 (spec agreed 1 Nov 2026, not implemented)
+
+Do these after the C++ firmware speaks the new protocol (see `breathsense-protocol`): remove
+Guided (`BreathingMode.guided`, `GuidedBreathingSettings`, mode button, guided session periods);
+add an **Off** mode (`M,O`; today the enum has no off and `M,O` is never sent - only `L,0` blanks
+the LEDs); stop sending `M,F` on connect (`ble_service.dart` ~line 530) and stop assuming Open
+(`_currentMode = BreathingMode.open`); parse the headset's `M,{F|H|O}` and show that mode. Stress
+display stays as is (app-side breath score; the headset's LEDs use exhale length).
+
 ## Behaviour worth knowing
 
 - Message formats: see the `breathsense-protocol` skill. After connecting the app sends `M,F` and

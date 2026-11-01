@@ -44,7 +44,24 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
   right temple tip, battery pod on the left, cord behind the head; one PETG part per temple
   carrying the LED strip round the hinge onto the frame front; magnetic earlobe clip for the
   MAX30101; soft-flex U band (nose clip) holding the thermistor inside the right nostril, wired to the pod by a
-  magnetic pogo plug. Firmware to move to Arduino C++ keeping the same BLE protocol.
+  magnetic pogo plug. Firmware to move to Arduino C++ (decided 1 Nov 2026), with a few protocol additions.
+
+## Agreed behaviour (spec, 1 Nov 2026)
+
+Full text and a discrepancy table: `hardware/v2/README.md`, "Behaviour specification" (it wins
+over older README text). In short:
+- Modes heart / breath / off; **guided is dropped**. Both sides mirror.
+- Standalone default **heart**: lub-dub ("pa-pum") bars from the back toward the eye; resting rate
+  = green, bars hardly reach the front 4 LEDs (flap 3 + hinge 1); stress (rate above resting, low
+  HRV) → amber/red, reaching all 10. = v1 `HeartbeatLED`. Resting rate + stress range **saved to
+  flash** (v1 relearns each power-on).
+- **Breath**: original v1 motion (in-breath lights the bar's front, out-breath comet back) and
+  original 5-colour exhale-length palette; stress = **exhale length only**; the bar's start index
+  by colour: deep blue/purple 5, light blue 6, white 8, red 9 (tunable).
+- Button: short = heart ⇄ breath, long = System OFF; wake (button/USB) in the **last mode** (saved).
+- App: **connecting changes nothing**; the headset reports its mode (`M,{F|H|O}`); the app can set
+  heart / breath / off. App off = LEDs dark + sensing paused, BLE on. Only the button fully offs.
+- Order of work agreed: document (done) → C++ firmware → app.
 
 ## The user's standing rules
 
@@ -77,4 +94,5 @@ hardware/*.scad      Early OpenSCAD nasal clip and septum ring ideas (superseded
   chip 0.8 mm proud).
 - Earlobe clip resized for 12 × 3 mm neodymium discs (the first black 9.5 × 0.8 mm ones were
   ferrite, far too weak); untested. Nose clip is now a soft-flex U band in four sizes; untested.
-- Firmware still targets v1 hardware; v2 firmware (Arduino) not started.
+- Firmware still targets v1 hardware (CircuitPython, ItsyBitsy); the v2 Arduino C++ port is next.
+  Gaps to the spec are tabled in the v2 README (Discrepancies).

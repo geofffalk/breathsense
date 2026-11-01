@@ -45,7 +45,7 @@ Sources: `hardware/glasses/README.md` (v1 wiring section), `hardware/glasses/wir
 | MAX30101 (Pimoroni, on hand) | Magnetic earlobe clip; 4 loose silicone wires (3V, GND, SDA, SCL), 70 mm, out of the right pod's ear-side wall (4 mm hole, knot inside). Or (head variant) in the board pod's head-side wall on short internal wires |
 | 10k glass-bead NTC, ≤1 mm | In the nose clip just inside the right nostril; twisted 30 AWG pair, ~220 mm, loose along the cheek to a **2-pin 4 mm magnetic pogo** socket in the right pod's ear-side wall → A0 and GND |
 | 502030 250 mAh LiPo (on hand) | Left pod; charges via USB-C in the right pod through the cord |
-| S8550 PNP + S8050 NPN (TO-92, user's transistor kit), 10k/2.2k/10k/100k | High-side LED switch; cuts LED power when dark (strips draw ~1 mA/LED idle) |
+| S8550 PNP + S8050 NPN (TO-92, user's transistor kit), 10k/2.2k/10k/100k | High-side LED switch on a 6-strip × 8-hole stripboard (`hardware/v2/switch_board.svg`: 5 cuts, 4 links, wires W1-W9); cuts LED power when dark (strips draw ~1 mA/LED idle) |
 | Omron B3F tactile button (on hand, tall round plunger) | Wake, sleep, mode (diagonal pins: D6, GND); reset pinhole over the XIAO's reset |
 | Magnets | Earlobe clip: one 12 × 3 mm neodymium disc each side (N35 or better; black ferrite is too weak). Nose clip: none (its soft-flex band grips by a light squeeze) |
 
