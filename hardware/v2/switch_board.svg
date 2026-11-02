@@ -33,7 +33,7 @@
     <text x="414" y="100" text-anchor="middle">FRONT WALL (to the temple tip; the right strip's wires come in here)</text>
     <text x="414" y="428" text-anchor="middle">toward the XIAO (and past it, the cord hole at the far end)</text>
     <text x="100" y="268" text-anchor="middle" transform="rotate(-90 100 268)">BACK WALL (button)</text>
-    <text x="609" y="268" text-anchor="middle" transform="rotate(90 609 268)">EAR-SIDE WALL (pogo)</text>
+    <text x="609" y="268" text-anchor="middle" transform="rotate(90 609 268)">EAR-SIDE WALL (earlobe lead)</text>
   </g>
   <!-- board and strips -->
   <rect class="board" x="232" y="130" width="364" height="276" rx="4"/>
@@ -190,6 +190,6 @@
     <text x="20" y="816">Goes in the bay in front of the XIAO, parts up, with the h1 end (the transistors) toward the pod's back wall.</text>
     <text x="20" y="832">In the head-sensor pod the board sits over the MAX30101's back: only the h1 end has room for the transistors' height.</text>
     <text x="20" y="848">Check before power: no copper bridging the cuts; S1 to S6 (battery + to ground) should not read as a short.</text>
-    <text x="20" y="864">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 16 × 25 mm, 6.5 mm tall (head pod: 4.9 mm over the sensor, 7.2 mm past it).</text>
+    <text x="20" y="864">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 17 × 26.5 mm, 6.5 mm tall (head pod: 4.9 mm over the sensor, 7.2 mm past it).</text>
   </g>
 </svg>

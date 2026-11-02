@@ -94,7 +94,7 @@ over older README text). In short:
 ## Known open items (as of 1 Nov 2026)
 
 - Not measured yet: the MAX30101 chip's exact position on the Pimoroni board (`CHIP_OFFSET`),
-  the thermistor bead size, the pogo connector's real size, `LENS_TOP_Z`, which edge of the temple
+  the thermistor bead size, `LENS_TOP_Z`, which edge of the temple
   paddle grows.
 - Untested: the closed soft-flex temple bands (open C-clips were judged too soft and replaced),
   the 0.45 mm translucent-PETG skin in front of each LED (does the slicer print it, how much light

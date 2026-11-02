@@ -119,11 +119,16 @@ def polyline(pts, r=0.6):
 def nose_path():
     """The nose wire's points: from the pod's pogo socket (plug on) to the clip's back face."""
     _, _, d = hp.board_pod()
-    px, py, pz = d["pogo"]
-    plug = onto_tip(Pos(px, py, pz - hp.POGO[1]) * Solid.make_box(0.01, 0.01, 0.01)).center()
+    px, py, pz = d["pogo"]                 # Socket in the back wall: the wire goes round the pod's far end
+    zb0, _ = d["zb"]
+    xo = d["xf"] - 3.0
+
+    def pt(x, y, z):
+        return onto_tip(Pos(x, y, z) * Solid.make_box(0.01, 0.01, 0.01)).center()
+    pod = [pt(px, py, pz + 4.0), pt(xo, py, pz + 4.0), pt(xo, py, zb0 - 3.0)]
     x, y, z = nc.wire_out(WING_T)
     nx, ny, nz = NOSTRIL
-    return [(plug.X, plug.Y, plug.Z)] + CHEEK + [(nx + x - 2.0, ny + y, nz + z), (nx + x, ny + y, nz + z)]
+    return [(p.X, p.Y, p.Z) for p in pod] + CHEEK + [(nx + x - 2.0, ny + y, nz + z), (nx + x, ny + y, nz + z)]
 
 
 def nose_length():

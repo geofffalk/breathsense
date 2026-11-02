@@ -188,7 +188,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | 2-pin 4 mm magnetic pogo connector (on hand) | Nose clip's plug at the board pod | $0 |
 | 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
 | S8550 PNP and S8050 NPN (TO-92, from a transistor kit: bought), 10k, 2.2k, 10k and 100k resistors (on hand) | LED power switch: cuts all LED power when the display is off or the battery is low. 2N2907A or BC327 also do for the PNP | ~$3 |
-| Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base about 5 × 3 mm against the back wall; its round plunger (about 3.5 mm) goes out through a 3.8 mm hole. Use two diagonal pins | $0 |
+| Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base 6 × 6 mm, body 3.2 mm tall (7.0 mm with the plunger, measured), against the back wall; its round plunger (about 3.5 mm) goes out through a 4.3 mm hole (about 4.0 mm as printed). Use two diagonal pins | $0 |
 | 10k resistor | Thermistor divider, from D1 to D0 (A0), the neighbouring pad (see Wiring) | ~$0.05 |
 | 28–30 AWG silicone wire, 0.5 mm sleeving, small heat-shrink | Cord, earlobe lead, nose pair; sleeving for the bead's bare leads in the nose clip's tunnel; heat-shrink on wire joints only | ~$3 |
 | Natural (translucent) PETG (on hand), plus PETG in any colour | The one-piece temple parts: a translucent strip in front of the LEDs, the rest in your colour (see Mount) | $0 |
@@ -378,12 +378,16 @@ row of `print_layout.step`.
 
 - **PETG:** 0.2 mm layers, 3 perimeters, 30–40% infill, no supports.
 - **Two-colour one-piece parts:** each side is a pair of STLs in the same
-  place on the bed: `_body` (any colour) and `_translucent` (the head-side
-  wall along the whole LED run, in one piece). Select both files and import
+  place on the bed: `_body` (any colour) and `_translucent` (a U round the
+  LED slot along the whole run, in one piece). Select both files and import
   them together; when the slicer asks, load them as one object with multiple
   parts (Bambu Studio, Orca and PrusaSlicer all ask). Then set the translucent
   part to the translucent filament and the body to your colour. In
   `print_layout.step` each pair is two bodies in place.
+  Where the colours meet the nozzle oozes at each change, leaving blobs and
+  strings (the first print had a mess at the strip's rear end). Turn on a
+  prime (wipe) tower and ooze prevention, retract on filament change, and set
+  the seam to back or aligned; add purge volume if the colours bleed.
 - **Soft flex:** 0.2 mm layers, 20–25 mm/s, little or no retraction, 100%
   infill, no supports. A brim helps the small clips stay down.
 - **Handedness:** the parts are modelled for the left temple (y outward, in a
@@ -405,69 +409,46 @@ shaped to one measured pair of glasses, not universal.
 - **The strip stays in one piece.** It runs along the temple, then round the
   hinge corner in one rigid 18 mm-radius curve onto the frame front's back
   face. The glasses can't fold while the part is fitted, so the curve doesn't
-  have to bend. 5 LEDs sit on the curve and the frame run, and 1 more at the
-  front of the rail, so 6 are in direct view.
+  have to bend. 4 LEDs sit on the curve and the frame run, and the next one
+  is just behind where the curve starts, so 5 are in direct view.
 - **Nothing over the lens.** The strip can't bend sideways within its own
   plane, so it stays at one height all the way along. That height is the top
   rim: on the frame front it sits above the lens, and it passes over the
   hinge knuckle.
-- **No threading.** The strip drops into a slot that's open along its top
-  edge. The slot is 2.2 mm wide for the 1.2 mm strip (PCB plus LEDs), because
-  printed slots come out 0.2–0.4 mm narrow, and nothing narrows the opening.
-  Round the curve the strip is held by its own stiffness: it can't bend
-  within its own width, so it can't climb out of a curved slot. A 2 mm
-  bridge crosses the slot's top just behind the last LED, over the strip's
-  end: feed the strip's back end and its wires under it first, then lay the
-  rest into the slot. If the strip
-  lifts anywhere else, a dab of silicone in the slot (on the part, not the
-  glasses) holds it.
-- **Windows.** The slot's head-side wall is 0.8 mm thick, but in front of each LED it's thinned from the slot side to
-  a 0.45 mm skin (one line from a 0.4 mm nozzle) over a 3.4 × 3 mm patch.
-  Each LED shines through its skin as a soft spot, and the outside face stays
-  smooth. The full-thickness wall above and below each patch holds the strip
-  in. The head-side wall is translucent along the whole LED run, from just
-  behind the rearmost LED to the front end, slot floor to top, in one piece.
-  Light spreads along it between the LEDs, which blends them so the moving
-  bars look smooth. The rest of the part prints in a colour you choose.
-  Check that the slicer prints the skin as one line and doesn't leave it out:
-  set the line width to 0.45 mm, or detect thin walls.
-- **Length.** The rail ends 60 mm behind the hinge, about 18 mm past the
-  last LED. From there the strip's wires run along the temple's inner face to
-  the pod.
-- **Grip.** The same wedge as the pods' pockets. Along the rail the part is a
-  rigid channel, open underneath: a top over the temple's top edge, and a leg
-  4 mm down its outer face. A soft-flex L (`onepiece_liner`) lines those two
-  sides: 0.8 mm on the top, 1.6 mm on the outer face, inside a 1.2 mm PETG
-  leg. It squeezes the temple 0.45 mm against the PETG plate on its inner
-  face. That's 28% of the liner's thickness, and still 9–47% if your temple
-  is 0.3 mm thicker or thinner than measured. The thick liner gives that
-  tolerance; the PETG leg only needs to be rigid next to it. On top it barely
-  squeezes (0.1 mm), because the part hangs there anyway. The temple thickens
-  toward the hinge, so the part tightens if it's pushed forward. Nothing goes
-  round the LEDs, and nothing is on the head side but the PETG.
-- **Liner.** It presses up into the channel from below. A small return along
-  the leg's foot, under its outer edge, stops it dropping out when the part is
-  off, and a stop closes the channel's front end. A drop of glue holds it if
-  it's loose: it's on the part, not the glasses. Its bottom inside edge is
-  chamfered so the temple slides in past it. There's a right and a left one.
-- **Fitting.** Push the part straight down onto the temple, with the curve
-  against the frame front's back face. Nothing else is needed, and the pod
-  can stay on. To remove, pull it straight up.
-- **Band variant.** The earlier grip is kept as `part(grip="band")`: a short
-  rigid hook over the top edge, and a closed soft-flex band
-  (`onepiece_band`, 6 mm wide) round the part and the temple just behind the
-  last LED, in grooves. It goes on over the tip with the pod off: band onto
-  the temple, hook the part over the top, swing its bottom in, roll the band
-  forward into its grooves.
+- **Enclosed slot.** The strip slides into a closed slot from the rail's open
+  back end, 60 mm behind the hinge, and on round the curve to the front end;
+  it bends through its thickness, which it does easily (you checked that the
+  LEDs slide in). The slot is 2.4 × 5.1 mm for the 1.2 × 4.0 mm strip (PCB
+  plus LEDs): printed slots come out 0.2–0.4 mm narrow, and the floor is a
+  bridge that may sag a little, so a rough print still leaves room. The
+  entry at the back end is the plain slot, with full walls (a flare split the
+  walls in the slicer). Before fitting the strip, push something about 1 mm thick through (a
+  cable tie or shim) to clear any strings from the colour changes. Its 0.6 mm roof is
+  part of the coloured body and also covers the translucent piece's top
+  edges, so no light leaks out of the top. The wires come out of the back
+  end. A dab of silicone at the back end holds the strip if it creeps.
+- **Translucent wall, not thinned.** The head-side wall over the LEDs is
+  the full 0.8 mm (two lines) of translucent PETG all along the run, so the
+  light gets through wherever the LEDs land and spreads, which helps
+  neighbouring LEDs blend. A thinner skin would be one flimsy line along most
+  of the wall the strip slides against. If it's too dim, turn the brightness
+  up in the app. The LEDs are placed for the strip pushed home against the front end: the
+  front LED's centre 3.5 mm from the strip's end (measured), then 6.8 mm apart
+  along the strip. The strip runs nearer the curve's centre than the outside
+  face, so round the curve its LEDs fall further back than the outside spacing
+  suggests: the rear one is about 6.6 mm further back than in the first
+  prints, which is why their windows missed. The translucent piece starts 4 mm
+  behind the rear LED.
 - **Nothing springy in the PETG.** All the give is in the soft flex, so the
   PETG part has nothing thin to snap.
 - **Printing.** PETG, top edge down on the bed, no supports (the only
-  overhang is a short bridge over the temple's top). The liner prints in soft
+  overhangs are short bridges: over the temple's top, and the floor over the
+  2.4 mm slot). The liner prints in soft
   flex on its top face, with the outer pad standing up. The band variant's band
   prints lying flat.
 - **No separate test piece.** The part is short enough to print whole as the
   first test, about 2 g. Check that the curve sits against the frame front,
-  clears the hinge and stays above the lens, that the strip drops in, and
+  clears the hinge and stays above the lens, that the strip slides in, and
   that the liner holds it on the temple.
 
 **Measurements to check.** These come from photos or are guesses:
@@ -491,7 +472,7 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 
 | File (`out/stl/`) | Material | What it is |
 |---|---|---|
-| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn) on two 1 mm rails, an 8 mm bay at the front for the LED switch, button in the back wall, earlobe lead out of the ear-side wall |
+| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn) on two 1 mm rails, a 17 mm bay at the front for the LED switch, button and the nose clip's pogo socket side by side in the back wall, earlobe lead out of the ear-side wall |
 | `hang_pod_board_head`, `hang_lid_board_head`, `hang_liner_head` | PETG / soft flex | Head-side sensor variant of the right pod (see below) |
 | `hang_pod_battery` | PETG | Left pod: 502030 cell; cord out of the far end |
 | `hang_liner` | Soft flex | Lines each pod's pocket. Print 2 |
@@ -521,8 +502,11 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   pod away.
 - **Wires:** the rail's wires (up to 4 of about 1 mm) run along the paddle's
   back edge in a 2.2 mm channel under the band (1.6 mm where the band crosses), into the body through its
-  front wall. The cord between the pods leaves the far end through a 5 × 3 mm
-  hole.
+  front wall just under the lid, above the switch board (an earlier hole lower
+  down was blocked by R1). The cord between the pods leaves the far end through a 5 × 3 mm
+  hole (in the board pod, 5 × 2.6 mm, between the button's body and the XIAO's
+  edge, so the button doesn't block it; its wires run on past the socket
+  there).
 - **Assumption to check:** the paddle grows on its lower edge (nearest the ear
   when worn) and its top edge is straight. If it's the other way round, the
   pocket needs flipping.
@@ -532,12 +516,25 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   outer wall bridges over the paddle's space). The liner prints open edge
   down, and the bands lying flat. The band's groove on the head-side face
   makes an 8 mm bridge 0.7 mm up.
-- **Board pod inside:** 62 × 8.7 × 27.8 mm overall. The XIAO sits on two 1 mm
+- **Board pod inside:** 63 × 8.7 × 29.0 mm overall. The XIAO sits on two 1 mm
   rails under its ends, leaving room under it for the battery wires on its
-  back pads. In front of it is a 16 × 25 mm bay, 6.5 mm tall, for the LED
+  back pads. In front of it is a 17 × 26.5 mm bay, 6.5 mm tall, for the LED
   switch on its stripboard (see Wiring and `switch_board.svg`: about 15 × 22
   mm, 1.5 mm board, parts lying flat, 5.7 mm tall), transistor end toward
   the back wall.
+- **Button:** the 6 × 6 mm B3F sits against the back wall, 5 mm from the
+  far end's inside, its plunger through the 4.3 mm hole and about 2.6 mm proud.
+  It has 6.35 mm between the XIAO's edge and the back wall for its body and
+  legs (with 3.6 mm it pushed the XIAO 2.5–3 mm off the USB-C hole).
+- **Nose clip's pogo socket:** in the back wall beside the button, toward
+  the bay (16.5 mm from the far end's inside; the two holes are 7.3 mm apart).
+  Its 4 mm face boss goes through a 4.1 mm hole, flush with the outside; its
+  4.9 mm ring sits in a 0.2 mm counterbore inside, so press it in from inside
+  (a drop of glue if loose). It stands 3.8 mm into the pod, leaving about
+  2.5 mm to the XIAO's edge for the wires on its tails. Tell the button and
+  socket apart by feel: the button is nearer the USB-C end.
+- **Ear side:** 2 mm between the XIAO and the ear-side wall, for the earlobe
+  lead only.
 
   ![Stripboard next to the XIAO in the right pod, seen from the lid side](renders/switch_board_in_pod.png)
 
@@ -639,9 +636,9 @@ shape doesn't have to match the lobe.
   least 6 mm below the notch. Fold the strap round and let the puck snap on.
 - **Lead:** 4 loose silicone wires (power, ground, SDA, SCL), 70 mm long. The
   farthest a lobe sits from the pod's exit is 42 mm, checked over ±5 mm of
-  ear position and every lobe size, plus 25 mm of slack. Tie a knot inside
-  the pod as strain relief; it leaves through a 4 mm hole in the ear-side
-  wall.
+  ear position and every lobe size, plus 25 mm of slack. It leaves through a
+  4 mm hole in the ear-side wall; hold it with a dab of hot glue or silicone
+  just inside the hole as strain relief (there's no room for a knot).
 - **Check:** `CHIP_OFFSET` puts the chip's centre 2.3 mm below the board's
   top edge, from a photo; and the side rims (0.8 mm) must clear the parts
   nearest the side edges.
@@ -684,11 +681,11 @@ nose, not the glasses, so it stays put when the glasses move.
   (heat-shrink each joint); the pair heads back toward the ear.
 - **Printing:** flat on its back face, no supports: the tunnel is a diamond
   with a 45° roof, so it needs no bridge. 100% infill, slow, brim.
-- **Wire:** 220 mm, loose: down behind the earlobe, under its clip, along the
-  cheek. The path on the stand-in head is 179 mm, plus 40 mm slack. It ends in
-  the plug half of a 2-pin 4 mm magnetic pogo connector; the socket half
-  presses into the board pod's ear-side wall, 7 mm behind the earlobe lead's
-  hole, and its tails solder to D0 (A0) and ground (the
+- **Wire:** 290 mm, loose: from the board pod's back edge round its lower
+  end, down behind the earlobe, under its clip, along the cheek. The path on
+  the stand-in head is 246 mm, plus 40 mm slack. It ends in the plug half of
+  a 2-pin 4 mm magnetic pogo connector; the socket half presses into the
+  board pod's back wall beside the button (see Board pod inside), and its tails solder to D0 (A0) and ground (the
   firmware's divider: 10k from D1 to D0, thermistor from D0 to ground). Set
   `BETA` in `firmware/config.py` to your bead's B value (3435 now).
 - **Tugs:** the pogo connector's magnets probably hold harder than the clip
@@ -696,8 +693,8 @@ nose, not the glasses, so it stays put when the glasses move.
   Leave a slack loop under the ear; if tugs still reach the nose, add a tie-off
   where the wire passes the earlobe clip.
 - **Check:** the bead (`BEAD_D`, 0.8 mm assumed) and the pogo socket
-  (`hang_pods.POGO`, 4.0 × 4.0 mm assumed, no flange). The socket's tails sit
-  in the knot space under the XIAO; bend them flat.
+  (`hang_pods.POGO`, measured: 4 mm boss 1 mm tall, 4.9 mm ring, 5 mm long
+  with its tails).
 - **Printing:** translucent PETG, flat on its back face, no supports; the
   only overhangs are the small lead holes. A brim helps it stay down. Spring
   it open a few times to check it doesn't whiten (the sign of overstraining).

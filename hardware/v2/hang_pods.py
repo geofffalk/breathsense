@@ -15,8 +15,8 @@ over its tip before the pod, then rolls back along the paddle into its groove.
 The body carries on past the tip's end along the same line, down onto the bone behind the
 earlobe, so the pod doesn't rise above the ear.
 - Board pod (right): the XIAO under a soft-flex lid, USB-C out of the far end (down and back
-  when worn); the button in the back wall; the earlobe lead out of the ear-side wall, and the nose clip's
-  magnetic pogo socket beside it.
+  when worn); the button and the nose clip's magnetic pogo socket side by side in the back wall; the
+  earlobe lead out of the ear-side wall.
 - Battery pod (left): the 502030 cell under a lid; the cord out of the far end.
 
 Coordinates as worn on the right temple, in the straight frame (ear bend not applied): the tip
@@ -78,18 +78,26 @@ CLIP_GROOVE_TOP = 0.3    # ... and this deep in the walls' top edges, leaving th
 CLIP_SQUEEZE = 0.3       # Band's inside this much smaller than the groove's floor on every side
 
 # ---------------------------------------------------------------- body
-FLANGE_ZONE = 3.6        # Room inside the board pod's ear-side wall for a knot in the earlobe lead (strain relief)
+FLANGE_ZONE = 2.0        # Room inside the board pod's ear-side wall for the earlobe lead (held by a dab of glue
+                         # inside its hole: a knot needed 3.6 mm)
 LEAD_HOLE = 4.0          # Earlobe lead's 4 wires (1 mm), loose, out through the ear-side wall
-POGO = (4.0, 4.0)        # Nose clip's 2-pin magnetic pogo socket, flush in the ear-side wall: diameter, length (check yours)
-POGO_FIT = 0.1           # Hole this much over its diameter (press it in; a drop of glue if loose)
-POGO_BACK = 7.0          # This far behind the earlobe lead's hole, toward the far end
-BAY = 16.0               # Board pod's cavity this much longer, at its front beside the XIAO, for the LED switch
+POGO = (4.0, 1.0, 4.9, 5.0)   # Nose clip's 2-pin magnetic pogo socket (measured): face boss diameter and height (through
+                         # the back wall, flush), ring diameter (seats inside), length including the tails
+POGO_FIT = 0.1           # Holes this much over its diameters (press it in from inside; a drop of glue if loose)
+BUTTON_H = 3.2           # Button's body height (measured; 7.0 with the plunger)
+BUTTON_AT = 5.0          # Button's centre from the far end's inside (its 6 mm base clear of the far wall) ...
+POGO_AT = 16.5           # ... and the socket's: holes 7.3 mm apart, its ring 2.2 mm short of the XIAO's front end
+                         # (past it the switch board's transistors lie against the back wall)
+BAY = 17.0               # Board pod's cavity this much longer (16 was a little tight for XIAO + board), at its front beside the XIAO, for the LED switch
                          # on a stripboard (switch_board.svg): about 15 x 22 mm, 1.5 mm thick, parts lying flat
 SWITCH_STACK = 5.7       # Switch board's height: solder 0.7, board 1.5, a flat TO-92 3.5
 BOARD_LIFT = 1.0         # XIAO raised this much on two rails under its ends: room for the battery wires on its back pads
 RAIL_W = 1.5             # ... rails this wide along its length
-BUTTON = (5.0, 3.0)      # Omron B3F: base across the cavity's depth, and along the back wall (check yours) ...
-PLUNGER_HOLE = 3.8       # ... its round plunger (about 3.5 mm) out through the back wall
+BUTTON = (6.0, 6.0)      # Omron B3F (measured): 6 x 6 base, across the cavity's depth and along the back wall; body 3.2 tall,
+                         # 7.0 with the plunger, so the plunger stands 2.6 mm proud of the back wall ...
+BUTTON_ROOM = 6.35       # Between the XIAO's edge and the back wall for the button and its legs: 3.6 let it push the
+                         # XIAO 2.5-3 mm toward the ear-side wall (measured). The pogo socket shares it
+PLUNGER_HOLE = 4.3       # ... its round plunger (about 3.5 mm) out through the back wall (prints ~0.3 mm small; 3.8 was too tight)
 
 # ---------------------------------------------------------------- head-side sensor (board_pod(sensor="head"))
 # The MAX30101 sits in the pocket's head-side wall at the paddle's end, where the temple presses on
@@ -181,8 +189,10 @@ def back_clip(y0, y1):
             - box(x0 - 1, x1 + 1, yi0, yi1, zi0, zi1))
 
 
-def body(depth, height, length, d):
+def body(depth, height, length, d, wire_high=False, cord_in=0.3, cord_h=None):
     """The body box past the tip's end, its ear-side face level with the pocket's lowest point.
+    wire_high: the rail's wires come in just under the lid, above the switch board in the bay.
+    cord_in, cord_h: the cord's hole in the far end starts this far in from the back wall's inside, this tall.
     Returns (solid, cavity, (xf, zb0, zb1))."""
     y0, y1, x_end = d["y0"], d["y1"], d["x_end"]
     zb0 = d["z_low"]
@@ -195,9 +205,16 @@ def body(depth, height, length, d):
     # Wires from the channel along the paddle's back edge, through the front wall
     hw, hh = WIRE_HOLE
     yc = (d["pocket_in"][0] + d["pocket_in"][1]) / 2
-    cav += box(x_end - W - 0.1, x_end + 0.5, yc - hw / 2, yc + hw / 2, 0.1, 0.1 + hh)
+    if wire_high:
+        # Top at the lid's underside, 4 mm tall (clear of the stripboard, 2.2 mm with its solder), and
+        # 0.5 mm higher up the back edge, clear of R1's lead
+        yt = y1 - mv.LID_T
+        cav += box(x_end - W - 0.1, x_end + 0.5, yt - WIRES * WIRE_D, yt, 0.6, 0.6 + hh)
+    else:
+        cav += box(x_end - W - 0.1, x_end + 0.5, yc - hw / 2, yc + hw / 2, 0.1, 0.1 + hh)
     # Cord, out of the far end, at the back
-    cav += box(xf - 1, xf + W + 0.1, yc - hw / 2, yc + hw / 2, zb1 - W - 0.3 - hh, zb1 - W - 0.3)
+    ch = hh if cord_h is None else cord_h
+    cav += box(xf - 1, xf + W + 0.1, yc - hw / 2, yc + hw / 2, zb1 - W - cord_in - ch, zb1 - W - cord_in)
     return p, cav, (xf, zb0, zb1)
 
 
@@ -265,8 +282,9 @@ def board_pod(sensor="lobe"):
     w_, length, pcb, usb_h = mv.XIAO
     depth = BOARD_LIFT + pcb + usb_h + 0.4 + (HEAD_DEEPER if sensor == "head" else 0.0)
     p, d = pocket(depth)
-    height = 2 * W + FLANGE_ZONE + (w_ + 0.4) + 3.6       # Ear-side wall, lead's knot, board, button, back wall
-    b, cav, (xf, zb0, zb1) = body(depth, height, length + 0.2 + 2 * W + BAY, d)
+    height = 2 * W + FLANGE_ZONE + (w_ + 0.4) + BUTTON_ROOM   # Ear-side wall, lead's knot, board, button, back wall
+    b, cav, (xf, zb0, zb1) = body(depth, height, length + 0.2 + 2 * W + BAY, d, wire_high=True,
+                              cord_in=BUTTON_H + 0.3, cord_h=2.6)   # Cord between the button and the XIAO's edge
     p += b
     y0, y1, x_end = d["y0"], d["y1"], d["x_end"]
     cy0 = y0 + W
@@ -275,14 +293,21 @@ def board_pod(sensor="lobe"):
     xs = xf + W                                            # Board's far end (USB-C end)
     cav += box(xf - 1, xf + W + 0.1, board_y + pcb - 0.2, board_y + pcb + usb_h + 0.4,
                bz - mv.USB_W / 2 - 0.2, bz + mv.USB_W / 2 + 0.2)                                 # USB-C, far end
-    bx = xf + W + 8.0
-    cav += Pos(bx, cy0 + BUTTON[0] / 2, zb1 - W / 2) * Cylinder(PLUNGER_HOLE / 2, W + 0.4)    # Button plunger, back wall
+    bx = xf + W + BUTTON_AT
+    # Button plunger, back wall: centred on the wall's outer face, kept where the button's base still fits
+    # between the floor and the lid
+    by = min(max((y0 + y1) / 2, cy0 + BUTTON[0] / 2), y1 - mv.LID_T - BUTTON[0] / 2)
+    cav += Pos(bx, by, zb1 - W / 2) * Cylinder(PLUNGER_HOLE / 2, W + 0.4)
     lx = x_end - W - 6.4 - BAY                             # Lead near the board's front: closest to the earlobe
-    px = lx - POGO_BACK
     ly = (cy0 + y1 - mv.LID_T) / 2
+    # Nose clip's socket in the back wall beside the button, toward the bay: the boss through a hole, flush,
+    # the ring in a counterbore from inside so the wall left under it is the boss's height
+    boss, boss_h, ring, _ = POGO
+    px = xf + W + POGO_AT
+    cav += Pos(px, by, zb1 - W / 2) * Cylinder((boss + POGO_FIT) / 2, W + 0.4)
+    cav += Pos(px, by, zb1 - boss_h - 0.5) * Cylinder((ring + POGO_FIT) / 2, 1.0)
     if sensor != "head":
         cav += Pos(lx, ly, zb0 + W / 2) * Cylinder(LEAD_HOLE / 2, W + 0.4)                     # Earlobe lead
-    cav += Pos(px, ly, zb0 + W / 2) * Cylinder((POGO[0] + POGO_FIT) / 2, W + 0.4)               # Nose clip's socket
     if sensor == "head":
         place, (cx, ty, cz) = head_frame()
         fx0, fx1, fz0, fz1 = head_footprint()
@@ -297,7 +322,7 @@ def board_pod(sensor="lobe"):
     p -= cav
     p += xiao_rails(xs, bz, cy0)
     d.update(xf=xf, zb=(zb0, zb1), cy0=cy0, bz=bz, board_y=board_y, sensor=sensor,
-             lead_exit=(lx, ly, zb0), pogo=(px, ly, zb0))
+             lead_exit=(lx, ly, zb0), pogo=(px, by, zb1))
     lid = lid_for(xf, x_end, zb0, zb1, y1)
     rst = (xf + W + 4.0, bz + 5.0)                         # XIAO reset button, next to the USB-C (check yours)
     lid -= box(rst[0] - 0.6, rst[0] + 0.6, y1 - mv.LID_T - 1, y1 + 1, rst[1] - 0.6, rst[1] + 0.6)

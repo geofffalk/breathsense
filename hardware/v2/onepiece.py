@@ -7,19 +7,19 @@ have to bend. Shaped to one measured pair of glasses, not universal.
 - The strip runs at top-rim height, so on the frame front it sits above the lens and blocks
   nothing you look through. It can't bend sideways within its own plane, so it stays at that
   height all the way along. That also takes it clear of the hinge knuckle.
-- The strip drops into a slot that's open along its top edge, so it never has to be threaded
-  through. Nothing narrows the opening. The strip can't climb out of the curve (it
-  can't bend within its own width); the band crosses the slot behind the last LED, over the
-  strip's end; a dab of silicone in the slot holds the rest if it lifts. Each LED shines straight
-  out through the slot's head-side wall, thinned to a single-line skin in front of it.
-- Two colours: the head-side wall along the whole LED run (translucent()) prints in translucent
-  PETG, so light still spreads between the LEDs and the moving bars stay smooth; the rest (body())
-  in any colour chosen in the slicer. They're exported as a pair of STLs in the same place on the bed.
+- The strip slides into an enclosed slot from the rail's open back end, round the curve (it bends
+  through its thickness, which it does easily); the slot's roof is part of the coloured body, so
+  no light leaks out of the top. Each LED shines straight out through the slot's head-side wall,
+  full 0.8 mm translucent PETG (two lines), which spreads the light so neighbouring LEDs blend.
+- Two colours: a U round the slot along the whole LED run (translucent(): the head-side wall, the
+  floor under the slot and a skin inside the temple-side wall, dovetailed into it) prints in
+  translucent PETG, so light still spreads between the LEDs and the moving bars stay smooth; the
+  rest (body()) in any colour chosen in the slicer. They're exported as a pair of STLs in the same place on the bed.
 - Grip (grip="liner", the default): a rigid channel along the rail, open underneath: a top over
   the temple's top edge and a leg 4 mm down its outer face, lined on those two sides with a
   soft-flex L (liner()). The liner squeezes the temple onto the plate on its inner face, the
   same wedge as the pods' pockets. Push the part straight down onto the temple. No band, nothing
-  round the LEDs. A short bridge across the slot's top behind the last LED holds the strip's end.
+  round the LEDs.
 - grip="band" (the earlier design, kept as a variant): a rigid hook over the top edge, and one
   soft-flex band, a closed loop just behind the last LED, right round the part and the temple,
   in grooves in the part. To fit: take the pod off, slide the band onto the temple over its tip,
@@ -66,9 +66,10 @@ LENS_TOP_Z = -4.5        # Where the lens starts below the frame front's top, ne
 
 # ---------------------------------------------------------------- strip and its slot
 STRIP_W, STRIP_T = gm.STRIP_W, 1.2   # Strip width, and thickness including the LEDs
-WALL = 0.8               # Head-side wall, thinned in front of each LED
+WALL = 0.8               # Head-side wall: two 0.4 mm-nozzle lines, translucent over the LED run, not thinned
 WALL_OUT = 1.6           # Temple-side wall: the band's backbone, so it carries the curve
-SLOT_T = STRIP_T + 1.0   # Slot width (across the strip): a printed slot comes out 0.2-0.4 mm narrow
+SLOT_T = STRIP_T + 1.2   # Slot width (across the strip): a printed slot comes out 0.2-0.4 mm narrow, and the strip
+                         # slides in along the whole closed slot
 ZS0 = FRAME_TOP_Z - (STRIP_W + 0.4)   # Bottom of the slot: the strip's top edge sits level with the frame front's top
 CLEAR = 0.15             # Fit clearance against the temple
 HOOK_T = 1.6             # Top hook thickness over the temple's top edge
@@ -76,9 +77,9 @@ ZS1 = CLEAR + HOOK_T     # Top of the part (the print bed), and of the open slot
 STRIP_TOP = ZS0 + STRIP_W + 0.2       # Where the strip's top edge sits in the slot
 FLOOR = 0.8
 BAND_T = WALL_OUT + SLOT_T + WALL     # Band thickness: temple-side wall, slot, head-side wall
-WINDOW_W = 3.4           # Thin patch of the head-side wall in front of each LED (along the strip) ...
-WINDOW_EDGE = 0.7        # ... leaving full wall this much above and below it to hold the strip
-SKIN = 0.45              # Wall left in front of each LED: one 0.4 mm-nozzle line of translucent PETG
+END_T = 0.8              # Front end wall: the strip slides in until it stops against it
+LED_END = 3.5            # Measured: front LED's centre from the strip's front end (its 2 mm LED starts ~2.5 mm along)
+CLEAR_TAIL = 4.0         # The translucent piece starts this far behind the rear LED's centre
 
 # ---------------------------------------------------------------- the curve
 CURVE_R = 18.0           # Arc radius at the temple/frame faces. The strip turns 90 degrees round it
@@ -97,7 +98,7 @@ PLATE_T = BAND_T         # Lower plate thickness: flush with the band, one flat 
 # last LED so it covers none. It sits in grooves in the part's top, the hook's lip and the
 # plate's bottom edge, so it can't slide along. The head-side face has no groove: the LED wall
 # there is only 0.8 mm. Where it crosses the temple itself it just lies on it.
-CLIPS = (-48.0,)         # Band's centre: starts 1.2 mm behind the last LED's window
+CLIPS = (-56.0,)         # Band's centre: its front edge just behind the translucent piece (x -51.8)
 CLIP_L = (6.0,)          # Band width along the temple
 CLIP_ARM = 1.2           # Band thickness
 CLIP_SQUEEZE = 0.3       # Band's inside this much smaller than what it goes round, every side (~7% stretch)
@@ -119,8 +120,9 @@ RETURN_H = 1.1           # ... this tall, so its slope prints unsupported (54 de
 LINER_LEAD = 0.5         # Lead-in chamfer on the liner's bottom inside edge
 STOP_L = 0.8             # Front end of the channel closed over the liner's section
 ZS1_LINER = LINER_TOP_T - LINER_SQUEEZE_TOP + HOOK_T   # Top of the part with the liner
-BRIDGE = (-47.0, -45.0)  # Bridge across the slot's top behind the last LED (x), over the strip's end
-BRIDGE_T = 0.8
+ROOF = 0.6               # The slot is closed over its top along its whole length (part of the coloured body), so no
+                         # light leaks upward; the strip slides in from the rail's open back end ...
+
 
 
 def temple_t(x):
@@ -164,10 +166,26 @@ S_FRONT = ARC_L + FRAME_RUN            # ... at the frame run's end
 
 
 def led_path():
-    """Path length of each LED's centre, rear first: the front LED sits 3 mm from the band's front
-    end, the rest at the strip's pitch behind it."""
-    s_last = S_FRONT - 3.0
-    return [s_last - (9 - i) * gm.LED_PITCH for i in range(10)]
+    """Path length of each LED's centre, rear first, with the strip pushed home against the front end
+    wall. Path length is measured on the temple/frame face, but the strip runs down the slot's middle,
+    nearer the arc's centre, so round the arc a mm of strip covers more than a mm of path."""
+    k = (CURVE_R - (WALL_OUT + SLOT_T / 2)) / CURVE_R      # Strip length per path length on the arc
+    end = S_FRONT - END_T
+    run = end - ARC_L                                       # Straight run in front of the arc
+
+    def s_of(d):                                            # Path length at d along the strip from its front end
+        if d <= run:
+            return end - d
+        d -= run
+        if d <= ARC_L * k:
+            return ARC_L - d / k
+        return -(d - ARC_L * k)
+    return [s_of(LED_END + i * gm.LED_PITCH) for i in range(10)][::-1]
+
+
+def clear_s0():
+    """Path length where the translucent piece's LED run starts."""
+    return led_path()[0] - CLEAR_TAIL
 
 
 # ================================================================ the part
@@ -184,13 +202,8 @@ def part(rail_x0=RAIL_X0, grip="liner"):
     p = band(s_rear, S_FRONT, 0, WALL_OUT, zb, zs1)
     p += band(s_rear, S_FRONT, WALL_OUT + SLOT_T, BAND_T, zb, zs1)
     p += band(s_rear, S_FRONT, 0, BAND_T, zb, ZS0)
-    p += band(S_FRONT - 0.8, S_FRONT, 0, BAND_T, zb, zs1)                        # Front end closed
-    # Windows: the head-side wall thinned from the slot side in front of each LED, so the light
-    # goes through a thin skin and the outside face stays smooth
-    for s in led_path():
-        p -= band(s - WINDOW_W / 2, s + WINDOW_W / 2, WALL_OUT + SLOT_T - 0.1, BAND_T - SKIN,
-                  ZS0 + WINDOW_EDGE, STRIP_TOP + 0.2 - WINDOW_EDGE)
-
+    p += band(S_FRONT - END_T, S_FRONT, 0, BAND_T, zb, zs1)                      # Front end closed
+    p += band(s_rear, S_FRONT, WALL_OUT - 0.01, WALL_OUT + SLOT_T + 0.01, zs1 - ROOF, zs1)   # Roof over the slot
     xa, xb = rail_x0, X_T
     if grip == "liner":
         # Channel: a top over the liner's top pad and a leg outside its outer pad, along the rail
@@ -209,8 +222,6 @@ def part(rail_x0=RAIL_X0, grip="liner"):
         p += xy_prism([(x0, -0.01), (xb, -0.01), (xb, yb), (x0, leg_in(x0))], CLEAR, za + 0.01)
         p += xy_prism([(x0, temple_t(x0) + CLEAR), (xb, temple_t(xb) + CLEAR), (xb, yb + 0.01), (x0, leg_in(x0) + 0.01)],
                       -LINER_D, za + 0.01)
-        # Bridge across the slot's top, behind the last LED, over the strip's end
-        p += band(BRIDGE[0] - X_T, BRIDGE[1] - X_T, WALL_OUT - 0.01, WALL_OUT + SLOT_T + 0.01, zs1 - BRIDGE_T, zs1)
     else:
         # Top hook over the temple's top edge (rigid), along the rail
         ya, yb = temple_t(xa) + CLEAR, temple_t(xb) + CLEAR
@@ -296,12 +307,28 @@ def print_orient_clip(c):
     return Pos(-bb.min.X, -bb.min.Y, -bb.min.Z) * c
 
 
+CLEAR_SKIN = 0.6         # Translucent skin on the inside of the temple-side wall (of its 1.6 mm)
+KEY = ((0.2, 1.2), (0.2, 0.8))   # Dovetail key along that skin, into the coloured wall: (depth, half-height) steps,
+                                 # widest deepest, so the translucent piece can't pull out toward the face
+
+
 def clear_zone(grip="liner"):
-    """The head-side wall along the LED run, from just behind the rear LED's window to the front
-    end, slot floor to the part's top: one continuous piece, so the LEDs blend into each other."""
+    """The translucent region along the LED run, from 4 mm behind the rear LED to the front
+    end, up to the roof: a U round the slot (the head-side wall, the floor under the slot, and a skin on the inside
+    of the temple-side wall), so it's bonded along the whole height of the coloured wall, plus a
+    dovetail key into that wall. One continuous piece, so the LEDs blend into each other."""
     zs1 = ZS1_LINER if grip == "liner" else ZS1
-    s0 = led_path()[0] - WINDOW_W / 2 - 1.0
-    return band(s0, S_FRONT + 0.01, WALL_OUT + SLOT_T - 0.01, BAND_T + 0.01, ZS0, zs1 + 0.01)
+    zb = ZS0 - FLOOR
+    s0, s1 = clear_s0(), S_FRONT + 0.01
+    o_in = WALL_OUT - CLEAR_SKIN
+    # Up to the roof's underside: the roof covers the U's top edges too
+    z = band(s0, s1, o_in, BAND_T + 0.5, zb - 0.01, zs1 - ROOF)   # Past the outer face: the curve's facets differ
+    zm = (zb + zs1) / 2
+    o = o_in
+    for depth, half in KEY[::-1]:                 # Narrow step first (next to the skin), widest deepest
+        z += band(s0, s1, o - depth, o + 0.01, zm - half, zm + half)
+        o -= depth
+    return z
 
 
 def translucent(p, grip="liner"):
