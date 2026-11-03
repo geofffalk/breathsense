@@ -32,7 +32,7 @@
   <g font-size="11" font-weight="bold" fill="#00695c">
     <text x="414" y="100" text-anchor="middle">FRONT WALL (to the temple tip; the right strip's wires come in here)</text>
     <text x="414" y="428" text-anchor="middle">toward the XIAO (and past it, the cord hole at the far end)</text>
-    <text x="100" y="268" text-anchor="middle" transform="rotate(-90 100 268)">BACK WALL (button)</text>
+    <text x="100" y="268" text-anchor="middle" transform="rotate(-90 100 268)">BACK WALL (cord)</text>
     <text x="609" y="268" text-anchor="middle" transform="rotate(90 609 268)">EAR-SIDE WALL (earlobe lead)</text>
   </g>
   <!-- board and strips -->
@@ -172,10 +172,10 @@
     <text x="640" y="686">the front wall, out along the temple</text>
     <text x="20" y="702">W5    S3 h6   black</text>
     <text x="200" y="702">The button (its other pin goes to the XIAO's D6)</text>
-    <text x="640" y="702">along the back wall to the button</text>
+    <text x="640" y="702">beside the XIAO to the button</text>
     <text x="20" y="718">W6    S3 h7   black</text>
     <text x="200" y="718">Pogo socket pin 2</text>
-    <text x="640" y="718">the ear-side wall</text>
+    <text x="640" y="718">beside the XIAO to the far end</text>
     <text x="20" y="734">W7    S3 h8   black</text>
     <text x="200" y="734">The XIAO's BAT− pad (its underside)</text>
     <text x="640" y="734">the XIAO</text>
@@ -190,6 +190,6 @@
     <text x="20" y="816">Goes in the bay in front of the XIAO, parts up, with the h1 end (the transistors) toward the pod's back wall.</text>
     <text x="20" y="832">In the head-sensor pod the board sits over the MAX30101's back: only the h1 end has room for the transistors' height.</text>
     <text x="20" y="848">Check before power: no copper bridging the cuts; S1 to S6 (battery + to ground) should not read as a short.</text>
-    <text x="20" y="864">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 17 × 26.5 mm, 6.5 mm tall (head pod: 4.9 mm over the sensor, 7.2 mm past it).</text>
+    <text x="20" y="864">Height: about 5.7 mm (solder 0.7, board 1.5, flat TO-92 3.5). The bay is 20 × 30 mm, 8.6 mm tall (head pod: 7.9 mm over the sensor, 10.2 mm past it).</text>
   </g>
 </svg>

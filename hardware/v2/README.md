@@ -188,7 +188,7 @@ These angles are estimated from typical frame geometry. The LED sweep test
 | 2-pin 4 mm magnetic pogo connector (on hand) | Nose clip's plug at the board pod | $0 |
 | 2 × 12 × 3 mm neodymium discs, N35 or better (bought: a pack of 50) | Earlobe clip's pinch, one each side. Black ferrite discs are about 1/9 as strong and don't hold | ~$3 |
 | S8550 PNP and S8050 NPN (TO-92, from a transistor kit: bought), 10k, 2.2k, 10k and 100k resistors (on hand) | LED power switch: cuts all LED power when the display is off or the battery is low. 2N2907A or BC327 also do for the PNP | ~$3 |
-| Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base 6 × 6 mm, body 3.2 mm tall (7.0 mm with the plunger, measured), against the back wall; its round plunger (about 3.5 mm) goes out through a 4.3 mm hole (about 4.0 mm as printed). Use two diagonal pins | $0 |
+| Omron B3F tactile button, tall plunger (on hand) | Wake, sleep and mode. Base 6 × 6 mm, body 3.2 mm tall (7.0 mm with the plunger, measured), standing on the board pod's floor; its round plunger (about 3.5 mm) comes up through a 4.3 mm hole in the lid (about 4.0 mm as printed). Use two diagonal pins | $0 |
 | 10k resistor | Thermistor divider, from D1 to D0 (A0), the neighbouring pad (see Wiring) | ~$0.05 |
 | 28–30 AWG silicone wire, 0.5 mm sleeving, small heat-shrink | Cord, earlobe lead, nose pair; sleeving for the bead's bare leads in the nose clip's tunnel; heat-shrink on wire joints only | ~$3 |
 | Natural (translucent) PETG (on hand), plus PETG in any colour | The one-piece temple parts: a translucent strip in front of the LEDs, the rest in your colour (see Mount) | $0 |
@@ -241,6 +241,9 @@ carries BAT+, GND, the switched LED supply and the left strip's data.
 
 Build the switch on a small stripboard: ![Switch on stripboard](switch_board.svg)
 It replaces joints 6–11 on the wiring diagram.
+
+Check the finished wiring with a multimeter: [WIRING_TESTS.md](WIRING_TESTS.md)
+(everything connected, with the LiPo unplugged for the resistance tests; every joint covered).
 
 **LED power switch** (all through-hole, from the DollaTek transistor kit: S8550
 PNP, S8050 NPN; a 2N3906 also does for the PNP):
@@ -361,7 +364,7 @@ the temple tip instead of on the earlobe, print these in place of
 
 | File (`out/stl/`) | Material | Qty | What it is |
 |---|---|---|---|
-| `hang_pod_board_head_petg` | PETG | 1 | Right pod with the sensor's window in its pocket's head-side wall, 0.7 mm thicker |
+| `hang_pod_board_head_petg` | PETG | 1 | Right pod with the sensor's window in its pocket's head-side wall, 1.6 mm thicker |
 | `hang_lid_board_head_flex` | Soft flex | 1 | Its lid |
 | `hang_liner_head_flex` | Soft flex | 1 | Right pod's liner, cut away behind the sensor |
 | `hang_back_clip_head_flex` | Soft flex | 1 | Right pod's band (this pod is thicker) |
@@ -472,7 +475,7 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 
 | File (`out/stl/`) | Material | What it is |
 |---|---|---|
-| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn) on two 1 mm rails, a 17 mm bay at the front for the LED switch, button and the nose clip's pogo socket side by side in the back wall, earlobe lead out of the ear-side wall |
+| `hang_pod_board` | PETG | Right pod: XIAO (USB-C out of the far end, down and back when worn) on the floor (no rails), a 20 mm bay at the front for the LED switch, nose clip's pogo socket out of the far end, cord out of the back wall, button on a platform up through the lid, earlobe lead out of the ear-side wall |
 | `hang_pod_board_head`, `hang_lid_board_head`, `hang_liner_head` | PETG / soft flex | Head-side sensor variant of the right pod (see below) |
 | `hang_pod_battery` | PETG | Left pod: 502030 cell; cord out of the far end |
 | `hang_liner` | Soft flex | Lines each pod's pocket. Print 2 |
@@ -503,10 +506,9 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 - **Wires:** the rail's wires (up to 4 of about 1 mm) run along the paddle's
   back edge in a 2.2 mm channel under the band (1.6 mm where the band crosses), into the body through its
   front wall just under the lid, above the switch board (an earlier hole lower
-  down was blocked by R1). The cord between the pods leaves the far end through a 5 × 3 mm
-  hole (in the board pod, 5 × 2.6 mm, between the button's body and the XIAO's
-  edge, so the button doesn't block it; its wires run on past the socket
-  there).
+  down was blocked by R1). The cord between the pods leaves through a 5 × 3
+  mm hole: the battery pod's far end, and the board pod's back wall (see
+  Board pod inside).
 - **Assumption to check:** the paddle grows on its lower edge (nearest the ear
   when worn) and its top edge is straight. If it's the other way round, the
   pocket needs flipping.
@@ -516,31 +518,45 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   outer wall bridges over the paddle's space). The liner prints open edge
   down, and the bands lying flat. The band's groove on the head-side face
   makes an 8 mm bridge 0.7 mm up.
-- **Board pod inside:** 63 × 8.7 × 29.0 mm overall. The XIAO sits on two 1 mm
-  rails under its ends, leaving room under it for the battery wires on its
-  back pads. In front of it is a 17 × 26.5 mm bay, 6.5 mm tall, for the LED
+- **Board pod inside:** 66 × 10.8 × 32.6 mm overall. It's roomier than its
+  parts need, so the wires go in without squeezing (prototype; it was
+  63 × 8.7 × 29.0). The cavity is 8.6 mm from floor to lid. Nothing is raised inside
+  apart from the button's platform: the XIAO lies on the floor (or on the
+  battery wires on its back pads; the USB-C hole is tall enough either way),
+  so lay the boards and wires out as suits you. In front of it is a 20 × 30 mm bay, 8.6 mm tall, for the LED
   switch on its stripboard (see Wiring and `switch_board.svg`: about 15 × 22
   mm, 1.5 mm board, parts lying flat, 5.7 mm tall), transistor end toward
   the back wall.
-- **Button:** the 6 × 6 mm B3F sits against the back wall, 5 mm from the
-  far end's inside, its plunger through the 4.3 mm hole and about 2.6 mm proud.
-  It has 6.35 mm between the XIAO's edge and the back wall for its body and
-  legs (with 3.6 mm it pushed the XIAO 2.5–3 mm off the USB-C hole).
-- **Nose clip's pogo socket:** in the back wall beside the button, toward
-  the bay (16.5 mm from the far end's inside; the two holes are 7.3 mm apart).
-  Its 4 mm face boss goes through a 4.1 mm hole, flush with the outside; its
-  4.9 mm ring sits in a 0.2 mm counterbore inside, so press it in from inside
-  (a drop of glue if loose). It stands 3.8 mm into the pod, leaving about
-  2.5 mm to the XIAO's edge for the wires on its tails. Tell the button and
-  socket apart by feel: the button is nearer the USB-C end.
-- **Ear side:** 2 mm between the XIAO and the ear-side wall, for the earlobe
+- **Beside the XIAO:** a 9 mm strip between the XIAO's edge and the back
+  wall holds three things, each leaving on the side facing where it goes.
+  From the far end (the bottom when worn):
+  - **Nose clip's pogo socket,** out of the far end in the corner by the back
+    wall, so the nose wire drops straight down behind the earlobe. Its 4 mm
+    face boss goes through a 4.1 mm hole, flush; its 4.9 mm ring sits in a
+    0.2 mm counterbore inside, so press it in from inside (a drop of glue if
+    loose). It reaches 3.8 mm in.
+  - **Cord to the battery pod,** out of the back wall (toward the back of your
+    head) through a 5 × 3 mm hole 5–10 mm from the far end's inside. Its
+    wires run to the XIAO's battery pads underneath and, over the button's
+    body, to the switch board. It leaves below the button, so its droop hangs
+    away from it.
+  - **Button,** 14–20 mm from the far end's inside, on a printed platform
+    (2.1 mm tall; 3.7 mm in the head-sensor pod), its plunger up through a
+    4.3 mm hole in the lid, about 0.5 mm below the lid's face. A dab of glue
+    holds it on the platform. Press it toward your head: that pushes the pod
+    onto the bone behind the ear rather than sideways. The platform is 5 mm
+    along the strip and 6 mm across, so turn the button with its legs along
+    the strip: they go straight down past the platform's ends, 0.75 mm clear,
+    and the wires solder onto them there. It has 1.5 mm either side across
+    the strip.
+- **Ear side:** 3 mm between the XIAO and the ear-side wall, for the earlobe
   lead only.
 
   ![Stripboard next to the XIAO in the right pod, seen from the lid side](renders/switch_board_in_pod.png)
 
   Seen from the lid side with the lid off: the XIAO at the far end (USB-C
   out of it), the stripboard in the bay beside it, parts up. Its h1 end (the
-  two transistors) faces the back wall (the button's wall), strip S1 is
+  two transistors) faces the back wall, strip S1 is
   nearest the front wall and S6 nearest the XIAO. That's `switch_board.svg`
   turned a quarter turn clockwise. In the head-sensor pod it sits in the same
   place, over the MAX30101's back.
@@ -574,9 +590,9 @@ place of the earlobe clip.
   edge, where there's room for their height), the XIAO, and the lid.
 - **Where it lands:** on the stand-in head, about 4 mm up the tip from its
   end. It's under the temple, which presses there.
-- **Size:** 62 mm long like the plain pod, but 9.4 mm thick instead of 8.7
-  (all on the outer side), so the switch board fits over the sensor: 4.9 mm
-  over it, 7.2 mm past its edge. It has its own band. No earlobe lead hole.
+- **Size:** 66 mm long like the plain pod, but 12.4 mm thick instead of 10.8
+  (all on the outer side), so the switch board fits over the sensor: 7.9 mm
+  over it, 10.2 mm past its edge. It has its own band. No earlobe lead hole.
 - **Unproven:** whether this spot gives a clean pulse on every beat (the
   LEDs need every one, live). Try it against the earlobe clip.
 
@@ -681,11 +697,11 @@ nose, not the glasses, so it stays put when the glasses move.
   (heat-shrink each joint); the pair heads back toward the ear.
 - **Printing:** flat on its back face, no supports: the tunnel is a diamond
   with a 45° roof, so it needs no bridge. 100% infill, slow, brim.
-- **Wire:** 290 mm, loose: from the board pod's back edge round its lower
-  end, down behind the earlobe, under its clip, along the cheek. The path on
-  the stand-in head is 246 mm, plus 40 mm slack. It ends in the plug half of
+- **Wire:** 260 mm, loose: from the board pod's lower end, down behind the
+  earlobe, under its clip, along the cheek. The path on the stand-in head is
+  212 mm, plus 40 mm slack. It ends in the plug half of
   a 2-pin 4 mm magnetic pogo connector; the socket half presses into the
-  board pod's back wall beside the button (see Board pod inside), and its tails solder to D0 (A0) and ground (the
+  board pod's far end, by the back wall (see Board pod inside), and its tails solder to D0 (A0) and ground (the
   firmware's divider: 10k from D1 to D0, thermistor from D0 to ground). Set
   `BETA` in `firmware/config.py` to your bead's B value (3435 now).
 - **Tugs:** the pogo connector's magnets probably hold harder than the clip

@@ -188,7 +188,7 @@
   <text x="1100" y="666" class="small" text-anchor="end">pin 2 to the ground star (11)</text>
   <path class="w ntc" d="M1130 740 V805"/>
   <path class="w ntc" d="M1170 740 V762 H1150 V805"/>
-  <text x="1120" y="772" class="small" text-anchor="end">twisted pair, 30 AWG, 220 mm</text>
+  <text x="1120" y="772" class="small" text-anchor="end">twisted pair, 30 AWG, 260 mm</text>
 
   <rect class="ext" x="990" y="805" width="170" height="64" rx="6"/>
   <text x="1075" y="826" class="title" text-anchor="middle">10k NTC bead</text>
