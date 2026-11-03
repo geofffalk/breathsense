@@ -34,6 +34,7 @@ class PulseDetector {
 
   // Outputs
   float value = 0, bpm = 0, beat_strength = 0.5f, beat_amp = 0;
+  float env_amp = 0;              // Signal's swing (envelope high - low); beats need MAX3010X_MIN_AMP
   uint32_t beat_count = 0;
   bool beat_confirmed = false;
   uint32_t rhythm_count = 0;      // Increments on every shown beat

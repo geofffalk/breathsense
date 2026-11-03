@@ -69,6 +69,7 @@ WIRE_D = 1.0
 WIRES = 4                # Most wires through any passage: the cord's 4
 WIRE_HOLE = (WIRES * WIRE_D + 1.0, 3 * WIRE_D)
 CHANNEL_H = 2.2          # Wire channel along the paddle's back edge, between the pocket's walls, under the band
+WIRE_OVERLAP = 1.3       # The LED wires' hole in the board pod's front wall reaches this far in over the channel
 
 # ---------------------------------------------------------------- band (soft flex)
 CLIP_X = TIP_END_X + 15.0   # Band's centre: where the paddle's edge is nearly straight
@@ -119,6 +120,16 @@ SENSOR_Z = 0.0           # ... at this height (the paddle's top edge is z = 0; t
 HEAD_DEEPER = 1.6        # Head variant's cavity this much deeper: the switch board's resistor end (4.5 mm: solder,
                          # board, flat resistors) sits over the MAX30101's back and its wires (1.1 mm); its transistor
                          # end goes toward the back wall, past the MAX30101's edge, where the floor is lower
+# The board's slot is PETG and prints narrow, so it gets its own clearances (not lobe_clip's POCKET_FIT and
+# BOARD_GAP, which suit the soft-flex earlobe clip). First print (user, 3 Nov 2026): the board wouldn't go in,
+# too narrow and too thin, and the 0.75 mm wall in front of it tore pulling support out of the slot. All the
+# added room and material is away from the head, so the chip stands just as proud and the temple sits no further out.
+SLOT_SIDE = 0.35         # Slot this much wider than lobe_clip's board pocket on each side (across the board) ...
+SLOT_BACK = 0.5          # ... this much thicker, at the board's back (its front stays on the rims) ...
+SLOT_END = 0.2           # ... and this much longer past the board's top edge
+WINDOW_RIM = 1.3         # Rims over the board's side edges, from the old pocket's edge (were 0.8): still 0.75 mm over the
+                         # board with it pushed to one side
+SENSOR_BACKING = 1.2     # Backing behind the slot, above and below the paddle (was 0.7)
 
 
 def ys():
@@ -217,8 +228,11 @@ def body(depth, height, length, d, wire_high=False, far_cord=True):
     if wire_high:
         # Top at the lid's underside, 4 mm tall (clear of the stripboard, 2.2 mm with its solder), and
         # 0.5 mm higher up the back edge, clear of R1's lead
+        # It reaches WIRE_OVERLAP over the channel's outer wall, so the wires drop straight into the channel
+        # (in the deeper head pod, sized from the lid alone, it ended past the wall: user, 3 Nov 2026)
         yt = y1 - mv.LID_T
-        cav += box(x_end - W - 0.1, x_end + 0.5, yt - WIRES * WIRE_D, yt, 0.6, 0.6 + hh)
+        cav += box(x_end - W - 0.1, x_end + 0.5, min(yt - WIRES * WIRE_D, d["pocket_in"][1] - WIRE_OVERLAP), yt,
+                   0.6, 0.6 + hh)
     else:
         cav += box(x_end - W - 0.1, x_end + 0.5, yc - hw / 2, yc + hw / 2, 0.1, 0.1 + hh)
     if far_cord:                                           # Cord, out of the far end, at the back
@@ -245,11 +259,12 @@ def sensor_cuts():
     sensor window with rims, corner tabs and the tab cover, as lobe_clip.pad() has, in its frame."""
     HL, HH, BCZ, TW = lc.HL, lc.HH, lc.BCZ, lc.TW
     slide = SENSOR_AT + lc.BCZ + lc.HH + 1.0               # How far it slides from the cavity into the pocket, plus room
-    c = box(-HL, HL, *lc.Y_BOARD, BCZ - HH - slide, BCZ + HH)
+    hs, yb = HL + SLOT_SIDE, lc.Y_BOARD[0] - SLOT_BACK     # (the pad frame's -y is the pod's +y: away from the head)
+    c = box(-hs, hs, yb, lc.Y_BOARD[1], BCZ - HH - slide, BCZ + HH + SLOT_END)
     z0 = BCZ - HH + lc.POCKET_FIT + lc.TAB_COVER
     cw, cd = lc.CORNER
     yf = lc.Y_BOARD[1]
-    win = box(-HL + lc.RIM_W, HL - lc.RIM_W, yf - 0.01, 3, lc.Z_SHOULDER, BCZ + HH)
+    win = box(-HL + WINDOW_RIM, HL - WINDOW_RIM, yf - 0.01, 3, lc.Z_SHOULDER, BCZ + HH)
     win += box(-TW, TW, yf - 0.01, 3, z0, lc.Z_SHOULDER + 0.01)
     for s_ in (-1, 1):
         win -= box(*sorted((s_ * HL, s_ * (HL - cw))), yf - 1, 4, BCZ + HH - cd, BCZ + HH + 1)
@@ -262,7 +277,8 @@ def sensor_cuts():
 def head_footprint():
     """(x0, x1, z0, z1) of the board pocket in the pod frame (x1 at the board's top edge)."""
     _, (cx, _, cz) = head_frame()
-    return cx + lc.BCZ - lc.HH, cx + lc.BCZ + lc.HH, cz - lc.HL, cz + lc.HL
+    hs = lc.HL + SLOT_SIDE
+    return cx + lc.BCZ - lc.HH, cx + lc.BCZ + lc.HH + SLOT_END, cz - hs, cz + hs
 
 
 def liner_head():
@@ -322,9 +338,10 @@ def board_pod(sensor="lobe"):
         # Wall round the board where it runs past the pocket's top and bottom edges: the head-side
         # wall carried on, with a backing behind the board clear of the paddle and its liner
         xr = fx1 + W
+        yk = ty - (lc.Y_BOARD[0] - SLOT_BACK) + SENSOR_BACKING   # Backing's outer face
         p += box(x_end - 0.01, xr, y0, -0.75, fz0 - W, fz1 + W)
-        p += box(x_end - 0.01, xr, -0.75 - 0.01, 0.8, CHANNEL_H, fz1 + W)
-        p += box(x_end - 0.01, xr, -0.75 - 0.01, 0.8, fz0 - W, bottom(0.0, LINER_SQUEEZE - LINER_T + LINER_FIT))
+        p += box(x_end - 0.01, xr, -0.75 - 0.01, yk, CHANNEL_H, fz1 + W)
+        p += box(x_end - 0.01, xr, -0.75 - 0.01, yk, fz0 - W, bottom(0.0, LINER_SQUEEZE - LINER_T + LINER_FIT))
         p -= place(sensor_cuts())
         d.update(chip=(cx, ty - lc.CHIP_PROUD, cz))
     p -= cav

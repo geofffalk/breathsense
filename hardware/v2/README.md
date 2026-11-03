@@ -579,9 +579,21 @@ place of the earlobe clip.
   runs back past the tip's end under the pod's floor, below the bay. The
   pocket's head-side wall is carried up past its top edge round the board,
   ending well clear of the band.
-- **Held by:** rims along the board's sides, tabs over its top corners and a
-  cover over its pin tab, as on the earlobe clip, in the PETG wall; the temple
-  tip behind it when worn.
+- **Held by:** rims along the board's sides (1.3 mm, wider than the earlobe
+  clip's 0.8), tabs over its top corners and a cover over its pin tab, in the
+  PETG wall; a 1.2 mm backing behind it above and below the temple tip, and
+  the tip itself when worn.
+- **Slot fit (first print, 3 Nov 2026):** the board wouldn't go in, and the
+  thin wall tore pulling support out of the slot. The slot now has PETG
+  clearances of its own: 0.35 mm each side across the board (`SLOT_SIDE`),
+  0.5 mm more thickness behind it (`SLOT_BACK`, so the board's front stays on
+  the rims and the chip just as proud) and 0.2 mm past its top edge. All the
+  added material is on the side away from the head.
+- **Print without support in the slot.** The backing's underside bridges
+  about 9 mm from the front wall to the slot's end, anchored on three sides,
+  so it prints as a bridge. Block support there (a support blocker over the
+  sensor area, or "don't support bridges"): support inside a 2 mm slot can't
+  be got out without tearing the wall.
 - **Fitting:** with the lid off, drop the board (sensor side down) onto the
   pod's floor at the front of the cavity, then slide it 7.5 mm toward the
   pocket, through the slot in the front wall, until its edge stops. Solder its

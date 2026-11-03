@@ -543,10 +543,10 @@ void app_loop() {
     float temp = 0;
     bool plugged = sensing() ? hw::read_therm(temp) : false;
     static const char* const NAMES[] = {"heart", "breath", "off"};
-    Serial.printf("mode %s bat %.2fV usb %d | therm %s %.2fC nose %d | max %d ir %lu skin %d bpm %.0f "
+    Serial.printf("mode %s bat %.2fV usb %d | therm %s %.2fC nose %d | max %d ir %lu skin %d amp %.0f bpm %.0f "
                   "stress %.2f hrv %.0f | breaths %d phase %d | conn %d\n",
                   NAMES[mode], battery_v, usb, plugged ? "in" : "out", temp, nose.worn, sensor.present(),
-                  (unsigned long)last_ir, sensor.skin, pulse.rhythm_bpm(), pulse.stress, pulse.hrv_ms, breath.metrics.breath_count,
+                  (unsigned long)last_ir, sensor.skin, pulse.env_amp, pulse.rhythm_bpm(), pulse.stress, pulse.hrv_ms, breath.metrics.breath_count,
                   (int)breath.phase, connected);
   }
 

@@ -86,6 +86,7 @@ void PulseDetector::process(float raw, uint32_t now, float dt) {
   env_hi_ = x > env_hi_ ? x : env_hi_ * (1.0f - decay);
   env_lo_ = x < env_lo_ ? x : env_lo_ * (1.0f - decay);
   float amp = env_hi_ - env_lo_;
+  env_amp = amp;
   if (x < cycle_min_) cycle_min_ = x;
 
   if (amp >= MAX3010X_MIN_AMP) {
