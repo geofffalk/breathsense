@@ -48,6 +48,7 @@
 // ---------------------------------------------------------------- identity
 #define DEVICE_NAME_PREFIX "GlassesSense"   // Advertised as GlassesSense-XXXX (chip ID)
 #define FIRMWARE_VERSION   "2.0.0"
+#define BOOT_LOG_WAIT_MS   20000   // Bring-up: with USB in, wait this long for a serial monitor before starting
 
 // ---------------------------------------------------------------- breath detection (v1 values)
 // Doubles, like v1's Python, so the filters cross thresholds on the same samples (0.22f != 0.22).

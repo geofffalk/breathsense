@@ -13,6 +13,7 @@ class Max3010x {
   void set_led_current(uint8_t ir, uint8_t red);
   void shutdown(bool off);
   bool present() const { return present_; }
+  bool bus_stuck = false;   // SDA or SCL held low at begin(): the sensor was skipped
   bool skin = false;                                      // Skin on the sensor (with hysteresis)
 
  private:

@@ -11,7 +11,29 @@ static constexpr uint8_t PART_ID = 0xFF, PART_ID_MAX3010X = 0x15;
 static constexpr uint8_t MODE_RESET = 0x40, MODE_SPO2 = 0x03, MODE_SHDN = 0x80;
 static constexpr uint32_t FULL_SCALE = (1u << 18) - 1;
 
+// The core's Wire waits forever if SDA or SCL is held low (no sensor power, a short, a stuck chip), so check
+// the bus first: both lines should idle high on their pull-ups. A stuck SDA gets nine clocks to free it.
+static bool bus_idle() {
+  pinMode(PIN_WIRE_SDA, INPUT_PULLUP);
+  pinMode(PIN_WIRE_SCL, INPUT_PULLUP);
+  delay(2);
+  if (digitalRead(PIN_WIRE_SCL) == LOW) return false;
+  for (int i = 0; i < 9 && digitalRead(PIN_WIRE_SDA) == LOW; i++) {
+    pinMode(PIN_WIRE_SCL, OUTPUT);
+    digitalWrite(PIN_WIRE_SCL, LOW);
+    delayMicroseconds(5);
+    pinMode(PIN_WIRE_SCL, INPUT_PULLUP);
+    delayMicroseconds(5);
+  }
+  return digitalRead(PIN_WIRE_SDA) == HIGH && digitalRead(PIN_WIRE_SCL) == HIGH;
+}
+
 bool Max3010x::begin(uint8_t ir, uint8_t red) {
+  bus_stuck = !bus_idle();
+  if (bus_stuck) {
+    present_ = false;
+    return false;
+  }
   Wire.begin();
   Wire.setClock(400000);
   present_ = read_reg(PART_ID) == PART_ID_MAX3010X;

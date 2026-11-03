@@ -64,6 +64,7 @@ static uint32_t button_down_at = 0;
 static bool state_dirty = false;
 static int low_readings = 0;       // Consecutive readings under the cut-off
 static uint32_t t_debug = 0;
+static uint32_t last_ir = 0;   // Latest raw IR reading, for the debug line
 
 static inline double now_s() { return millis() / 1000.0; }
 static inline bool sensing() { return mode != MODE_OFF; }
@@ -222,6 +223,8 @@ static void set_mode(Mode m, bool announce) {
     return;
   }
   bool was_sensing = sensing();
+  static const char* const NAMES[] = {"heart", "breath", "off"};
+  if (Serial) Serial.printf("mode: %s -> %s\n", NAMES[mode], NAMES[m]);
   mode = m;
   if (sensing() && !was_sensing) {      // Resume sensing
     hw::therm_power(true);
@@ -349,14 +352,31 @@ static void handle_button(uint32_t now) {
 
 // ---------------------------------------------------------------- setup / loop
 
+// Bring-up: with USB in, wait up to BOOT_LOG_WAIT_MS for the serial monitor, then log each start-up step,
+// so a hang shows where it stopped
+static void boot_log(const char* step) {
+  if (Serial) {
+    Serial.printf("boot %6lu ms: %s\n", (unsigned long)millis(), step);
+    Serial.flush();
+  }
+}
+
 void app_setup() {
   hw::begin();
+  if (hw::usb_powered()) {
+    uint32_t t0 = millis();
+    while (!Serial && millis() - t0 < BOOT_LOG_WAIT_MS) delay(10);
+  }
+  boot_log(hw::reset_by_watchdog() ? "start (after a watchdog reset)" : "start");
+  boot_log(hw::usb_powered() ? "USB power seen" : "USB power NOT seen");
   storage::begin();
+  boot_log("flash storage ok");
   storage::load(settings);
   storage::load(state);
   if (state.last_mode > MODE_BREATH) state.last_mode = MODE_HEART;
   pulse.restore(state.heart);
   apply_settings();
+  boot_log("settings loaded");
 
   strip_l.begin();
   strip_r.begin();
@@ -370,16 +390,23 @@ void app_setup() {
     hw::system_off();
   }
 
+  boot_log("starting MAX30101 (I2C)");
   sensor.begin(MAX3010X_IR_CURRENT, MAX3010X_RED_CURRENT);
+  boot_log(sensor.bus_stuck ? "I2C bus held low (SDA or SCL): MAX30101 skipped"
+                           : sensor.present() ? "MAX30101 found" : "MAX30101 NOT found");
   hw::therm_power(true);
+  boot_log("starting Bluetooth");
   ble_begin();
+  boot_log("Bluetooth ok");
 
   mode = (Mode)state.last_mode;   // Wake in the last mode
   heart_display.reset(pulse);
+  boot_log("wake comet");
   play_comet({255, 255, 255}, 800, false);   // Wake: soft white sweep, front to back
   woke_at = last_activity = millis();
   t_breath_next = millis();
   hw::watchdog_begin(WATCHDOG_S);
+  boot_log("running");
 }
 
 void app_loop() {
@@ -421,6 +448,7 @@ void app_loop() {
     }
     uint32_t samples[32];
     int n = sensor.read_ir(samples, 32);
+    if (n > 0) last_ir = samples[n - 1];
     uint32_t beats_before = pulse.rhythm_count;
     pulse.feed(samples, n, now, sensor.present() ? sensor.skin : false);
     pulse.tick(now);
@@ -510,14 +538,15 @@ void app_loop() {
   if (may_sleep && ms_to_sleep <= 0) go_to_sleep({255, 255, 255});
 
   // ---- debug line over USB serial (for bring-up), once a second
-  if (usb && Serial && now - t_debug >= 1000) {
+  if (Serial && now - t_debug >= 1000) {   // Serial is only up with USB attached and a monitor open
     t_debug = now;
     float temp = 0;
     bool plugged = sensing() ? hw::read_therm(temp) : false;
-    Serial.printf("mode %d bat %.2fV usb %d | therm %s %.2fC nose %d | max %d skin %d bpm %.0f "
+    static const char* const NAMES[] = {"heart", "breath", "off"};
+    Serial.printf("mode %s bat %.2fV usb %d | therm %s %.2fC nose %d | max %d ir %lu skin %d bpm %.0f "
                   "stress %.2f hrv %.0f | breaths %d phase %d | conn %d\n",
-                  (int)mode, battery_v, usb, plugged ? "in" : "out", temp, nose.worn, sensor.present(),
-                  sensor.skin, pulse.rhythm_bpm(), pulse.stress, pulse.hrv_ms, breath.metrics.breath_count,
+                  NAMES[mode], battery_v, usb, plugged ? "in" : "out", temp, nose.worn, sensor.present(),
+                  (unsigned long)last_ir, sensor.skin, pulse.rhythm_bpm(), pulse.stress, pulse.hrv_ms, breath.metrics.breath_count,
                   (int)breath.phase, connected);
   }
 
