@@ -11,7 +11,7 @@
 // connecting changes nothing and the headset reports its mode (M). All scores are computed here
 // and sent as K; the app only displays them.
 //
-// Libraries: Adafruit nRF52 core (Bluefruit, InternalFileSystem, Wire) or Seeed's nRF52 core for
+// Libraries: Adafruit nRF52 core (Bluefruit, InternalFileSystem) or Seeed's nRF52 core for
 // the XIAO; Adafruit_NeoPixel from the Library Manager.
 
 #include <Arduino.h>
@@ -354,6 +354,9 @@ static void handle_button(uint32_t now) {
 
 // Bring-up: with USB in, wait up to BOOT_LOG_WAIT_MS for the serial monitor, then log each start-up step,
 // so a hang shows where it stopped
+static char din_msg[120];      // LED data-line leak test result, repeated in the debug line
+static char sensor_msg[160];   // MAX30101 start-up result, repeated in the debug line while missing
+
 static void boot_log(const char* step) {
   if (Serial) {
     Serial.printf("boot %6lu ms: %s\n", (unsigned long)millis(), step);
@@ -378,10 +381,45 @@ void app_setup() {
   apply_settings();
   boot_log("settings loaded");
 
+  {   // Bring-up: a leak from a strip's DIN to GND drags the pin's ~13k pull-up low (reads L below ~30k)
+    char* msg = din_msg;
+    int r[2], l[2];
+    for (int on = 0; on < 2; on++) {
+      hw::led_power(on);
+      delay(5);
+      pinMode(PIN_LED_RIGHT, INPUT_PULLUP);
+      pinMode(PIN_LED_LEFT, INPUT_PULLUP);
+      delay(2);
+      r[on] = digitalRead(PIN_LED_RIGHT);
+      l[on] = digitalRead(PIN_LED_LEFT);
+      hw::led_power(false);
+    }
+    snprintf(msg, sizeof din_msg, "DIN pull-up test (H ok, L = leak to GND under ~30k): right off %c on %c, left off %c on %c",
+             r[0] ? 'H' : 'L', r[1] ? 'H' : 'L', l[0] ? 'H' : 'L', l[1] ? 'H' : 'L');
+    boot_log(msg);
+  }
   strip_l.begin();
   strip_r.begin();
   strip_l.setBrightness(LED_BRIGHTNESS);
   strip_r.setBrightness(LED_BRIGHTNESS);
+
+#ifdef LED_WIGGLE_TEST
+  // Bring-up: hold both strips on, LED i lit in its own colour, data resent every 20 ms
+  hw::led_power(true);
+  strip_l.begin();
+  strip_r.begin();
+  for (;;) {
+    static const uint8_t C[10][3] = {{255,0,0},{255,80,0},{255,255,0},{0,255,0},{0,255,255},
+                                     {0,0,255},{160,0,255},{255,0,160},{255,255,255},{255,0,0}};
+    for (int i = 0; i < NUM_PIXELS; i++) {
+      strip_l.setPixelColor(i, C[i][0], C[i][1], C[i][2]);
+      strip_r.setPixelColor(i, C[i][0], C[i][1], C[i][2]);
+    }
+    strip_l.show();
+    strip_r.show();
+    delay(20);
+  }
+#endif
 
   if (hw::reset_by_watchdog()) {   // Recovered from a hang: one red blip, back to sleep
     blip({255, 0, 0});
@@ -392,8 +430,16 @@ void app_setup() {
 
   boot_log("starting MAX30101 (I2C)");
   sensor.begin(MAX3010X_IR_CURRENT, MAX3010X_RED_CURRENT);
-  boot_log(sensor.bus_stuck ? "I2C bus held low (SDA or SCL): MAX30101 skipped"
-                           : sensor.present() ? "MAX30101 found" : "MAX30101 NOT found");
+  {
+    char* msg = sensor_msg;
+    snprintf(msg, sizeof sensor_msg, "%s (breakout pull-ups %s, SDA-SCL short %s, ack %s, part id 0x%02X)",
+             sensor.bus_stuck ? "I2C bus held low (SDA or SCL): MAX30101 skipped"
+             : sensor.present() ? "MAX30101 found"
+             : sensor.swapped ? "MAX30101 answers with SDA and SCL SWAPPED: swap the D4/D5 wires"
+                              : "MAX30101 NOT found",
+             sensor.ext_pullups ? "seen" : "NOT seen", sensor.shorted ? "YES" : "no", sensor.acked ? "yes" : "no", sensor.part_id);
+    boot_log(msg);
+  }
   hw::therm_power(true);
   boot_log("starting Bluetooth");
   ble_begin();
@@ -548,6 +594,8 @@ void app_loop() {
                   NAMES[mode], battery_v, usb, plugged ? "in" : "out", temp, nose.worn, sensor.present(),
                   (unsigned long)last_ir, sensor.skin, pulse.env_amp, pulse.rhythm_bpm(), pulse.stress, pulse.hrv_ms, breath.metrics.breath_count,
                   (int)breath.phase, connected);
+    if (!sensor.present() && now / 1000 % 10 == 0) Serial.printf("  sensor: %s\n", sensor_msg);
+    if (now / 1000 % 5 == 0) Serial.printf("  %s\n", din_msg);
   }
 
   delay(5);

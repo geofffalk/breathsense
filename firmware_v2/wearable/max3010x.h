@@ -4,7 +4,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Wire.h>
 
 class Max3010x {
  public:
@@ -14,6 +13,11 @@ class Max3010x {
   void shutdown(bool off);
   bool present() const { return present_; }
   bool bus_stuck = false;   // SDA or SCL held low at begin(): the sensor was skipped
+  bool ext_pullups = false; // Lines idle high without the nRF's pull-ups (breakout powered)
+  bool acked = false;       // Something answered at 0x57
+  uint8_t part_id = 0;      // 0x15 for a MAX3010x
+  bool shorted = false;     // SDA and SCL bridged together
+  bool swapped = false;     // No answer, but one with SDA and SCL swapped: a wiring fault
   bool skin = false;                                      // Skin on the sensor (with hysteresis)
 
  private:
