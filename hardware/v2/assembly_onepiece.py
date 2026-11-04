@@ -165,7 +165,7 @@ def side(right, sensor="lobe"):
     items = [(f"onepiece_{s}", place(op.part(), right))]
     items += [(f"onepiece_liner_{s}", place(op.liner(), right))]
     if right:
-        pods = [("pod_board", pod), ("lid_board", lid), (f"back_clip_{s}", hp.back_clip(d["y0"], d["y1"]))]
+        pods = [("pod_board", pod), ("lid_board", lid)]
         pods += [(f"liner_{s}", hp.liner_head() if sensor == "head" else hp.liner())]
         if sensor == "head":
             from glasses_mount import box
@@ -174,8 +174,7 @@ def side(right, sensor="lobe"):
             pods += [("max30101_board", frame(box(lc.BCX - bl / 2, lc.BCX + bl / 2, lc.Y_PCB_BACK, lc.Y_PCB_FRONT,
                                                   lc.BCZ - bh / 2, lc.BCZ + bh / 2)))]
     else:
-        pods = [("pod_battery", bat), ("lid_battery", blid), (f"back_clip_{s}", hp.back_clip(bd["y0"], bd["y1"])),
-                (f"liner_{s}", hp.liner())]
+        pods = [("pod_battery", bat), ("lid_battery", blid), (f"liner_{s}", hp.liner())]
     items += [(n, place(onto_tip(p), right)) for n, p in pods]
     if right:
         items += [(n, place(p, right)) for n, p in (earlobe_items() if sensor == "lobe" else []) + nose_items()]

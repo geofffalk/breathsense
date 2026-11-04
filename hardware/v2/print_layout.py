@@ -49,17 +49,15 @@ def parts():
     flex = [("onepiece_liner_right_flex", 1, op.print_orient_liner(mirror(ln, Plane.XZ))),
             ("onepiece_liner_left_flex", 1, op.print_orient_liner(ln)),
             ("hang_liner_flex", 2, hp.print_orient_liner(hp.liner())),
-            ("hang_back_clip_flex", 2, hp.print_orient_clip(hp.back_clip(d["y0"], d["y1"]))),
             ("hang_lid_board_flex", 1, mv.print_orient_lid(lid)),
             ("hang_lid_battery_flex", 1, mv.print_orient_lid(blid)),
             ("lobe_clip_flex", 1, lc.print_orient(lc.clip_flat()))]
     flex += [(f"nose_clip_w{round(f * 10)}_flex", 1, nc.print_orient(nc.clip(fit=f))) for f in nc.FITS]
-    # Head-side sensor variant: print these instead of the board pod, its lid, its liner, its band and the earlobe clip
+    # Head-side sensor variant: print these instead of the board pod, its lid, its liner and the earlobe clip
     hpod, hlid, hd = hp.board_pod("head")
     head = [("hang_pod_board_head_petg", 1, hp.print_orient_head_down_mirrored(mirror(hpod, Plane.XZ))),
             ("hang_lid_board_head_flex", 1, mv.print_orient_lid(hlid)),
-            ("hang_liner_head_flex", 1, hp.print_orient_liner(mirror(hp.liner_head(), Plane.XZ))),
-            ("hang_back_clip_head_flex", 1, hp.print_orient_clip(hp.back_clip(hd["y0"], hd["y1"])))]
+            ("hang_liner_head_flex", 1, hp.print_orient_liner(mirror(hp.liner_head(), Plane.XZ)))]
     # Band-grip variant of the one-piece part: print these instead of the one-piece parts and their liners
     bl = op.part(grip="band")
     band = two_colour(bl, "band", "_band") + [

@@ -7,10 +7,8 @@ lined with soft flex, that wraps both faces and the edge nearest the ear. The pa
 sits in the pocket's wide end and can't pass back through the narrower neck, and its end stops
 against the pod's body, so the pod can't slide along the tip either way. The pod goes on from
 the paddle's back edge (the edge away from the ear when worn); gravity then pulls the paddle
-into the pocket, and a soft-flex band, a closed loop round the whole pocket, holds it there. The
-band sits in a groove round the pocket so it stands only a little proud. The rail's wires run
-along the back edge, in a channel under the band, into the body. The band goes onto the temple
-over its tip before the pod, then rolls back along the paddle into its groove.
+into the pocket, and the liner's squeeze (a wedge on the paddle's taper) holds it there: no band
+(user, 3 Nov 2026). The rail's wires run along the back edge, in a channel, into the body.
 
 The body carries on past the tip's end along the same line, down onto the bone behind the
 earlobe, so the pod doesn't rise above the ear.
@@ -38,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import glasses_mount as gm   # noqa: E402
 import lobe_clip as lc       # noqa: E402
 import mount_v2 as mv        # noqa: E402
-from glasses_mount import box, xz_prism, yz_prism   # noqa: E402
+from glasses_mount import box, xz_prism   # noqa: E402
 
 OUT = Path(__file__).parent / "out"
 
@@ -68,16 +66,15 @@ END_CLEAR = 0.5          # Between the paddle's end and the body
 WIRE_D = 1.0
 WIRES = 4                # Most wires through any passage: the cord's 4
 WIRE_HOLE = (WIRES * WIRE_D + 1.0, 3 * WIRE_D)
-CHANNEL_H = 2.2          # Wire channel along the paddle's back edge, between the pocket's walls, under the band
-WIRE_OVERLAP = 1.3       # The LED wires' hole in the board pod's front wall reaches this far in over the channel
+CHANNEL_H = 2.2          # Wire channel along the paddle's back edge, between the pocket's walls
+LED_HOLE = (4.0, 3.2)    # Board pod's hole for the right strip's 3 wires (1.2 mm) in the front wall: across (from
+                         # LED_HOLE_EDGE in from the outer face) x tall (from just over the pocket's top up), so the pocket's outer wall
+                         # doesn't stand in front of it and the wires come in above the boards
+LED_HOLE_EDGE = 1.5      # Wall left between it and the outer face (1.0, at the lid's underside, was flimsy: user, 3 Nov 2026)
 
-# ---------------------------------------------------------------- band (soft flex)
-CLIP_X = TIP_END_X + 15.0   # Band's centre: where the paddle's edge is nearly straight
-CLIP_L = 8.0             # Band width along the tip
-CLIP_ARM = 1.2           # Band thickness ...
-CLIP_GROOVE = 0.7        # ... sunk this deep in a groove round the pocket's faces and ear-side edge (0.5 mm proud) ...
-CLIP_GROOVE_TOP = 0.3    # ... and this deep in the walls' top edges, leaving the wires 1.6 mm under it
-CLIP_SQUEEZE = 0.3       # Band's inside this much smaller than the groove's floor on every side
+# No band round the pocket (user, 3 Nov 2026): the liner's wedge grips well enough, and its groove
+# thinned the pocket's walls to 0.9 mm.
+
 
 # ---------------------------------------------------------------- body
 # Prototype room (user, 3 Nov 2026: wiring the tight pod meant squeezing the wires in). The board pod is
@@ -164,21 +161,7 @@ def pocket(depth):
     cav = profile_pts(in_off)
     p -= xz_prism([(x_end, CHANNEL_H + 1)] + [(GRIP_X1 + 1, CHANNEL_H + 1), (GRIP_X1 + 1, cav[-1][1])]
                   + cav[::-1] + [(x_end, cav[0][1])], *pi)
-    # Band's groove, right round: both faces, the ear-side edge and the walls' top edges
-    ga, gb = CLIP_X - CLIP_L / 2 - 0.2, CLIP_X + CLIP_L / 2 + 0.2
-    g = CLIP_GROOVE
-    groove = box(ga, gb, po[0] - 1, y1 + 1, band_floor() - 5, CHANNEL_H + 1)
-    groove -= box(ga - 1, gb + 1, po[0] + g, y1 - g, band_floor() + g, CHANNEL_H - CLIP_GROOVE_TOP)
-    p -= groove
     return p, dict(y0=po[0], y1=y1, x_end=x_end, z_low=outer[0][1], pocket_in=pi)
-
-
-def band_floor():
-    """The pocket's ear-side outer face under the band, at its higher end (so the groove is at
-    least CLIP_GROOVE deep all along)."""
-    in_off = LINER_SQUEEZE - LINER_T + LINER_FIT
-    return max(bottom(d, in_off - POCKET_WALL) for d in (CLIP_X - TIP_END_X - CLIP_L / 2 - 0.2,
-                                                         CLIP_X - TIP_END_X + CLIP_L / 2 + 0.2))
 
 
 def liner():
@@ -194,24 +177,9 @@ def liner():
     return s
 
 
-def back_clip(y0, y1):
-    """Soft-flex band at CLIP_X, modelled in place: a closed loop in the pocket's groove, over the
-    walls' top edges (and the wire channel between them), down both faces and under the ear-side
-    edge."""
-    g, sq, a, c = CLIP_GROOVE, CLIP_SQUEEZE, CLIP_ARM, 1.0      # c: outside corner chamfer
-    yi0, yi1 = y0 + g + sq, y1 - g - sq
-    zi0, zi1 = band_floor() + g + sq, CHANNEL_H - CLIP_GROOVE_TOP - sq
-    ya, yb, za, zb = yi0 - a, yi1 + a, zi0 - a, zi1 + a
-    outside = [(ya + c, zb), (yb - c, zb), (yb, zb - c), (yb, za + c), (yb - c, za),
-               (ya + c, za), (ya, za + c), (ya, zb - c)]
-    x0, x1 = CLIP_X - CLIP_L / 2, CLIP_X + CLIP_L / 2
-    return (yz_prism(outside, x0, x1)
-            - box(x0 - 1, x1 + 1, yi0, yi1, zi0, zi1))
-
-
 def body(depth, height, length, d, wire_high=False, far_cord=True):
     """The body box past the tip's end, its ear-side face level with the pocket's lowest point.
-    wire_high: the rail's wires come in just under the lid, above the switch board in the bay.
+    wire_high: the board pod's LED wires: up under the lid, above the pocket's top edge.
     far_cord: the cord's hole in the far end, at the back (else the caller places it).
     Returns (solid, cavity, (xf, zb0, zb1))."""
     y0, y1, x_end = d["y0"], d["y1"], d["x_end"]
@@ -226,13 +194,13 @@ def body(depth, height, length, d, wire_high=False, far_cord=True):
     hw, hh = WIRE_HOLE
     yc = (d["pocket_in"][0] + d["pocket_in"][1]) / 2
     if wire_high:
-        # Top at the lid's underside, 4 mm tall (clear of the stripboard, 2.2 mm with its solder), and
-        # 0.5 mm higher up the back edge, clear of R1's lead
-        # It reaches WIRE_OVERLAP over the channel's outer wall, so the wires drop straight into the channel
-        # (in the deeper head pod, sized from the lid alone, it ended past the wall: user, 3 Nov 2026)
-        yt = y1 - mv.LID_T
-        cav += box(x_end - W - 0.1, x_end + 0.5, min(yt - WIRES * WIRE_D, d["pocket_in"][1] - WIRE_OVERLAP), yt,
-                   0.6, 0.6 + hh)
+        # Up under the lid, on the outer side, so the wires come in above the switch board and clear of the head
+        # pod's MAX30101 slot (a hole in the channel, low down, put them across both boards' way in), and above
+        # CHANNEL_H: the pocket is solid from the channel out to the outer face up to there, so a hole lower down
+        # looked onto that wall (user, 3 Nov 2026). The wires drop over the wall's top edge into the channel
+        lw, lh = LED_HOLE
+        yt = y1 - LED_HOLE_EDGE
+        cav += box(x_end - W - 0.1, x_end + 0.5, yt - lw, yt, CHANNEL_H + 0.1, CHANNEL_H + 0.1 + lh)
     else:
         cav += box(x_end - W - 0.1, x_end + 0.5, yc - hw / 2, yc + hw / 2, 0.1, 0.1 + hh)
     if far_cord:                                           # Cord, out of the far end, at the back
@@ -285,7 +253,7 @@ def liner_head():
     """The right pod's liner for the head variant: the head-side face cut away over the board."""
     li, lo, _, _ = ys()
     x0, x1, z0, z1 = head_footprint()
-    return liner() - box(TIP_END_X - 1, x1 + 0.1, lo[0] - 0.1, li[0] + 0.1, z0 - 0.1, z1 + 0.1)
+    return liner() - box(TIP_END_X - 1, x1 + W + 0.1, lo[0] - 0.1, li[0] + 0.1, z0 - 0.1, z1 + 0.1)   # To the backing's end
 
 
 def board_pod(sensor="lobe"):
@@ -340,7 +308,10 @@ def board_pod(sensor="lobe"):
         xr = fx1 + W
         yk = ty - (lc.Y_BOARD[0] - SLOT_BACK) + SENSOR_BACKING   # Backing's outer face
         p += box(x_end - 0.01, xr, y0, -0.75, fz0 - W, fz1 + W)
-        p += box(x_end - 0.01, xr, -0.75 - 0.01, yk, CHANNEL_H, fz1 + W)
+        # Upper backing down to just over the paddle's top edge (user, 3 Nov 2026: it stopped at the channel's
+        # top, leaving the thin skin bare below it). Over the paddle's end the channel narrows to the outer side
+        # of the backing: room for the LED strip's 3 wires on their way to LED_HOLE
+        p += box(x_end - 0.01, xr, -0.75 - 0.01, yk, 0.1, fz1 + W)
         p += box(x_end - 0.01, xr, -0.75 - 0.01, yk, fz0 - W, bottom(0.0, LINER_SQUEEZE - LINER_T + LINER_FIT))
         p -= place(sensor_cuts())
         d.update(chip=(cx, ty - lc.CHIP_PROUD, cz))
@@ -384,11 +355,6 @@ def print_orient_liner(p):
     return mv._to_bed(Rot(180, 0, 0) * p)
 
 
-def print_orient_clip(p):
-    """On its end: the loop flat on the bed."""
-    return mv._to_bed(Rot(0, 90, 0) * p)
-
-
 if __name__ == "__main__":
     (OUT / "step").mkdir(parents=True, exist_ok=True)
     (OUT / "stl").mkdir(parents=True, exist_ok=True)
@@ -397,18 +363,16 @@ if __name__ == "__main__":
     pod, lid, d = board_pod()
     bat, blid, bd = battery_pod()
     # Modelled with y outward, which in a right-handed frame is the left temple: the board pod
-    # (right) is exported mirrored, the battery pod (left) as modelled. The lids, liner and band
+    # (right) is exported mirrored, the battery pod (left) as modelled. The lids and liner
     # are symmetric through their thickness, so one of each fits either side.
     hpod, hlid, hd = board_pod("head")
     items = [("hang_pod_board", mirror(pod, Plane.XZ), print_orient_head_down_mirrored),
              ("hang_pod_board_head", mirror(hpod, Plane.XZ), print_orient_head_down_mirrored),
              ("hang_lid_board_head", hlid, mv.print_orient_lid),
              ("hang_liner_head", mirror(liner_head(), Plane.XZ), print_orient_liner),
-             ("hang_back_clip_head", back_clip(hd["y0"], hd["y1"]), print_orient_clip),
              ("hang_pod_battery", bat, print_orient_head_down),
              ("hang_lid_board", lid, mv.print_orient_lid), ("hang_lid_battery", blid, mv.print_orient_lid),
-             ("hang_liner", liner(), print_orient_liner),
-             ("hang_back_clip", back_clip(d["y0"], d["y1"]), print_orient_clip)]
+             ("hang_liner", liner(), print_orient_liner)]
     for name, shape, orient in items:
         export_step(shape, str(OUT / "step" / f"{name}.step"))
         material = "petg" if name.startswith("hang_pod_") else "flex"

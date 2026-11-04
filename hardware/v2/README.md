@@ -351,7 +351,6 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 | `hang_pod_battery_petg` | PETG | 1 | Left pod: battery |
 | `onepiece_liner_right_flex`, `onepiece_liner_left_flex` | Soft flex | 1 each | L-shaped liner in each one-piece part's channel, on the temple's top and outer face |
 | `hang_liner_flex` | Soft flex | 2 | Lines each pod's pocket |
-| `hang_back_clip_flex` | Soft flex | 2 | Closed band round each pod's pocket and the paddle (fits either side) |
 | `hang_lid_board_flex`, `hang_lid_battery_flex` | Soft flex | 1 each | Press-in pod lids |
 | `lobe_clip_flex` | Soft flex | 1 | Magnetic earlobe clip (see Earlobe clip) |
 | `nose_clip_w25_flex` … `w40_flex` | Soft flex | 1 of your size | Thermistor band for the nostril, one per wing thickness (see Nose clip) |
@@ -359,7 +358,7 @@ in one file for Fusion, as they sit on the bed, one body per copy to print.
 **Head-side sensor variant** (see Pods): to try the MAX30101 under the end of
 the temple tip instead of on the earlobe, print these in place of
 `hang_pod_board_petg`, `hang_lid_board_flex`, the right pod's
-`hang_liner_flex` and `hang_back_clip_flex`, and `lobe_clip_flex`. They're the third row of
+`hang_liner_flex`, and `lobe_clip_flex`. They're the third row of
 `print_layout.step`.
 
 | File (`out/stl/`) | Material | Qty | What it is |
@@ -367,7 +366,6 @@ the temple tip instead of on the earlobe, print these in place of
 | `hang_pod_board_head_petg` | PETG | 1 | Right pod with the sensor's window in its pocket's head-side wall, 1.6 mm thicker |
 | `hang_lid_board_head_flex` | Soft flex | 1 | Its lid |
 | `hang_liner_head_flex` | Soft flex | 1 | Right pod's liner, cut away behind the sensor |
-| `hang_back_clip_head_flex` | Soft flex | 1 | Right pod's band (this pod is thicker) |
 
 **Band-grip variant of the one-piece part** (the earlier design, kept in case
 the liner doesn't hold): print these in place of the `onepiece_right_*` and
@@ -398,7 +396,7 @@ row of `print_layout.step`.
   before 28 Oct had right and left swapped.
 - **Liner:** prints open edge down, so its walls stand up and only the 3.6 mm
   bottom bridges.
-- **Test fits first:** a pod with a liner and band on the glasses tip;
+- **Test fits first:** a pod with its liner on the glasses tip;
   the right one-piece part with its liner; the earlobe clip on your ear; the nose clip on your nostril.
 
 ### One-piece temple part (current design)
@@ -479,7 +477,6 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
 | `hang_pod_board_head`, `hang_lid_board_head`, `hang_liner_head` | PETG / soft flex | Head-side sensor variant of the right pod (see below) |
 | `hang_pod_battery` | PETG | Left pod: 502030 cell; cord out of the far end |
 | `hang_liner` | Soft flex | Lines each pod's pocket. Print 2 |
-| `hang_back_clip` | Soft flex | Closed band round each pod's pocket and the paddle, in a groove. Print 2 |
 | `hang_lid_board`, `hang_lid_battery` | Soft flex | Press-in lids |
 | `lobe_clip` | Soft flex | Magnetic earlobe clip for any adult lobe (see below), on a loose 4-wire lead |
 
@@ -490,23 +487,19 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   can't slide along the tip either way. It may creep a few mm, squeezing the
   liner, before the rigid stop.
 - **Fitting:** the pod goes on from the paddle's back edge (the edge away from
-  the ear). Gravity pulls the paddle into the pocket. A soft-flex band, a
-  closed loop right round the pocket and the paddle, holds it there. The band
-  sits in a groove round the pocket (0.7 mm deep on the faces and the
-  ear-side edge, 0.3 mm on the walls' top edges), so it stands only 0.5 mm
-  proud on the side against your head. It's 8 mm wide, 11–19 mm back from the
-  paddle's end, where the edge is nearly straight.
-  1. Slide the band onto the temple over its bare tip (it's loose there).
-     With the band-variant one-piece part, its band goes on first.
-  2. Put the pod on the paddle.
-  3. Roll the band back along the paddle onto the pocket and into its
-     groove, 3 mm in from the pocket's open end.
-  To remove: roll the band forward off the pocket onto the temple, lift the
-  pod away.
+  the ear). Gravity pulls the paddle into the pocket and the liner's squeeze
+  holds it there. Push it on; pull it off. No band: the liner's wedge grips
+  well enough, and the band's groove thinned the pocket's walls to 0.9 mm
+  (removed 3 Nov 2026).
 - **Wires:** the rail's wires (up to 4 of about 1 mm) run along the paddle's
-  back edge in a 2.2 mm channel under the band (1.6 mm where the band crosses), into the body through its
-  front wall just under the lid, above the switch board (an earlier hole lower
-  down was blocked by R1). The cord between the pods leaves through a 5 × 3
+  back edge in a 2.2 mm channel, into the body through its
+  front wall through a 4 × 3.2 mm hole for the strip's 3 wires (1.2 mm), 1.5 mm
+  in from the outer face and just above the pocket's top edge: the
+  wires come in above the switch board (and clear of the head pod's MAX30101
+  slot), and drop over the pocket's outer wall into the channel. The pocket is
+  solid from the channel out to the pod's face up to the channel's height, so
+  a hole any lower looks onto that wall; one low in the channel put the wires
+  across both boards' way in. The cord between the pods leaves through a 5 × 3
   mm hole: the battery pod's far end, and the board pod's back wall (see
   Board pod inside).
 - **Assumption to check:** the paddle grows on its lower edge (nearest the ear
@@ -516,8 +509,7 @@ end, down onto the bone behind the earlobe. It doesn't rise above the ear.
   off your nose rather than lifting the glasses.
 - **Printing:** pods in PETG, head-side face down, no supports (the pocket's
   outer wall bridges over the paddle's space). The liner prints open edge
-  down, and the bands lying flat. The band's groove on the head-side face
-  makes an 8 mm bridge 0.7 mm up.
+  down.
 - **Board pod inside:** 66 × 10.8 × 32.6 mm overall. It's roomier than its
   parts need, so the wires go in without squeezing (prototype; it was
   63 × 8.7 × 29.0). The cavity is 8.6 mm from floor to lid. Nothing is raised inside
@@ -577,12 +569,12 @@ place of the earlobe clip.
 - **Layout:** the chip edge faces the ear bend, the chip's centre 4.5 mm from
   the tip's end (`SENSOR_AT`), at the tip's top edge (`SENSOR_Z`). The board
   runs back past the tip's end under the pod's floor, below the bay. The
-  pocket's head-side wall is carried up past its top edge round the board,
-  ending well clear of the band.
+  pocket's head-side wall is carried up past its top edge round the board.
 - **Held by:** rims along the board's sides (1.3 mm, wider than the earlobe
   clip's 0.8), tabs over its top corners and a cover over its pin tab, in the
-  PETG wall; a 1.2 mm backing behind it above and below the temple tip, and
-  the tip itself when worn.
+  PETG wall; a 1.2 mm backing behind it above the temple tip (right down to
+  its top edge: the wire channel narrows to 2.95 mm beside it, room for the
+  strip's 3 wires) and below it, and the tip itself when worn.
 - **Slot fit (first print, 3 Nov 2026):** the board wouldn't go in, and the
   thin wall tore pulling support out of the slot. The slot now has PETG
   clearances of its own: 0.35 mm each side across the board (`SLOT_SIDE`),
@@ -604,7 +596,7 @@ place of the earlobe clip.
   end. It's under the temple, which presses there.
 - **Size:** 66 mm long like the plain pod, but 12.4 mm thick instead of 10.8
   (all on the outer side), so the switch board fits over the sensor: 7.9 mm
-  over it, 10.2 mm past its edge. It has its own band. No earlobe lead hole.
+  over it, 10.2 mm past its edge. No earlobe lead hole.
 - **Unproven:** whether this spot gives a clean pulse on every beat (the
   LEDs need every one, live). Try it against the earlobe clip.
 
