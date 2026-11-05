@@ -54,7 +54,7 @@ def parts():
         ("cap_groove_front_flex", 2, mv._to_bed(Rot(90, 0, 0) * g.groove_cap_front())),
         ("cap_groove_rear_flex", 2, mv._to_bed(Rot(90, 0, 0) * g.groove_cap_rear())),
         ("liner_joint_flex", 2, mv._to_bed(Rot(90, 0, 0) * tl)),
-    ] + [(f"shim_{round(t * 10):02d}_flex", 2, mv._to_bed(Rot(0, 90, 0) * g.fold(g.shim(t), g.OPEN_ANGLE))) for t in g.SHIMS]
+    ] + [(n, 1, o(sh)) for n, sh, o, _ in g.channel_cap_items()] + [(f"shim_{round(t * 10):02d}_flex", 2, mv._to_bed(Rot(0, 90, 0) * g.fold(g.shim(t), g.OPEN_ANGLE))) for t in g.SHIMS]
     flex += [(f"nose_clip_w{round(f * 10)}_flex", 1, nc.print_orient(nc.clip(fit=f))) for f in nc.FITS]
     # Test piece first: the right half of the front (lens fit, pad, socket, hinge, LEDs)
     test = [("test_front", 1, two_colour("test_front", tb, tc, tb + tc))]

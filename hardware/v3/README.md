@@ -32,7 +32,7 @@ riskiest parts early: the lens popping into the closed rim, the nose pad, the hi
 
 | File | Material | Qty | What it is |
 |---|---|---|---|
-| `front_body_petg` + `front_translucent_petg` | Black + translucent PETG | 1 | Both closed rims with the lens groove, the bridge, the pads (socket and thermistor tunnel in the right one), both corners with the LED slots, pockets, corner blocks and the hinges' top and bottom knuckles. Two-colour pair, already placed together. Prints front face down. |
+| `front_body_petg` + `front_translucent_petg` | Black + translucent PETG | 1 | Both closed rims with the lens groove, the bridge, the pads (socket in the right one), the thermistor's open channel, both corners with the LED slots, pockets, corner blocks and the hinges' top and bottom knuckles. Two-colour pair, already placed together. Prints front face down. |
 | `temple_front_left_petg`, `temple_front_right_petg` | Black PETG | 1 each | Temple front piece: middle knuckle, the squeeze stop (with a shim pocket), front pocket, wire groove, then the 35 mm sleeve (it bulges 1.95 mm toward the head; the outer face stays flat). Prints outer face down. |
 | `temple_rear_left_petg`, `temple_rear_right_petg` | Black PETG | 1 each | Temple rear piece: the tongue (wires over its top behind a 45° lip, stop slot on its head side), ear bend and tip, the measured paddle the v2 pods fit. Prints head side down. |
 | `liner_joint_flex` | Soft flex | 2 | Liner pressed sideways into each sleeve's head-side recess: grips the tongue (0.25 mm squeeze); its ridge in the tongue's slot gives soft end stops |
@@ -44,7 +44,10 @@ riskiest parts early: the lens popping into the closed rim, the nose pad, the hi
 | `cap_temple_pocket_flex` | Soft flex | 2 | Plug over each temple's front pocket |
 | `cap_groove_front_flex` | Soft flex | 2 | Strip over the front piece's groove, pocket to sleeve |
 | `cap_groove_rear_flex` | Soft flex | 2 | Strip over the rear piece's groove, shoulder to bend. Cut a 17 mm piece off it for the tip. |
-| `test_front_body_petg` + `test_front_translucent_petg` | Black + translucent PETG | 1 | The right half of the front, with its LED slot, corner pocket, hinge knuckles, pad, socket and tunnel. Print this first. |
+| `cap_thermistor_pad_flex` | Soft flex | 1 | Strip over the thermistor channel on the right pad's back face, socket to pad top |
+| `cap_thermistor_corner_flex` | Soft flex | 1 | Zigzag strip over the channel across the pad's top, up the front's back face and over the brow's top |
+| `cap_thermistor_brow_flex` | Soft flex | 1 | Long strip (62 mm) over the channel along the brow's top into the corner pocket; printed straight, it bends to the brow's rise |
+| `test_front_body_petg` + `test_front_translucent_petg` | Black + translucent PETG | 1 | The right half of the front, with its LED slot, corner pocket, hinge knuckles, pad, socket and thermistor channel. Print this first. |
 | `nose_clip_w*_flex` | Soft flex | 1 | v2 thermistor nose clip, one per wing size (`hardware/v2/nose_clip.py`) |
 
 All of them, as on the bed, in one file for Fusion: `out/print_layout_v3.step` (`print_layout_v3.py`).
@@ -117,10 +120,13 @@ Fixings needed:
    under the brow, inner end first, until it's home; its DIN end stays in the pocket. Its 3 wires leave the pocket
    through the notch in its back wall, just above the hinge's top knuckle.
 3. **Thermistor (right side).** Push the magnetic pogo socket up into the right pad from below, face down.
-   - Thread its 2 wires (30 AWG enamelled, twisted) up the tunnel: up the pad, forward into the nasal rim, up the
-     rim and along the brow (in front of the LED slot) into the corner pocket. They leave with the LED wires.
-   - Pull them in behind a 0.3 mm fishing line threaded first. Splice to flexible stranded wire in the pocket for
-     the part that crosses the hinge.
+   - Solder its 2 wires (30 AWG enamelled, twisted) first; they leave the socket's top through the window in the
+     back of its boss.
+   - Lay them into the open channel (1.0 wide; 0.8 of wire space under the caps, 0.6 along the brow): up the pad's back face, forward
+     over the pad's top, up the front's back face beside the nose, forward over the brow's top, then along the
+     brow's top (in front of the LED slot) into the corner pocket. They leave with the LED wires.
+   - Press in the 3 soft-flex caps: pad, corner (the zigzag), brow (it leans forward 45° in its channel).
+   - Splice to flexible stranded wire in the pocket for the part that crosses the hinge.
 4. **Hinge.** Fit the temple's middle knuckle between the front's two and push an M2×10 through from the top,
    with the nut in the trap underneath. Tighten until the temple holds its position but still folds.
 5. **Temple joint.** Press the joint liner sideways into the sleeve's head-side recess (in through the sleeve's
@@ -153,7 +159,7 @@ pod (D7 right / D2 left via cord, switched LED+, GND)
   --3 wires: temple outer-face groove, temple pocket, over the hinge, corner pocket--> strip DIN (outer end)
   LEDs 0..4, outer -> inner (4 nearest the nose)
 right only: thermistor bead (nose clip) --magnetic plug--> socket in right pad
-  --tunnel: pad, nasal rim, brow--> corner pocket --over the hinge--> temple groove --> pod: A0 (divider) and GND
+  --open channel under caps: pad, front's back, brow--> corner pocket --over the hinge--> temple groove --> pod: A0 (divider) and GND
 ```
 
 Firmware (`firmware_v2`, built with the default `LED_STRIP_LEN` 5): index 0 is the DIN end at the hinge, 4 the inner
@@ -165,7 +171,8 @@ end. Calm breaths stay off the one or two LEDs nearest the nose. The v2 headset'
 - **Front:** front face down, as exported. The knuckles stand up at the back.
   - The translucent pieces are the LED walls: the U round each slot (back wall, floor and front skin), as on the
     one-piece part. Expect toolchange ooze at the colour joins: use a prime tower.
-  - Bridges: each LED slot's translucent wall (4.6 mm) and the thermistor tunnel's round roof (1.3 mm). The 45°
+  - Bridges: each LED slot's translucent wall (4.6 mm). The thermistor channel's brow run leans forward 45° so it has no
+    ceiling; its other runs open upward or sideways. The 45°
     chamfer on the printed face is at the limit; the pocket and wire gate open upward (no bridge).
   - The lens groove's flanks are 35° from vertical, so they print unsupported. In this model the groove is stepped
     in 4 steps; the detailed design should sweep a smooth V.
@@ -192,8 +199,9 @@ end. Calm breaths stay off the one or two LEDs nearest the nose. The v2 headset'
     the right sleeve meets the left rear piece). Checked at −4, 0 and +8 mm.
   - Folding both at once is checked at 30° steps only to confirm that one goes first.
 - **Overhangs:** only the bridges, the chamfer and the stepped groove ledges listed above.
-- **Front internals:** the LED slot sits 1.2 mm above the lens groove; the thermistor tunnel keeps at least
-  0.5 mm of wall all the way and stays 0.85 mm from the slot and 1.25 mm from the groove; the pads stay behind the
+- **Front internals:** the LED slot sits 1.2 mm above the lens groove; the thermistor channel keeps 0.6 mm
+  of front skin under the brow run, 0.94 mm to the lens groove, 1.07 mm to the LED slot and 0.31 mm to the
+  translucent U's top corner (at the inner end of the LED run only); the pads stay behind the
   rim, out of the lens's view.
 - **Telescopic temples:** the pieces never touch over the whole travel (−4 to +8 mm) except the liner's designed
   squeeze; the shoulder hits the sleeve 0.5 mm past the short end. Fold checks run at −4, 0 and +8 mm.
@@ -243,8 +251,9 @@ end. Calm breaths stay off the one or two LEDs nearest the nose. The v2 headset'
   and bottom of the rim do the giving, warmed. PETG may crack if it's forced cold. Try it on the test front. The
   fallback is a thinner lip (RIM_LIP) or a rear retaining ring.
 - **Base curve:** a strong or high-cylinder prescription may need 4-base or more, and then a deeper (8–9 mm) rim.
-- **Threading the thermistor:** the tunnel has four bends (rounded). If threading fails, an open groove on the
-  back of the nasal rim and the brow, with a soft-flex cap, is the fallback.
+- **Thermistor channel:** an open channel with soft-flex caps replaced a 98 mm, 1.3 mm tunnel with four bends
+  (user, 5 Nov 2026: too tight to thread). The caps hold by a 0.05 mm squeeze each side; if one lifts, a dot of
+  flexible glue on the cap (not on the wires) keeps it in.
 - **The cord:** it stays behind the head, as on v2. The frame could carry the battery and the left strip's wires
   through the front instead, but that adds 4 wires across each hinge. Not chosen.
 - **Folded size:** with the pods on, the folded glasses are about 193 × 54 × 65 mm (the second temple rests at 80°, so it and its pod stick out past the front; the pods hang below the

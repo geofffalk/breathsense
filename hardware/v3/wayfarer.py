@@ -102,7 +102,7 @@ def front_solid():
 # Everything below fits the v3 internals (first drawn in glasses_v3's blocky front) into this outline:
 # the 5-LED slot under the brow with its translucent U, the corner pockets and their caps, the hinge
 # (corner blocks, knuckles, pin), the closed rim's lens groove (no split, no screw), the nose pads
-# that follow the rims' flare, and the thermistor tunnel from the right pad's socket to the pocket.
+# that follow the rims' flare, and the thermistor's open channel from the right pad's socket to the pocket.
 
 RIM_LIP = 0.5            # The rim overlaps the lens's 0.8 bevel this much: less to stretch when the lens pops in
 POCKET = g.POCKET        # Corner pocket box (x, y, z), left side; its top is opened up through the brow here
@@ -112,10 +112,19 @@ HINGE_BLOCK_X1 = g.X0 + FILLET_BACK + 0.1   # ... reaching past the front's back
 PAD_Z = (g.LENS_ZC - 8.0, g.LENS_ZC + 7.5)  # Nose pads' height (as glasses_v3's)
 PAD_W = 4.0              # Pad width behind the nasal rim, from its edge outward: stays behind the rim (edge 3.6 + lip 0.5 from the apex)
 PAD_X = (g.X0 - 6.3, g.X0 + 0.5)          # Pads stand back from the front; backs in front of the folded temples
-TUNNEL_D = 1.3           # Thermistor tunnel (2 twisted 30 AWG enamelled wires, ~0.7 mm); round, joints rounded
-TUN_X = (g.TUN_X[0] + g.TUN_X[1]) / 2     # Tunnel's x in the front: in front of the LED slot, 1.2 skin to the face
-TUN_Z = (g.TUN_Z[0] + g.TUN_Z[1]) / 2     # ... and its z along the brow
-TUN_TURN_Z = -18.0       # Where it leaves the pad for the nasal rim (above the flare, where the rim is vertical)
+# Thermistor wires: an OPEN channel laid in from outside and closed by soft-flex caps (user, 5 Nov 2026: a
+# 98 mm, 1.3 mm tunnel with 4 corners couldn't be threaded). Route: out of the socket's back, up the pad's
+# back face, forward over the pad's top, up the front's back face, forward over the brow's top, then
+# along the brow's top (in front of the LED slot) into the corner pocket.
+CH_W = 1.0               # Channel width (2 twisted 30 AWG enamelled wires are ~0.6)
+CH_D = 1.6               # Depth: CH_CAP of soft-flex cap over 0.8 for the wires
+CH_CAP = 0.8             # Cap thickness
+CH_FIT = 0.05            # Cap oversize each side (a squeeze, as the other caps)
+CH_TURN_Z = -18.0        # Channel reaches the pad's middle here (above the flare, where the rim is vertical)
+BROW_CH_X = 8.3          # Brow run's opening, back edge (x) on the brow's top: in front of the LED slot
+BROW_CH_D = 1.4          # Brow run's depth (z); it leans forward 45 deg going down, so the front (printed face
+                         # down) has no flat ceiling over it. Front skin under it 0.6
+CH_END_X = 10.0          # Crossing over the brow's top ends here (meets the brow run's wire space)
 SOCKET_WALL = 0.8        # Round the pogo socket's 4.9 ring
 
 
@@ -168,31 +177,95 @@ def _seg(a, b, d):
     return c + Pos(b) * Sphere(d / 2)
 
 
-def tunnel_path(sign=-1):
-    """Thermistor tunnel's points: socket's back, up the pad to above the flare, forward into the nasal
-    rim, up it to the brow, along the brow (in front of the LED slot) into the corner pocket."""
+def ch_y():
+    """|y| of the channel's straight runs: the pad's middle where the rim is vertical."""
+    return nasal_edge(-1, CH_TURN_Z) + PAD_W / 2
+
+
+def pad_path(sign=-1):
+    """Pad run's (y, z) points: from the socket's top, up the pad's back face (its middle) to its top."""
     sx, sy, sz = socket_xyz(sign)
-    ty = sign * (nasal_edge(sign, TUN_TURN_Z) + (RIM + g.GROOVE_CLEAR) / 2 - 0.3)
-    zb = sz + g.POGO[3] + 1.5                                  # Top of the socket's boss: from here up the pad's middle
-    yb = sign * (nasal_edge(sign, zb) + PAD_W / 2)
-    return [(sx, sy, sz + g.POGO[3] - 0.5), (sx, yb, zb), (sx, ty, TUN_TURN_Z), (TUN_X, ty, TUN_TURN_Z), (TUN_X, ty, TUN_Z),
-            (TUN_X, sign * (POCKET["y"][0] + 1.0), TUN_Z)]
+    zb = sz + g.POGO[3] + 1.5                                  # Top of the socket's boss
+    return [(sy, sz + g.POGO[3] - 0.3), (sign * (nasal_edge(sign, zb) + PAD_W / 2), zb),
+            (sign * ch_y(), CH_TURN_Z), (sign * ch_y(), PAD_Z[1] + 1.0)]
 
 
-def tunnel(sign=-1):
-    pts = tunnel_path(sign)
-    out = None
-    for a, b in zip(pts, pts[1:]):
-        s = _seg(a, b, TUNNEL_D)
-        out = s if out is None else out + s
-    return out
+def _pad_run(x0, x1, grow=0.0):
+    pts = pad_path(-1)
+    band = LineString(pts).buffer(CH_W / 2 + grow, quad_segs=8, cap_style="round", join_style="round")
+    return g.yz_prism(list(band.exterior.coords)[:-1], x0, x1)
+
+
+def _box_runs(d, grow=0.0):
+    """The three straight runs at |y| = ch_y (right side): over the pad's top (along x), up the front's back
+    face (z), over the brow's top (x). d: depth from each face (CH_D for the cut, CH_CAP for the caps)."""
+    y = ch_y()
+    ya, yb = -y - CH_W / 2 - grow, -y + CH_W / 2 + grow
+    top = brow_top(y)
+    pz = PAD_Z[1]
+    return (g.box(PAD_X[0] - 1, g.X0 + d, ya, yb, pz - d, pz + 1)            # Over the pad's top
+            + g.box(g.X0 - 1, g.X0 + d, ya, yb, pz - d, top + 1)             # Up the front's back face
+            + g.box(g.X0 - 1, CH_END_X, ya, yb, top - d, top + 1))           # Over the brow's top
+
+
+def _brow_section(y, d, grow):
+    """Brow run's cross-section at y (right side): a parallelogram leaning forward 45 deg, d deep below the
+    brow's top there, CH_W wide along x at the top (grow added across, as x)."""
+    t = brow_top(y)
+    a, w = BROW_CH_X - grow * math.sqrt(2), CH_W + 2 * grow * math.sqrt(2)
+    pts = [(a - 1, t + 1), (a + w - 1, t + 1), (a + w + d, t - d), (a + d, t - d)]
+    return Wire.make_polygon([Vector(x, -y, z) for x, z in pts], close=True)
+
+
+def _brow_run(d, grow=0.0, y0=None, y1=None):
+    """The cut runs into the corner pocket; the cap stops at its wall (y1), clear of the pocket cap."""
+    y0 = ch_y() if y0 is None else y0
+    y1 = POCKET["y"][0] + 0.5 if y1 is None else y1
+    n = 12
+    ys = [y0 + (y1 - y0) * i / n for i in range(n + 1)]
+    return Solid.make_loft([_brow_section(y, d, grow) for y in ys], ruled=True)
+
+
+def channel(sign=-1):
+    """The whole open channel (right side), as a cut."""
+    return _pad_run(PAD_X[0] - 1, PAD_X[0] + CH_D) + _box_runs(CH_D) + _brow_run(BROW_CH_D)
+
+
+def _envelope():
+    return front_solid() + pad(-1)
+
+
+def channel_caps():
+    """The channel's three soft-flex caps as fitted (right side): (pad, corner, brow). Pad: a flat strip on
+    the pad's back face. Corner: one zigzag strip over the pad's top, up the front's back and over the
+    brow's top. Brow: the long strip along the brow's top into the pocket. CH_FIT oversize across."""
+    env = _envelope()
+    corner = _box_runs(CH_CAP, CH_FIT) & env
+    pad_cap = (_pad_run(PAD_X[0], PAD_X[0] + CH_CAP, CH_FIT) & env) - _box_runs(CH_CAP, 0.5)
+    brow = _clip_top(_brow_run(CH_CAP, CH_FIT, y0=ch_y() + CH_W / 2 + CH_FIT, y1=POCKET["y"][0] - 0.1))
+    return pad_cap, corner, brow
+
+
+def _clip_top(s):
+    """Trim a brow-run piece to the brow's top (the run's sections reach 1 mm above it)."""
+    return s & outline_prism(g.X0 - 1, g.X1 + 1)
+
+
+def brow_cap_flat():
+    """The brow cap straight, for printing (soft flex bends to the brow's 2.4 mm rise): its section at the
+    pocket end, lying on its bottom face."""
+    y0, y1 = ch_y() + CH_W / 2 + CH_FIT, POCKET["y"][0] - 0.1
+    a, w = BROW_CH_X - CH_FIT * math.sqrt(2), CH_W + 2 * CH_FIT * math.sqrt(2)
+    d = CH_CAP
+    pts = [(a, d), (a + w, d), (a + w + d, 0.0), (a + d, 0.0)]
+    return g.xz_prism(pts, 0.0, y1 - y0)
 
 
 def socket_cut(sign=-1):
     sx, sy, sz = socket_xyz(sign)
     boss, boss_h, ring, length = g.POGO
     c = Pos(sx, sy, sz + boss_h / 2 - 0.2) * Cylinder((boss + 0.1) / 2, boss_h + 0.4)
-    c += Pos(sx, sy, sz + boss_h + (length - boss_h) / 2) * Cylinder((ring + 0.1) / 2, length - boss_h)
+    c += Pos(sx, sy, sz + boss_h + (length + 0.5 - boss_h) / 2) * Cylinder((ring + 0.1) / 2, length + 0.5 - boss_h)   # +0.5 for the solder joints
     return c
 
 
@@ -219,7 +292,7 @@ def cuts(sign):
     c += g.side_place(g.box(g.END_X0 - 1, POCKET["x"][0] + 0.1, g0, g1, gz, POCKET_TOP), right)   # Wires over the hinge
     c += g.side_place(g.knuckle("mid", g.KNUCKLE_R + g.HINGE_CLEAR) + g.hinge_pin(), right)
     if right:
-        c += socket_cut(sign) + tunnel(sign)
+        c += socket_cut(sign) + channel(sign)
     return c
 
 
@@ -264,7 +337,7 @@ def _top_at(y):
 
 def test_front():
     """The right half of the front (to 2 mm past the bridge's middle) with its pocket, hinge, pad,
-    socket and tunnel: tries the lens fit, the nose pad, the hinge and the LEDs."""
+    socket and thermistor channel: tries the lens fit, the nose pad, the hinge and the LEDs."""
     body, clear, _ = front_pieces()
     keep = g.box(-14, g.X1 + 2, -g.HALF_WIDTH - 10, 2.0, -60, 20)
     return body & keep, clear & keep

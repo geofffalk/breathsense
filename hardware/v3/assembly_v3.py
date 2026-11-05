@@ -41,11 +41,13 @@ def nose_items():
 
 
 def front_items():
+    import wayfarer
     body, clear, _ = g.front_pieces()
     items = [("front_body", body), ("front_translucent", clear)]
     for sign, side in ((-1, "right"), (1, "left")):
         items += [(f"lens_{side}", g.lens(sign)), (f"strip_front_{side}", g.strip_front(sign)),
                   (f"cap_pocket_{side}", g.pocket_cap(sign))]
+    items += [(f"cap_thermistor_{n}", c) for n, c in zip(("pad", "corner", "brow"), wayfarer.channel_caps())]
     return items
 
 
@@ -79,6 +81,8 @@ DESIGNED = {("pod_board_head", "lid_board_head"), ("pod_battery", "lid_battery")
             ("pod_battery", "liner_left"), ("liner_right", "temple_rear_right"), ("liner_left", "temple_rear_left"),
             ("liner_joint_right", "temple_rear_right"), ("liner_joint_left", "temple_rear_left"),
             ("front_body", "cap_pocket_right"), ("front_body", "cap_pocket_left"),
+            ("front_body", "cap_thermistor_pad"), ("front_body", "cap_thermistor_corner"),
+            ("front_body", "cap_thermistor_brow"),
             ("temple_front_right", "cap_groove_front_right"), ("temple_front_left", "cap_groove_front_left"),
             ("temple_rear_right", "cap_groove_rear_right"), ("temple_rear_left", "cap_groove_rear_left"),
             ("temple_front_right", "cap_temple_pocket_right"), ("temple_front_left", "cap_temple_pocket_left")}
@@ -92,7 +96,8 @@ def overlaps(items, only=None):
         for b in names[i + 1:]:
             if only and not only(a, b):
                 continue
-            v = (d[a] & d[b]).volume
+            v = d[a] & d[b]
+            v = v.volume if v is not None else 0.0
             if v > 0.01:
                 out.append((a, b, v, (a, b) in DESIGNED or (b, a) in DESIGNED))
     return out

@@ -21,7 +21,8 @@ What it is (user's decisions, 4 Nov 2026):
   then over the hinge just above its top knuckle, close to the axis, so folding bends them rather
   than stretching them, into the corner pocket. Data runs pod -> front strip (outer to inner).
 - Thermistor: magnetic pogo socket in the right nose pad, face down toward the nostril; its wires
-  run in a tunnel up the right nasal rim and along the top bar into the corner pocket, across the
+  are laid in an open channel (soft-flex caps) up the right pad's back, the front's back and along the
+  brow's top into the corner pocket, across the
   hinge with the LED wires, then back along the groove in the temple's outer face (soft-flex cap) to the pod with the LED wires.
 - Pods: v2's head-sensor board pod and battery pod, unchanged inside, on the temple tips, which are
   printed to the measured paddle shape they were designed round. Each is locked on with an M2
@@ -80,7 +81,7 @@ GROOVE_CLEAR = 0.2       # Groove's root this far past the bevel's apex
 
 # ---------------------------------------------------------------- front
 X0 = ao.op.FRAME_BACK_X  # 4.8: front's back face (the reference frame's)
-FRONT_D = 6.5            # Front depth (x): back LED wall 0.8, slot 2.4, wall 0.9, thermistor tunnel 1.2, skin 1.2
+FRONT_D = 6.5            # Front depth (x): back LED wall 0.8, slot 2.4, wall 0.9, front skin (the thermistor channel runs in the brow's top here)
 X1 = X0 + FRONT_D
 RIM_W = 2.2              # Sets the corner pocket's inner end (LENS_YC + LENS_A / 2 + RIM_W + 0.4); the wayfarer's rim is wayfarer.RIM
 APEX_X = 8.9             # Bevel apex's x at the lens centre; it moves back by the curve's sag toward the edge
@@ -99,9 +100,6 @@ WALL = 0.8               # LED wall: two lines of translucent PETG
 # Top bar's slot, LEDs facing back (-x) at the eye
 SLOT_X = (X0 + WALL, X0 + WALL + SLOT_T)
 SLOT_Z = (-2.6, -2.6 + SLOT_H)
-TUNNEL = 1.2             # Thermistor tunnel (2 twisted 30 AWG enamelled wires, ~0.7 mm)
-TUN_X = (X1 - 1.2 - TUNNEL, X1 - 1.2)
-TUN_Z = (-1.8, -1.8 + TUNNEL)
 
 # Temples and the hinge (temple frame: x along the temple, y outward from its inner face, z up)
 TEMPLE_T = hp.TIP_T      # 4.0: one thickness to the tip, so the temple's outer face lies flat on the bed
@@ -113,7 +111,7 @@ BANDS = dict(top=(-3.0, -0.2), mid=(-5.8, -3.2), bot=(-8.8, -6.0))   # Front: to
 END_X0 = 0.3             # Corner block's back face: the temple's front face (x = 0) stops against it when open
 
 # Corner pocket (world, left side as modelled; the right mirrors): the front strip's outer end, the
-# thermistor tunnel's end and the wires' loop, open at the top under a soft-flex cap. The wires cross
+# thermistor channel's end and the wires' loop, open at the top under a soft-flex cap. The wires cross
 # the hinge just above its top knuckle, close to the axis, into the temple's own front pocket.
 POCKET = dict(x=(END_X0 + 0.8, X1 - 0.8), y=(LENS_YC + LENS_A / 2 + RIM_W + 0.4, HALF_WIDTH + TEMPLE_T - 0.8),
               z=(SLOT_Z[0] - 1.0, TOP_Z))
@@ -457,7 +455,7 @@ def side_place(shape, right):
 
 
 # The front itself (outline, rounding, LED slot and translucent U, pockets, hinge, closed-rim groove, pads,
-# socket and thermistor tunnel) is built in wayfarer.py, which imports this module for its constants.
+# socket and thermistor channel) is built in wayfarer.py, which imports this module for its constants.
 def front_pieces():
     """(body, translucent, whole): the two-colour pair, same bed position."""
     import wayfarer
@@ -544,6 +542,15 @@ def lens_template():
     return per
 
 
+def channel_cap_items():
+    """The thermistor channel's 3 soft-flex caps (right side only), each lying flat: (name, shape, orient, None)."""
+    import wayfarer
+    pad_cap, corner, _ = wayfarer.channel_caps()
+    return [("cap_thermistor_pad_flex", pad_cap, lambda p: mv._to_bed(Rot(0, 90, 0) * p), None),       # Thin in x
+            ("cap_thermistor_corner_flex", corner, lambda p: mv._to_bed(Rot(90, 0, 0) * p), None),    # Zigzag, thin in y
+            ("cap_thermistor_brow_flex", wayfarer.brow_cap_flat(), lambda p: mv._to_bed(p), None)]   # Straight, bottom down
+
+
 def main():
     (OUT / "step").mkdir(parents=True, exist_ok=True)
     (OUT / "stl").mkdir(parents=True, exist_ok=True)
@@ -574,7 +581,7 @@ def main():
         ("cap_temple_pocket_flex", temple_pocket_cap(), lambda p: mv._to_bed(p), None),
         ("cap_groove_front_flex", groove_cap_front(), lambda p: mv._to_bed(Rot(90, 0, 0) * p), None),
         ("cap_groove_rear_flex", groove_cap_rear(), lambda p: mv._to_bed(Rot(90, 0, 0) * p), None),
-    ] + [
+    ] + channel_cap_items() + [
         (f"shim_{round(t * 10):02d}_flex", shim(t), lambda p: mv._to_bed(Rot(0, 90, 0) * fold(p, OPEN_ANGLE)), None) for t in SHIMS
     ]
     for name, shape, orient, ref in items:
