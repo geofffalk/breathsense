@@ -126,7 +126,7 @@ static void play_pulses(Rgb c, int n) {   // Mode change: 1 heart, 2 breath
   Frame f;
   for (int k = 0; k < n; k++) {
     f.clear();
-    for (int i = 0; i < 4; i++) f.px[i] = c;
+    for (int i = 0; i < (STRIP_LEN == 10 ? 4 : 3); i++) f.px[i] = c;   // The back/outer LEDs (v2: 4 of 10)
     leds_show(f);
     delay(140);
     leds_dark();
@@ -495,6 +495,9 @@ void app_loop() {
     uint32_t samples[32];
     int n = sensor.read_ir(samples, 32);
     if (n > 0) last_ir = samples[n - 1];
+#ifdef PULSE_RAW_LOG
+    for (int i = 0; i < n; i++) Serial.printf("ir %lu\n", (unsigned long)samples[i]);   // Bring-up: raw IR at 100/s
+#endif
     uint32_t beats_before = pulse.rhythm_count;
     pulse.feed(samples, n, now, sensor.present() ? sensor.skin : false);
     pulse.tick(now);

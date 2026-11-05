@@ -1,9 +1,9 @@
-// display.h - What the LEDs show, as 10-LED frames (index 0 = back, 9 = front). Both sides mirror.
+// display.h - What the LEDs show, as STRIP_LEN-LED frames (index 0 = back/outer, last = front/inner). Both sides mirror.
 //
 // HeartDisplay is v1's HeartbeatLED unchanged. BreathDisplay is v1's OpenBreathingLED motion
 // (in-breath lights the bar's front LED, out-breath runs a comet back over the predicted exhale
 // length) with the v2 rule that the bar's front is set by the exhale colour, so calm breaths stay
-// off the front 4 LEDs. Pure C++.
+// off the front LEDs. Pure C++.
 
 #pragma once
 
@@ -42,7 +42,7 @@ class BreathDisplay {
   double exhale_start_ = -1;
   double exhale_pred_ = 2.0;
   bool locked_ = false;
-  int start_ = 9;            // Front-most LED for this breath
+  int start_ = STRIP_LEN - 1; // Front-most LED for this breath
  public:
   int start_by_depth[5] = {BREATH_START_BY_DEPTH[0], BREATH_START_BY_DEPTH[1], BREATH_START_BY_DEPTH[2],
                            BREATH_START_BY_DEPTH[3], BREATH_START_BY_DEPTH[4]};

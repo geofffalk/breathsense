@@ -328,7 +328,7 @@ def main():
 
     exe = os.path.join(OUT, "host_test")   # Built with -ffp-contract=off: no fused multiply-add, as Python rounds each step
     w = os.path.join(ROOT, "firmware_v2", "wearable")
-    subprocess.run(["clang++", "-std=c++17", "-O1", "-ffp-contract=off", "-Wall", "-o", exe, os.path.join(HERE, "host_test.cpp"),
+    subprocess.run(["clang++", "-std=c++17", "-O1", "-ffp-contract=off", "-Wall", "-DLED_STRIP_LEN=10", "-o", exe, os.path.join(HERE, "host_test.cpp"),
                     os.path.join(w, "breath.cpp"), os.path.join(w, "pulse.cpp"), os.path.join(w, "scoring.cpp"),
                     os.path.join(w, "display.cpp"), os.path.join(w, "protocol.cpp")],
                    check=True)

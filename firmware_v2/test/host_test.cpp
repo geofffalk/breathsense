@@ -4,7 +4,7 @@
 //   host_test breath temps.txt     one temperature per line, 100 Hz
 //   host_test pulse ir.txt         per tick: now_ms skin n s1 .. sn
 //   host_test mood breaths.txt     per breath: exhale inhale cycle smoothness peak_flow
-//   host_test breathled temps.txt  breath LED frames, v1 motion (bar front always 9)
+//   host_test breathled temps.txt  breath LED frames, v1 motion (bar front always the last LED)
 //   host_test heartled ir.txt      heart LED frames
 //   host_test settings             the R line with default settings
 
@@ -85,7 +85,7 @@ static void print_frame(double t, const Frame& f) {
 static int run_breathled(FILE* in) {
   BreathDetector d;
   BreathDisplay disp;
-  for (int& s : disp.start_by_depth) s = 9;   // v1's motion: the bar's front is always LED 9
+  for (int& s : disp.start_by_depth) s = STRIP_LEN - 1;   // v1's motion: the bar's front is always the last LED
   Frame f, last;
   f.clear();
   last.clear();

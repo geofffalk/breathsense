@@ -83,6 +83,7 @@ void BreathDisplay::tick(const BreathDetector& d, double now, Frame& f) {
     } else if (now - stable_since_ >= BREATH_DEBOUNCE_S) {
       if (phase == PH_INH) {
         start_ = start_by_depth[depth];
+        if (start_ < 0 || start_ >= STRIP_LEN) start_ = STRIP_LEN - 1;   // Never past the strip
         hold_.clear();
         hold_.px[start_] = DEPTH_COLORS[depth];
         holding_ = true;

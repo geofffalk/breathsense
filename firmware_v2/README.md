@@ -20,7 +20,8 @@ Not yet run on hardware.
 - **Breath and heart:** both are sensed in heart and breath modes, because the combined score
   needs both. Off (from the app) pauses sensing and darkens the LEDs, but Bluetooth stays on.
 - **LEDs:** the v1 heart display unchanged. The v1 breath motion, with the bar's front set by the
-  exhale colour (index 9/8/6/5/5 for red/white/light blue/purple/deep blue).
+  exhale colour (5 LEDs per side, v3 front: index 4/4/3/2/2 for red/white/light blue/purple/deep blue;
+  10 LEDs, v2 temple strips, built with `-DLED_STRIP_LEN=10`: 9/8/6/5/5).
 - **Scores:** the app's breath scoring (ported unchanged), nose-clip wear detection, and the
   combined stress (60% heart, 40% breath) all run here. They're sent as `K` about once a second.
 - **Connecting changes nothing:** the headset reports its mode (`M,{F|H|O}`) on connect and on

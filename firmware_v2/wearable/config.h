@@ -141,10 +141,18 @@ constexpr float FUSE_HR = 0.5f;         // Heart part of the combined score: rat
 constexpr float FUSE_HRV = 0.5f;
 
 // ---------------------------------------------------------------- LEDs
-constexpr int STRIP_LEN = 10;           // Index 0 = back (DIN end, at the temple), 9 = front flap
-constexpr int NUM_PIXELS = 10;
+// LEDs per side. v3 frame: 5 along the front's top bar, index 0 = outer end (DIN, by the hinge), 4 = inner
+// end (toward the nose). v2 temple strips: 10, index 0 = back (DIN, at the temple), 9 = front flap. Build
+// a v2 headset (and the host tests, which compare with v1's 10-LED Python) with -DLED_STRIP_LEN=10.
+// "Back"/"front" below mean outer/inner on v3.
+#ifndef LED_STRIP_LEN
+#define LED_STRIP_LEN 5
+#endif
+static_assert(LED_STRIP_LEN == 5 || LED_STRIP_LEN == 10, "LED_STRIP_LEN: 5 (v3) or 10 (v2)");
+constexpr int STRIP_LEN = LED_STRIP_LEN;
+constexpr int NUM_PIXELS = STRIP_LEN;
 constexpr uint8_t LED_BRIGHTNESS = 26;  // v1's 0.1
-constexpr float HEART_MIN_FILL = 5.0f;  // LEDs filled at rest (full stress: all 10)
+constexpr float HEART_MIN_FILL = STRIP_LEN / 2.0f;   // LEDs filled at rest (full stress: all)
 constexpr float HEART_COUNTER_BEAT = 0.55f;
 
 struct Rgb { uint8_t r, g, b; };
@@ -154,8 +162,10 @@ constexpr Rgb HEART_HOT_COLOR = {255, 0, 0};
 constexpr Rgb DEPTH_COLORS[5] = {
     {255, 0, 0}, {150, 150, 150}, {0, 160, 160}, {110, 0, 160}, {0, 0, 180},
 };
-// Breath bar's start (front-most) LED by depth colour: calm breaths stay off the front 4 (6-9)
-constexpr int BREATH_START_BY_DEPTH[5] = {9, 8, 6, 5, 5};
+// Breath bar's start (front-most) LED by depth colour: calm breaths stay off the front LEDs
+// (5 LEDs: 4/4/3/2/2, off the front one or two; 10 LEDs: 9/8/6/5/5, off the front four)
+constexpr int BREATH_START_BY_DEPTH[5] = {STRIP_LEN == 5 ? 4 : 9, STRIP_LEN == 5 ? 4 : 8, STRIP_LEN == 5 ? 3 : 6,
+                                          STRIP_LEN == 5 ? 2 : 5, STRIP_LEN == 5 ? 2 : 5};
 constexpr double BREATH_DEBOUNCE_S = 0.35;   // double: 0.35f is just under 0.35, a sample early
 
 // ---------------------------------------------------------------- BLE rates

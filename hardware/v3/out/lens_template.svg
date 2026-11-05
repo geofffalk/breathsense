@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88.0mm" height="76.0mm" viewBox="0 0 88.0 76.0">
+<rect width="100%" height="100%" fill="white"/>
+<path d="M15.000,26.500 L15.056,25.652 L15.221,24.818 L15.495,24.013 L15.871,23.250 L16.343,22.543 L16.904,21.904 L17.543,21.343 L18.250,20.871 L19.013,20.495 L19.818,20.221 L20.652,20.056 L21.500,20.000 L65.847,20.000 L66.678,20.053 L67.495,20.212 L68.285,20.475 L69.036,20.836 L69.733,21.290 L70.368,21.830 L70.928,22.446 L71.404,23.129 L71.789,23.867 L72.077,24.648 L72.263,25.460 L72.343,26.288 L72.317,27.120 L71.617,34.426 L71.514,35.113 L71.338,35.784 L66.325,51.478 L66.026,52.241 L65.635,52.961 L65.155,53.626 L64.596,54.225 L63.966,54.749 L63.275,55.190 L62.535,55.540 L61.756,55.794 L60.951,55.948 L60.133,56.000 L27.480,56.000 L26.629,55.944 L25.792,55.777 L24.985,55.502 L24.221,55.124 L23.513,54.649 L22.873,54.085 L22.312,53.443 L21.840,52.732 L21.466,51.966 L15.486,37.385 L15.218,36.587 L15.055,35.760 L15.000,34.919 Z" fill="none" stroke="black" stroke-width="0.2"/>
+<line x1="10.0" y1="38.0" x2="78.0" y2="38.0" stroke="red" stroke-width="0.15"/>
+<line x1="44.0" y1="15.0" x2="44.0" y2="61.0" stroke="red" stroke-width="0.15"/>
+<rect x="19.0" y="68.0" width="50" height="0.3" fill="black"/>
+<text x="19.0" y="67.0" font-size="2.2">50 mm check bar</text>
+<text x="2" y="4" font-size="2.4">BreathSense v3 lens shape, LEFT lens viewed from the front (mirror for the right); 1:1 mm</text>
+<text x="2" y="7" font-size="2.2">Bevel apex: A 58.0 x B 36.0 mm, DBL 22.0, frame PD 80.0 mm, apex perimeter 165.8 mm. V bevel 110 deg, 2-base front curve, edge >= 2.0 mm.</text>
+<text x="2" y="10" font-size="2.2">Datum: red lines = box centre (horizontal = 180 deg line). Nasal side toward the centre of the glasses.</text>
+</svg>
